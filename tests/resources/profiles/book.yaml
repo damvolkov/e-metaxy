@@ -1,0 +1,12 @@
+research:
+  mode: dontAsk
+  allow: [Read, Grep, Glob, WebSearch, WebFetch]
+  roots: [/tmp]
+  turns: 8
+  note: read and search only
+code:
+  mode: acceptEdits
+  allow: [Read, Grep, Glob, Edit, Write, Bash]
+  deny: ["Bash(git push*)"]
+  roots: [/tmp]
+  budget: 2.5

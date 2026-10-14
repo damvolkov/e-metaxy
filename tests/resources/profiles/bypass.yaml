@@ -1,0 +1,3 @@
+reckless:
+  mode: bypassPermissions
+  roots: [/tmp]
