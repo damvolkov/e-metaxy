@@ -22,6 +22,7 @@ OpenHuman ──MCP (HTTP, loopback)──▶ e-metaxy ──Agent SDK──▶ 
 | `task_cancel(task)` | interrupts a running task |
 | `task_list(state?, limit?)` | newest tasks first |
 | `session_list(coder?)` | live interactive sessions: name, ref, idle/busy |
+| `session_history(cwd?, limit?, coder?)` | recorded sessions, newest first — an id to resume without knowing it |
 | `session_send(peer, text, coder?)` | delivers text to a live session's inbox |
 | `profile_list()` | the profiles a task may run under |
 
@@ -30,8 +31,9 @@ A skill or slash command is a prompt: `task_start(prompt="/research vLLM sleep m
 ## Profiles
 
 `profiles.yaml` is the nomos of the bridge: a caller names a profile, never a flag. Each fixes the permission mode
-(`dontAsk`, `acceptEdits`, `plan`, `default`, `auto` — `bypassPermissions` does not load), the allowed and denied
-tools, the roots `cwd` must live under, and turn/budget limits. Your `~/.claude` permissions apply on top.
+(`default`, `dontAsk`, `acceptEdits`, `plan`, `auto`, and `bypassPermissions` — used by `direct`, which approves
+everything as if you worked in Claude Code yourself; deny rules and hooks still hold), the allowed and denied tools,
+the roots `cwd` must live under, and turn/budget limits. Your `~/.claude` loads on top of every profile.
 
 ## Run
 

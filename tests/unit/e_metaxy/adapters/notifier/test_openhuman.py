@@ -37,12 +37,32 @@ async def test_openhuman_notify(httpserver: HTTPServer, notifier: OpenHumanNotif
     httpserver.expect_request("/rpc", method="POST").respond_with_handler(handle)
     await notifier.notify(ended)
     (call,) = seen
-    assert (call["auth"], call["method"], call["params"]["caller_id"], call["params"]["payload"]["result"]) == (
+    params = call["params"]
+    assert (call["auth"], call["method"], params["caller_id"], params["payload"]["task"]["result"]) == (
         "Bearer core-token",
         METHOD,
         f"e-metaxy:{ended.id}",
         "clean",
     )
+    assert (
+        "send Damien the result on Discord" in params["payload"]["instruction"],
+        "clean" in params["payload"]["instruction"],
+    ) == (True, True)
+
+
+async def test_openhuman_notify_failed(httpserver: HTTPServer, notifier: OpenHumanNotifier) -> None:
+    order = TaskOrder(prompt="break", profile="code", cwd="/tmp", caller="openhuman")
+    broken = Task.open(order, CoderKind.CLAUDE).move(TaskState.FAILED, error="boom")
+    seen: list[dict] = []
+
+    def handle(request: Request) -> Response:
+        seen.append(msgspec.json.decode(request.get_data()))
+        return Response('{"jsonrpc":"2.0","id":1,"result":{}}', content_type="application/json")
+
+    httpserver.expect_request("/rpc", method="POST").respond_with_handler(handle)
+    await notifier.notify(broken)
+    instruction = seen[0]["params"]["payload"]["instruction"]
+    assert ("tell Damien the task failed and why" in instruction, "boom" in instruction) == (True, True)
 
 
 async def test_openhuman_notify_swallows_failure(

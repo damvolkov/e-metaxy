@@ -13,6 +13,7 @@ from e_metaxy.models.coder import (
     CoderEvent,
     CoderPeer,
     CoderReceipt,
+    CoderSession,
     CoderSpec,
     FinishedEvent,
     PeerStatus,
@@ -55,6 +56,9 @@ class ScriptedCoder:
 
     async def send(self, peer: str, text: str) -> CoderReceipt:
         return CoderReceipt(peer=peer, delivered=True, detail=text)
+
+    async def history(self, cwd: str, limit: int) -> list[CoderSession]:
+        return [CoderSession(session="s-old", title="earlier work", cwd=cwd or "/tmp")][:limit]
 
 
 class RecordingNotifier:

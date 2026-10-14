@@ -1,3 +1,4 @@
+import logging
 from typing import TYPE_CHECKING
 
 import httpx2
@@ -7,7 +8,7 @@ from fakes import lifespan
 from core.settings.base import Secret
 from e_metaxy.adapters.notifier.openhuman import OpenHumanNotifier
 from e_metaxy.config.metaxy import MetaxySettings
-from e_metaxy.main import assemble, notifiers
+from e_metaxy.main import _ToStructlog, assemble, notifiers
 from e_metaxy.mcp.guard import TokenGuard
 
 if TYPE_CHECKING:
@@ -44,6 +45,13 @@ async def test_main_notifiers(token: Secret | None, expected: list[str]) -> None
 
 async def test_main_assemble_guarded(settings: MetaxySettings) -> None:
     assert isinstance(assemble(settings), TokenGuard)
+
+
+async def test_main_quiet_routes_stdlib(settings: MetaxySettings) -> None:
+    _ = assemble(settings)
+    assert any(isinstance(h, _ToStructlog) for h in logging.root.handlers)
+    assert not any(type(h).__module__.startswith("rich") for h in logging.root.handlers)
+    logging.getLogger("mcp.test").warning("routed without raising")
 
 
 async def test_main_assemble_open(settings: MetaxySettings) -> None:

@@ -1,10 +1,14 @@
 """e_metaxy.adapters.notifier.openhuman: tell OpenHuman a task ended — its core's own trigger, over JSON-RPC.
 
-`openhuman.webhooks_trigger_agent` runs OpenHuman's triage pipeline on the payload: the polymath reads the
-outcome and decides what to do with it. A failed call is logged and dropped — a callback never fails a task."""
+`openhuman.webhooks_trigger_agent` runs OpenHuman's triage pipeline: the classifier sees only the envelope's
+label and the **payload**, never the reason — so the order ("send Damien the result") and the outcome to
+deliver ride in the payload, and the reason stays a record label. A failed call is logged and dropped —
+a callback never fails a task."""
 
+from collections.abc import Mapping
 from datetime import timedelta
 from itertools import count
+from types import MappingProxyType
 from typing import ClassVar, Final
 
 import msgspec
@@ -13,11 +17,19 @@ import wreq
 from beartype import beartype
 
 from adapters.base import BaseAdapter
-from e_metaxy.models.task import Task
+from e_metaxy.models.task import Task, TaskState
 
 log = structlog.get_logger()
 
 METHOD: Final = "openhuman.webhooks_trigger_agent"
+ACTION: Final[Mapping[TaskState, str]] = MappingProxyType(
+    {
+        TaskState.DONE: "send Damien the result on Discord",
+        TaskState.FAILED: "tell Damien the task failed and why",
+        TaskState.CANCELLED: "tell Damien the task was cancelled",
+        TaskState.RUNNING: "note that the engineer is still working",
+    }
+)
 
 
 @beartype
@@ -37,6 +49,20 @@ class OpenHumanNotifier(BaseAdapter):
 
     ##### PRIVATE METHODS #####
 
+    @staticmethod
+    def _notify_reason(task: Task) -> str:
+        """The envelope's record label — the classifier never sees it; the payload carries the order."""
+        return f"e-metaxy task {task.state}: {task.prompt[:120]}"
+
+    @staticmethod
+    def _notify_payload(task: Task) -> dict[str, object]:
+        """The only text triage reads: the instruction first, then the outcome to act with, then the whole truth."""
+        outcome = (task.result or task.error or task.state.value)[:300]
+        return {
+            "instruction": f"an engineer finished a task for Damien — {ACTION[task.state]}. Outcome: {outcome}",
+            "task": msgspec.to_builtins(task, enc_hook=Task.enc_hook),
+        }
+
     def _notify_body(self, task: Task) -> dict[str, object]:
         return {
             "jsonrpc": "2.0",
@@ -45,8 +71,8 @@ class OpenHumanNotifier(BaseAdapter):
             "params": {
                 "caller_id": f"e-metaxy:{task.id}",
                 "source": "external",
-                "reason": f"e-metaxy task {task.state}: {task.prompt[:120]}",
-                "payload": msgspec.to_builtins(task, enc_hook=Task.enc_hook),
+                "reason": self._notify_reason(task),
+                "payload": self._notify_payload(task),
             },
         }
 

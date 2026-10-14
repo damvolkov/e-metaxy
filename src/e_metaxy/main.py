@@ -3,10 +3,12 @@
 `assemble` is granian's factory: it reads the settings and the profile book, builds the adapters, the bridge
 and the MCP server, and returns the ASGI app whose lifespan opens and closes all of them in order."""
 
+import logging
 from collections.abc import AsyncGenerator, Callable, Mapping
 from contextlib import AsyncExitStack, asynccontextmanager
 from typing import Any, Final
 
+import structlog
 from mcp.server import MCPServer
 from mcp.server.transport_security import TransportSecuritySettings
 from starlette.applications import Starlette
@@ -27,8 +29,26 @@ from e_metaxy.models.profile import Profile
 INSTRUCTIONS: Final = (
     "e-metaxy carries tasks to engineer harnesses (Claude Code) and their results back. task_start returns at once "
     "with a task id: poll task_status, or pass caller to be called back when it ends. Pick a profile from "
-    "profile_list; cwd must lie under its roots. session_list and session_send reach live interactive sessions."
+    "profile_list; cwd must lie under its roots. session_list shows live interactive sessions, session_history the "
+    "recorded ones a task can resume; session_send reaches a live session."
 )
+
+
+class _ToStructlog(logging.Handler):
+    """A stdlib record as a structlog event: what the MCP SDK logs through rich enters the house renderer."""
+
+    def emit(self, record: logging.LogRecord) -> None:
+        structlog.get_logger(record.name).log(
+            record.levelno, record.getMessage(), exc_info=record.exc_info, stack_info=record.stack_info
+        )
+
+
+def quiet() -> None:
+    """Route the third-party stdlib logs to structlog — before any MCPServer is built, so the SDK's
+    `basicConfig` finds the root already handled and installs no RichHandler of its own."""
+    if not any(isinstance(handler, _ToStructlog) for handler in logging.root.handlers):
+        logging.root.addHandler(_ToStructlog())
+    logging.root.setLevel(logging.INFO)
 
 
 def tools(server: MCPServer, surface: BridgeTools) -> MCPServer:
@@ -39,6 +59,7 @@ def tools(server: MCPServer, surface: BridgeTools) -> MCPServer:
         "task_cancel": surface.cancel,
         "task_list": surface.tasks,
         "session_list": surface.sessions,
+        "session_history": surface.history,
         "session_send": surface.send,
         "profile_list": surface.profiles,
     }
@@ -64,6 +85,7 @@ def assemble(st: MetaxySettings | None = None) -> Any:
     st = MetaxySettings() if st is None else st
     ### granian imports the factory in its worker process: the logger is configured where the app runs.
     setup(env=core.app.app_env)
+    quiet()
     ledger = SQLiteAdapter(DbSettings(db_path=st.ledger.expanduser()))
     claude = ClaudeCoder(st.claude)
     callers = notifiers(st)

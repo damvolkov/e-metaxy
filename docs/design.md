@@ -16,6 +16,7 @@ once; the caller polls, or is called back when the work ends.
 | `task_cancel` | `task` | `Task` | interrupts a running task; a finished one is returned unchanged |
 | `task_list` | `state?`, `limit` | `list[Task]` | newest first |
 | `session_list` | `coder?` | `list[Peer]` | the coder's live sessions: name, kind, idle/busy |
+| `session_history` | `cwd?`, `limit`, `coder?` | `list[Session]` | the coder's recorded sessions, newest first — ids to resume |
 | `session_send` | `peer`, `text`, `coder?` | `Receipt` | delivers `text` to a running interactive session |
 | `profile_list` | — | `list[Profile]` | what a caller may choose |
 
@@ -29,7 +30,8 @@ A skill or slash command is a prompt: `task_start(prompt="/research vLLM sleep m
   `running` after a restart becomes `failed` (`interrupted`), its session kept so the caller can resume it.
 - `Profile` — the nomos of the bridge, declared in YAML: coder, permission mode, allowed/denied tools, roots the
   `cwd` must live under, max turns, max budget, model. A caller picks a profile by name and never passes flags.
-  `bypassPermissions` is refused at load.
+  `bypassPermissions` exists only as a profile a caller chooses by name (`direct`): full permission, as if working
+  in Claude Code directly — deny rules and hooks still hold.
 - `Peer` — a live session of a coder: name, kind, status. `Receipt` — delivery verdict of `session_send`.
 
 ## Ports (logic) → adapters (edge)

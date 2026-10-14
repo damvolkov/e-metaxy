@@ -1,7 +1,7 @@
 """e_metaxy.models.profile: the nomos of the bridge — what a caller may make a coder do, by name.
 
-A caller picks a profile and never passes flags. The permission mode is a closed enum: `bypassPermissions`
-is not a member, so a book that asks for it fails to load instead of reaching a coder."""
+A caller picks a profile and never passes flags. The permission mode is a closed enum; every mode is a
+member, so the full-permission one exists only when a book declares it by name and a caller chooses it."""
 
 from collections.abc import Mapping
 from enum import StrEnum
@@ -22,13 +22,15 @@ class CoderKind(StrEnum):
 
 
 class ProfileMode(StrEnum):
-    """How the coder treats a tool outside `allow`: ask nobody and deny, accept edits, plan only, or decide."""
+    """How the coder treats a tool outside `allow`: ask nobody and deny, accept edits, plan only, decide,
+    or approve everything — `bypassPermissions`, the mode of working directly; deny rules and hooks still hold."""
 
     DEFAULT = "default"
     DONT_ASK = "dontAsk"
     ACCEPT_EDITS = "acceptEdits"
     PLAN = "plan"
     AUTO = "auto"
+    BYPASS = "bypassPermissions"
 
 
 ##### MODEL #####

@@ -1,9 +1,12 @@
-"""e_metaxy.models.coder: what crosses the Coder port — the spec in, events and peers out.
+"""e_metaxy.models.coder: what crosses the Coder port — the spec in, events, peers and history out.
 
 A run is a stream of events: `StartedEvent` the moment the coder knows its session, `FinishedEvent` once,
 at the end. The bridge reacts to each; the coder never knows who listens."""
 
+from datetime import UTC, datetime
 from enum import StrEnum
+
+import msgspec
 
 from core.struct import CheckedStruct
 from e_metaxy.models.profile import Profile
@@ -58,3 +61,12 @@ class CoderReceipt(CheckedStruct, frozen=True, kw_only=True):
     peer: str
     delivered: bool
     detail: str = ""
+
+
+class CoderSession(CheckedStruct, frozen=True, kw_only=True):
+    """A recorded session of a coder — closed or live, addressable by id for a resume."""
+
+    session: str
+    title: str = ""
+    cwd: str = ""
+    modified: datetime = msgspec.field(default_factory=lambda: datetime.now(UTC))

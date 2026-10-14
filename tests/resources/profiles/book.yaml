@@ -10,3 +10,7 @@ code:
   deny: ["Bash(git push*)"]
   roots: [/tmp]
   budget: 2.5
+direct:
+  mode: bypassPermissions
+  roots: [/tmp]
+  note: everything approved

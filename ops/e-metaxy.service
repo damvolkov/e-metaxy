@@ -8,6 +8,8 @@ WorkingDirectory=%h/workspaces/damien/e-metaxy
 # METAXY_* (token, OpenHuman core token, limits) — kept out of the repo, 0600.
 EnvironmentFile=-%h/.config/e-metaxy/env
 Environment=APP_ENV=prod
+### the coder's children run this PATH: ~/.claude hooks are node scripts and nvm is not in the user manager's env.
+Environment=PATH=%h/.nvm/versions/node/v24.14.0/bin:%h/.local/bin:/usr/local/bin:/usr/bin:/bin
 ExecStart=%h/.local/bin/uv run --frozen --no-dev python -m e_metaxy
 Restart=on-failure
 RestartSec=5s

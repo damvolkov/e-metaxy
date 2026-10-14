@@ -18,7 +18,7 @@ from beartype import beartype
 
 from adapters.ports import StorePort
 from e_metaxy.logic.ports import CoderPort, NotifierPort
-from e_metaxy.models.coder import CoderPeer, CoderReceipt, CoderSpec, FinishedEvent, StartedEvent
+from e_metaxy.models.coder import CoderPeer, CoderReceipt, CoderSession, CoderSpec, FinishedEvent, StartedEvent
 from e_metaxy.models.error import RootDeniedError, UnknownCoderError, UnknownProfileError, UnknownTaskError
 from e_metaxy.models.profile import CoderKind, Profile
 from e_metaxy.models.task import Task, TaskOrder, TaskState
@@ -206,6 +206,9 @@ class Bridge:
 
     async def send(self, peer: str, text: str, coder: CoderKind = CoderKind.CLAUDE) -> CoderReceipt:
         return await self._common_coder(coder).send(peer, text)
+
+    async def history(self, cwd: str, coder: CoderKind = CoderKind.CLAUDE, limit: int = 25) -> list[CoderSession]:
+        return await self._common_coder(coder).history(cwd, limit)
 
     async def profiles(self) -> list[Profile]:
         return list(self._profiles.values())

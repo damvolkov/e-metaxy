@@ -3,6 +3,7 @@
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+import anyio
 import pytest
 from claude_agent_sdk import ClaudeAgentOptions, SystemMessage, query
 
@@ -21,6 +22,11 @@ BOOK = Path(__file__).resolve().parents[4] / "resources" / "profiles" / "book.ya
 @pytest.fixture
 def research() -> Profile:
     return Profile.book(BOOK.read_bytes())["research"]
+
+
+@pytest.fixture
+def direct() -> Profile:
+    return Profile.book(BOOK.read_bytes())["direct"]
 
 
 async def test_claude_live_run(research: Profile) -> None:
@@ -73,3 +79,22 @@ async def test_claude_live_peers() -> None:
         peers = await claude.peers()
     assert peers
     assert all(peer.name for peer in peers)
+
+
+async def test_claude_live_direct(direct: Profile) -> None:
+    """The bypass profile auto-approves Write and Bash: the coder writes a file and reads it back, unattended."""
+    mark = "DIRECT-METAXY"
+    probe = "/tmp/metaxy-direct-live.txt"
+    prompt = (
+        f"Haz exactamente esto: 1) Escribe {probe} con solo la línea {mark}. "
+        f"2) Con Bash ejecuta: cat {probe}. 3) Responde con el contenido y nada más."
+    )
+    try:
+        events = [e async for e in ClaudeCoder().run(CoderSpec(prompt=prompt, cwd="/tmp", profile=direct))]
+        match events[-1]:
+            case FinishedEvent(failed=failed, result=result):
+                assert (failed, mark in result) == (False, True)
+            case other:
+                pytest.fail(f"no finish: {other!r}")
+    finally:
+        await anyio.Path(probe).unlink(missing_ok=True)
