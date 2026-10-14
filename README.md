@@ -42,8 +42,13 @@ make install        # materialize the e-templates core, sync, hooks
 make check          # lint · ty · tach · validate · drift · tests
 make live           # the real Claude Code login on this host (spends a little quota)
 make run            # serve on 127.0.0.1:45190
-make unit           # install + start the systemd user unit
+make deploy         # build the image, install compose + systemd unit: permanent container service
+make unit           # the same service host-native instead (uv, no docker)
 ```
+
+The container runs Claude Code inside: your `~/.claude` (login, sessions, hooks) and the ledger bind-mount at
+the same paths, `profiles.yaml` mounts read-only. `deploy/systemd/e-metaxy.service` keeps it up through boot and
+logout; images publish to `ghcr.io/damvolkov/e-metaxy` from the `release` workflow (manual dispatch, semver tag).
 
 Configuration is `METAXY_*` (see `.env.example`), read from `~/.config/e-metaxy/env` by the unit. The service runs
 as the user logged in to Claude Code: no API key — an `ANTHROPIC_API_KEY` in the environment is blanked for the

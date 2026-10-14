@@ -1,0 +1,19 @@
+[Unit]
+Description=e-metaxy via Docker Compose — MCP gateway to Claude Code (host loopback :45190)
+After=network-online.target docker.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/home/damien/.config/compose/e-metaxy
+ExecStartPre=/bin/sh -c '/usr/bin/docker compose pull --quiet 2>/dev/null || true'
+ExecStart=/usr/bin/docker compose up --remove-orphans
+ExecStop=/usr/bin/docker compose down
+ExecReload=/usr/bin/docker compose up -d --remove-orphans
+Restart=on-failure
+RestartSec=10s
+TimeoutStartSec=180
+TimeoutStopSec=40
+
+[Install]
+WantedBy=default.target
