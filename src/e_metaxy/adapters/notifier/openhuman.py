@@ -1,8 +1,8 @@
 """e_metaxy.adapters.notifier.openhuman: tell OpenHuman a task ended — its core's own trigger, over JSON-RPC.
 
-`openhuman.webhooks_trigger_agent` runs OpenHuman's triage pipeline on the payload: the polymath reads the
-outcome and decides what to do with it. The `reason` is written as an instruction so a finished engineer's
-task is *acted on* — delivered to Damien — not merely filed. A failed call is logged and dropped —
+`openhuman.webhooks_trigger_agent` runs OpenHuman's triage pipeline: the classifier sees only the envelope's
+label and the **payload**, never the reason — so the order ("send Damien the result") and the outcome to
+deliver ride in the payload, and the reason stays a record label. A failed call is logged and dropped —
 a callback never fails a task."""
 
 from collections.abc import Mapping
@@ -51,10 +51,17 @@ class OpenHumanNotifier(BaseAdapter):
 
     @staticmethod
     def _notify_reason(task: Task) -> str:
-        """The triage line, written as an instruction: what to do, and the outcome to do it with.
+        """The envelope's record label — the classifier never sees it; the payload carries the order."""
+        return f"e-metaxy task {task.state}: {task.prompt[:120]}"
 
-        The result and error travel complete in the payload; the reason is the order, not the attachment."""
-        return f"the engineer finished — {ACTION[task.state]}. {task.state} ({task.profile}): {task.prompt[:120]}"
+    @staticmethod
+    def _notify_payload(task: Task) -> dict[str, object]:
+        """The only text triage reads: the instruction first, then the outcome to act with, then the whole truth."""
+        outcome = (task.result or task.error or task.state.value)[:300]
+        return {
+            "instruction": f"an engineer finished a task for Damien — {ACTION[task.state]}. Outcome: {outcome}",
+            "task": msgspec.to_builtins(task, enc_hook=Task.enc_hook),
+        }
 
     def _notify_body(self, task: Task) -> dict[str, object]:
         return {
@@ -65,7 +72,7 @@ class OpenHumanNotifier(BaseAdapter):
                 "caller_id": f"e-metaxy:{task.id}",
                 "source": "external",
                 "reason": self._notify_reason(task),
-                "payload": msgspec.to_builtins(task, enc_hook=Task.enc_hook),
+                "payload": self._notify_payload(task),
             },
         }
 

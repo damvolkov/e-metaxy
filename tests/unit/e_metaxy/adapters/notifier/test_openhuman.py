@@ -37,14 +37,17 @@ async def test_openhuman_notify(httpserver: HTTPServer, notifier: OpenHumanNotif
     httpserver.expect_request("/rpc", method="POST").respond_with_handler(handle)
     await notifier.notify(ended)
     (call,) = seen
-    assert (call["auth"], call["method"], call["params"]["caller_id"], call["params"]["payload"]["result"]) == (
+    params = call["params"]
+    assert (call["auth"], call["method"], params["caller_id"], params["payload"]["task"]["result"]) == (
         "Bearer core-token",
         METHOD,
         f"e-metaxy:{ended.id}",
         "clean",
     )
-    reason = call["params"]["reason"]
-    assert ("send Damien the result on Discord" in reason, "done (research)" in reason) == (True, True)
+    assert (
+        "send Damien the result on Discord" in params["payload"]["instruction"],
+        "clean" in params["payload"]["instruction"],
+    ) == (True, True)
 
 
 async def test_openhuman_notify_failed(httpserver: HTTPServer, notifier: OpenHumanNotifier) -> None:
@@ -58,7 +61,8 @@ async def test_openhuman_notify_failed(httpserver: HTTPServer, notifier: OpenHum
 
     httpserver.expect_request("/rpc", method="POST").respond_with_handler(handle)
     await notifier.notify(broken)
-    assert "tell Damien the task failed and why" in seen[0]["params"]["reason"]
+    instruction = seen[0]["params"]["payload"]["instruction"]
+    assert ("tell Damien the task failed and why" in instruction, "boom" in instruction) == (True, True)
 
 
 async def test_openhuman_notify_swallows_failure(

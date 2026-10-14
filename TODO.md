@@ -20,6 +20,10 @@ State, decisions and what is left, for the instance that takes e-metaxy over. De
   `mcp_e_metaxy_profile_list/task_start`, called `task_start(profile=direct, caller=openhuman)` → Claude Code
   answered → `OPENHUMAN_NOTIFIED` → the real core triaged the callback. Coders' children now see nvm's `node`
   (unit `Environment=PATH`): `~/.claude` hooks run inside gateway-launched sessions.
+- **Actionable callback (2026-10-14).** OpenHuman's triage classifier reads only the trigger **payload** and label
+  (never the `reason`), so the order and outcome ride in the payload. With that, triage decided `react →
+  trigger_reactor` on a real sky-color task — the callback is now acted on, not merely filed. `session_history`
+  and the `mcp` SDK's logs → structlog (`quiet()`, before the server is built) also landed; 100 % coverage holds.
 
 ## Decisions (do not relitigate without new evidence)
 
@@ -39,8 +43,11 @@ State, decisions and what is left, for the instance that takes e-metaxy over. De
 1. **OpenCode coder** — deferred by Damien (2026-10-14) until the Claude path is finished: no
    `adapters/coder/opencode.py` behind `CoderPort` (`opencode serve` HTTP API: sessions, prompt, abort) yet.
    Verify its API first; add `opencode` profiles; nothing else changes.
-2. **OpenHuman acting on callbacks** — today its triage answers `ACKNOWLEDGE` (no action). Shape `reason`/`payload`
-   so triage escalates (e.g. post the result to Discord), or adjust OpenHuman's triage policy in core.
+2. **OpenHuman acting on callbacks** — gateway side is done: the payload carries an instruction and triage now
+   decides `react → trigger_reactor` on real tasks. What is left is on OpenHuman's side, not the bridge: its
+   `trigger_reactor` tool-pack has **no Discord send** (it re-escalates to the orchestrator), and outbound
+   Discord needs its bot token + a default `channel_id` bound in the channel config. Fix in e-engineer / OH
+   config, then the result lands in a channel unattended.
 3. **Workflows** (Claude `Workflow` tool) — need a held `ClaudeSDKClient` per task so the background workflow's
    notifications land in a live session. Not faked in v1.
 4. **Bearer token end to end** — teach the transpiler to render `headers` for OpenHuman servers (Hermes already
@@ -66,5 +73,7 @@ State, decisions and what is left, for the instance that takes e-metaxy over. De
 - OpenHuman connects MCP servers lazily (`expose = "deferred"`, supervisor tick 60 s): `connected=0 failed=0`
   at core startup is normal; the tools appear when a turn uses them.
 - The unit's `Environment=PATH` pins `~/.nvm/versions/node/v24.14.0/bin` — when the nvm version changes, update it.
+- OpenHuman's triage classifier is an LLM that reads only the trigger **payload** + label, never the `reason` field;
+  it flips `acknowledge`/`react` run to run. To be acted on, the order and outcome must be inside the payload.
 - `mcp` v2's `Client(...)` takes the URL string directly (`Client("http://127.0.0.1:45190/mcp")`); a single-object
   tool answer is the `structured_content` itself, only lists come wrapped in `{"result": …}`.
