@@ -13,6 +13,8 @@ from starlette.applications import Starlette
 from starlette.routing import Mount
 
 from adapters.sqlite import SQLiteAdapter
+from core.logger import setup
+from core.settings import settings as core
 from core.settings.db import DbSettings
 from e_metaxy.adapters.coder.claude import ClaudeCoder
 from e_metaxy.adapters.notifier.openhuman import OpenHumanNotifier
@@ -50,12 +52,18 @@ def notifiers(st: MetaxySettings) -> dict[str, OpenHumanNotifier]:
         case None:
             return {}
         case token:
-            return {OpenHumanNotifier.name: OpenHumanNotifier(st.openhuman_url, token.get_secret_value())}
+            return {
+                OpenHumanNotifier.name: OpenHumanNotifier(
+                    st.openhuman_url, token.get_secret_value(), timeout=st.openhuman_timeout
+                )
+            }
 
 
 def assemble(st: MetaxySettings | None = None) -> Any:
     """The ASGI app: MCP over Streamable HTTP on loopback, the bridge behind it, the bearer gate in front."""
     st = MetaxySettings() if st is None else st
+    ### granian imports the factory in its worker process: the logger is configured where the app runs.
+    setup(env=core.app.app_env)
     ledger = SQLiteAdapter(DbSettings(db_path=st.ledger.expanduser()))
     claude = ClaudeCoder(st.claude)
     callers = notifiers(st)

@@ -3,14 +3,11 @@
 from granian.constants import Interfaces
 from granian.server import Server
 
-from core.logger import setup
-from core.settings import settings as core
 from e_metaxy.config.metaxy import MetaxySettings
 
 
 def main() -> None:
     st = MetaxySettings()
-    setup(env=core.app.app_env)
     Server(
         "e_metaxy.main:assemble",
         address=st.host,

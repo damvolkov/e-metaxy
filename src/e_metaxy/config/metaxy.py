@@ -1,5 +1,6 @@
 """e_metaxy.config.metaxy: the bridge's knobs — METAXY_* in the environment or `.env`."""
 
+from datetime import timedelta
 from pathlib import Path
 
 from pydantic_settings import SettingsConfigDict
@@ -21,3 +22,5 @@ class MetaxySettings(BaseSettings):
     claude: str = "claude"
     openhuman_url: str = "http://127.0.0.1:7788/rpc"
     openhuman_token: Secret | None = None
+    ### the trigger answers once OpenHuman's triage turn (an LLM call) ends: minutes, not seconds.
+    openhuman_timeout: timedelta = timedelta(minutes=5)
