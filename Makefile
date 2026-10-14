@@ -2,6 +2,7 @@
 PROJECT    ?= e-metaxy
 PACKAGE    ?= src/e_metaxy
 MODULE     ?= e_metaxy
+IMAGE      ?= ghcr.io/damvolkov/e-metaxy:latest
 TEMPLATES  ?= ../e-templates/systems/core
 COMMON_SRC ?= $(TEMPLATES)/common
 TESTARGS    =
@@ -20,7 +21,7 @@ export PYTHONPATH := $(CURDIR)/src
 export E_CORE_SRC := $(abspath $(TEMPLATES))/src/e_core
 
 ##### TARGETS #####
-.PHONY: help install sync lock core core-check common common-check lint type arch validate harden hooks test cov live check ci run unit clean
+.PHONY: help install sync lock core core-check common common-check lint type arch validate harden hooks test cov live check ci run unit build deploy clean
 
 help:
 	@printf "$(BOLD)$(CYAN)$(PROJECT)$(RESET) $(GRAY)· uv · mcp · granian · claude-agent-sdk — core/ops/adapters materialized from $(TEMPLATES)$(RESET)\n\n"
@@ -99,11 +100,24 @@ ci: lint type arch validate harden core-check common-check cov ## every gate CI 
 run: ## serve the bridge on loopback (granian)
 	@uv run python -m $(MODULE) $(ARGS)
 
-unit: ## install and start the systemd user unit
+unit: ## install and start the systemd user unit (host-native uv; `deploy` is the container service)
 	@install -Dm644 ops/e-metaxy.service $(HOME)/.config/systemd/user/e-metaxy.service
 	@systemctl --user daemon-reload
 	@systemctl --user enable --now e-metaxy.service
 	@systemctl --user --no-pager status e-metaxy.service | head -5
+
+build: ## build the gateway image
+	@docker build -t $(IMAGE) .
+
+deploy: build ## install compose + systemd unit, enable and (re)start the container as a permanent service
+	@mkdir -p $(HOME)/.config/compose/e-metaxy
+	@cp deploy/e-metaxy/compose.yml $(HOME)/.config/compose/e-metaxy/compose.yml
+	@cp deploy/systemd/e-metaxy.service $(HOME)/.config/systemd/user/e-metaxy.service
+	@systemctl --user daemon-reload
+	@systemctl --user enable e-metaxy.service
+	@systemctl --user restart e-metaxy.service
+	@until [ "$$(docker inspect -f '{{.State.Health.Status}}' e-metaxy 2>/dev/null)" = healthy ]; do sleep 3; done
+	@printf "$(GREEN)✓ e-metaxy: container healthy on 127.0.0.1:45190 · $$(git log --oneline -1)$(RESET)\n"
 
 clean: ## remove caches and build artifacts
 	@rm -rf .pytest_cache .ruff_cache .coverage dist build

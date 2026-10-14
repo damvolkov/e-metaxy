@@ -6,9 +6,11 @@ State, decisions and what is left, for the instance that takes e-metaxy over. De
 
 - **v1 built and deployed.** PR #1 (`feat/bridge`): Bridge + ClaudeCoder + OpenHumanNotifier + 7 MCP tools.
   `make check` clean, 75 unit tests at 100 % coverage, 3 live tests green (`make live`: run, resume, peers).
-- **Running** as `e-metaxy.service` (systemd user unit, `ops/e-metaxy.service`) on `127.0.0.1:45190/mcp`, from this
-  checkout. Env: `~/.config/e-metaxy/env` (0600: `METAXY_OPENHUMAN_TOKEN`, `METAXY_PROFILES`). Ledger:
-  `~/.local/share/e-metaxy/ledger.db`. Restart after a change: `systemctl --user restart e-metaxy`.
+- **Running** as `e-metaxy.service` — **now via Docker Compose + systemd permanent unit** (`make deploy`):
+  `ghcr.io/damvolkov/e-metaxy` container, host loopback `:45190` (`127.0.0.1:45190:45190`), `~/.claude` and the
+  ledger bind-mounted at host paths, `profiles.yaml` mounted read-only. `Linger=yes` keeps it up through logout
+  and boot; `make unit` remains the host-native uv variant. Env: `~/.config/e-metaxy/env` (0600) via compose
+  `env_file`; restart after a change: `systemctl --user restart e-metaxy`.
 - **Verified end to end:** a task started over HTTP ran on Claude Code (subscription login, `apiKeySource: none`;
   `~/.claude` loaded — it answered in Spanish from CLAUDE.md) and OpenHuman acknowledged the callback.
 - **`direct` profile (2026-10-14), verified live through the gateway:** `bypassPermissions` end-to-end — the bridge
@@ -75,5 +77,11 @@ State, decisions and what is left, for the instance that takes e-metaxy over. De
 - The unit's `Environment=PATH` pins `~/.nvm/versions/node/v24.14.0/bin` — when the nvm version changes, update it.
 - OpenHuman's triage classifier is an LLM that reads only the trigger **payload** + label, never the `reason` field;
   it flips `acknowledge`/`react` run to run. To be acted on, the order and outcome must be inside the payload.
+- Container: the host port map **must stay 45190→45190** — `allowed_hosts` is built from `st.port`, a remapped
+  host port fails the DNS-rebinding check with 421 (`Host: 127.0.0.1:<other>`).
+- Container: compose `environment` overrides `METAXY_PROFILES=/app/profiles.yaml` — the host env file carries a
+  host-absolute path that does not exist inside; `environment` wins over `env_file` on purpose.
+- Image node is Debian trixie's (v20.x), not the host's nvm 24 — hooks run under it; `claude` is npm-pinned in
+  the Dockerfile (2.1.300 at writing). The unit `Environment=PATH` matters only for the host-native `make unit`.
 - `mcp` v2's `Client(...)` takes the URL string directly (`Client("http://127.0.0.1:45190/mcp")`); a single-object
   tool answer is the `structured_content` itself, only lists come wrapped in `{"result": …}`.
