@@ -53,7 +53,9 @@ jobs:
           git tag "v${version}"
           auth="AUTHORIZATION: basic $(printf '%s:%s' 'x-access-token' "$GH_TOKEN" | base64 -w0)"
           git -c "http.https://github.com/.extraheader=${auth}" push origin "v${version}"
-          gh release create "v${version}" --title "e-metaxy ${version}" --latest --verify-tag --generate-notes --notes-start-tag "${last:-v0.0.0}"
+          notes=("--generate-notes")
+          [ -n "$last" ] && notes+=("--notes-start-tag" "$last")
+          gh release create "v${version}" --title "e-metaxy ${version}" --latest --verify-tag "${notes[@]}"
           echo "ref=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
           echo "version=${version}" >> "$GITHUB_OUTPUT"
 
