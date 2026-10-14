@@ -77,10 +77,14 @@ State, decisions and what is left, for the instance that takes e-metaxy over. De
 - The unit's `Environment=PATH` pins `~/.nvm/versions/node/v24.14.0/bin` — when the nvm version changes, update it.
 - OpenHuman's triage classifier is an LLM that reads only the trigger **payload** + label, never the `reason` field;
   it flips `acknowledge`/`react` run to run. To be acted on, the order and outcome must be inside the payload.
-- Container: the host port map **must stay 45190→45190** — `allowed_hosts` is built from `st.port`, a remapped
-  host port fails the DNS-rebinding check with 421 (`Host: 127.0.0.1:<other>`).
+- Container: with `network_mode: host` the gateway binds `127.0.0.1:45190` directly — no published port, and the
+  `allowed_hosts` DNS-rebinding check passes because the Host header is the real `127.0.0.1:45190`.
 - Container: compose `environment` overrides `METAXY_PROFILES=/app/profiles.yaml` — the host env file carries a
   host-absolute path that does not exist inside; `environment` wins over `env_file` on purpose.
+- Container: **`network_mode: host`, not a bridge with a port map.** A bridge container could not call back
+  OpenHuman at the host's `127.0.0.1:7788` (it reached only its own loopback) — `OPENHUMAN_NOTIFY_FAILED`.
+  OpenHuman itself runs host-network; the gateway binds `127.0.0.1:45190` inside that shared namespace, so the
+  loopback boundary holds without any published port. `APP_ENV=prod` is set in the compose, not the env file.
 - Image node is Debian trixie's (v20.x), not the host's nvm 24 — hooks run under it; `claude` is npm-pinned in
   the Dockerfile (2.1.300 at writing). The unit `Environment=PATH` matters only for the host-native `make unit`.
 - `mcp` v2's `Client(...)` takes the URL string directly (`Client("http://127.0.0.1:45190/mcp")`); a single-object
