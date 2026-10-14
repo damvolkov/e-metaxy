@@ -43,6 +43,22 @@ async def test_openhuman_notify(httpserver: HTTPServer, notifier: OpenHumanNotif
         f"e-metaxy:{ended.id}",
         "clean",
     )
+    reason = call["params"]["reason"]
+    assert ("send Damien the result on Discord" in reason, "done (research)" in reason) == (True, True)
+
+
+async def test_openhuman_notify_failed(httpserver: HTTPServer, notifier: OpenHumanNotifier) -> None:
+    order = TaskOrder(prompt="break", profile="code", cwd="/tmp", caller="openhuman")
+    broken = Task.open(order, CoderKind.CLAUDE).move(TaskState.FAILED, error="boom")
+    seen: list[dict] = []
+
+    def handle(request: Request) -> Response:
+        seen.append(msgspec.json.decode(request.get_data()))
+        return Response('{"jsonrpc":"2.0","id":1,"result":{}}', content_type="application/json")
+
+    httpserver.expect_request("/rpc", method="POST").respond_with_handler(handle)
+    await notifier.notify(broken)
+    assert "tell Damien the task failed and why" in seen[0]["params"]["reason"]
 
 
 async def test_openhuman_notify_swallows_failure(

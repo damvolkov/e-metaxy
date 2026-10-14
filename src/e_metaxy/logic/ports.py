@@ -1,12 +1,13 @@
 """e_metaxy.logic.ports: what the bridge asks of the world — structural contracts, never a concretion.
 
-`CoderPort` is an engineer harness (Claude Code, OpenCode): it runs a spec as a stream of events and reaches
-the harness's live sessions. `NotifierPort` is a polymath harness to call back when a task ends."""
+`CoderPort` is an engineer harness (Claude Code, OpenCode): it runs a spec as a stream of events, reaches
+the harness's live sessions and lists its recorded ones. `NotifierPort` is a polymath harness to call back
+when a task ends."""
 
 from collections.abc import AsyncIterator
 from typing import ClassVar, Protocol, runtime_checkable
 
-from e_metaxy.models.coder import CoderEvent, CoderPeer, CoderReceipt, CoderSpec
+from e_metaxy.models.coder import CoderEvent, CoderPeer, CoderReceipt, CoderSession, CoderSpec
 from e_metaxy.models.profile import CoderKind
 from e_metaxy.models.task import Task
 
@@ -24,6 +25,10 @@ class CoderPort(Protocol):
     async def peers(self) -> list[CoderPeer]: ...
 
     async def send(self, peer: str, text: str) -> CoderReceipt: ...
+
+    async def history(self, cwd: str, limit: int) -> list[CoderSession]:
+        """The coder's recorded sessions, newest first; `cwd` empty means every project."""
+        ...
 
 
 @runtime_checkable

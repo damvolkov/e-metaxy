@@ -16,6 +16,7 @@ once; the caller polls, or is called back when the work ends.
 | `task_cancel` | `task` | `Task` | interrupts a running task; a finished one is returned unchanged |
 | `task_list` | `state?`, `limit` | `list[Task]` | newest first |
 | `session_list` | `coder?` | `list[Peer]` | the coder's live sessions: name, kind, idle/busy |
+| `session_history` | `cwd?`, `limit`, `coder?` | `list[Session]` | the coder's recorded sessions, newest first — ids to resume |
 | `session_send` | `peer`, `text`, `coder?` | `Receipt` | delivers `text` to a running interactive session |
 | `profile_list` | — | `list[Profile]` | what a caller may choose |
 

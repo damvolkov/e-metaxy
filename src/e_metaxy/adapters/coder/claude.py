@@ -7,12 +7,23 @@ held open for the adapter's lifetime."""
 
 from collections.abc import AsyncIterator, Callable
 from contextlib import AsyncExitStack
+from datetime import UTC, datetime
+from functools import partial
 from typing import Any, ClassVar, Final
 
+import anyio
 import msgspec
 import structlog
 from beartype import beartype
-from claude_agent_sdk import ClaudeAgentOptions, ClaudeSDKError, ResultError, ResultMessage, SystemMessage, query
+from claude_agent_sdk import (
+    ClaudeAgentOptions,
+    ClaudeSDKError,
+    ResultError,
+    ResultMessage,
+    SystemMessage,
+    list_sessions,
+    query,
+)
 from claude_agent_sdk.types import SettingSource
 from mcp import Client
 from mcp.client.stdio import StdioServerParameters
@@ -23,6 +34,7 @@ from e_metaxy.models.coder import (
     CoderEvent,
     CoderPeer,
     CoderReceipt,
+    CoderSession,
     CoderSpec,
     FinishedEvent,
     PeerStatus,
@@ -133,6 +145,20 @@ class ClaudeCoder(BaseAdapter):
         verdict: dict[str, Any] = {"success": False, "message": text} if result.is_error else msgspec.json.decode(text)
         return CoderReceipt(peer=peer, delivered=bool(verdict.get("success")), detail=verdict.get("message", ""))
 
+    @staticmethod
+    def _history_parse(rows: list[Any], limit: int) -> list[CoderSession]:
+        """The SDK's session rows, newest first, trimmed to the limit."""
+        ordered = sorted(rows, key=lambda row: row.last_modified, reverse=True)[:limit]
+        return [
+            CoderSession(
+                session=row.session_id,
+                title=row.summary or row.first_prompt or "",
+                cwd=row.cwd or "",
+                modified=datetime.fromtimestamp(row.last_modified / 1000, tz=UTC),
+            )
+            for row in ordered
+        ]
+
     ############################################################
 
     ##### LIFECYCLE #####
@@ -168,3 +194,8 @@ class ClaudeCoder(BaseAdapter):
     async def send(self, peer: str, text: str) -> CoderReceipt:
         arguments = {"to": peer, "message": text, "summary": text.splitlines()[0][:80] if text else "e-metaxy"}
         return self._send_parse(peer, await self._common_client().call_tool("SendMessage", arguments))
+
+    async def history(self, cwd: str, limit: int) -> list[CoderSession]:
+        """Recorded sessions on disk: a head/tail read off the loop, no CLI process involved."""
+        rows = await anyio.to_thread.run_sync(partial(list_sessions, directory=cwd or None, limit=None))
+        return self._history_parse(rows, limit)

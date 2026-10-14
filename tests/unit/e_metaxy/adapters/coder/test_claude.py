@@ -1,3 +1,4 @@
+from types import SimpleNamespace
 from typing import TYPE_CHECKING
 
 import msgspec
@@ -157,6 +158,28 @@ async def test_claude_peers_parse() -> None:
 async def test_claude_send_parse(result: CallToolResult, delivered: bool, detail: str) -> None:
     receipt = ClaudeCoder._send_parse("e-jev-43", result)
     assert (receipt.peer, receipt.delivered, receipt.detail) == ("e-jev-43", delivered, detail)
+
+
+async def test_claude_history_parse() -> None:
+    rows = [
+        SimpleNamespace(session_id="s-a", summary="first", last_modified=1_000, cwd="/x", first_prompt="p"),
+        SimpleNamespace(session_id="s-b", summary="", last_modified=3_000, cwd=None, first_prompt="fallback"),
+        SimpleNamespace(session_id="s-c", summary="third", last_modified=2_000, cwd="/y", first_prompt=None),
+    ]
+    sessions = ClaudeCoder._history_parse(rows, limit=2)
+    assert [(s.session, s.title, s.cwd) for s in sessions] == [("s-b", "fallback", ""), ("s-c", "third", "/y")]
+    assert sessions[0].modified.timestamp() == 3.0
+
+
+async def test_claude_history_off_loop(monkeypatch: pytest.MonkeyPatch) -> None:
+    def listing(*, directory: str | None, limit: int | None, offset: int = 0, include_worktrees: bool = True) -> list:
+        return [
+            SimpleNamespace(session_id="s-1", summary="work", last_modified=1, cwd=directory or "", first_prompt=None)
+        ]
+
+    monkeypatch.setattr("e_metaxy.adapters.coder.claude.list_sessions", listing)
+    sessions = await ClaudeCoder().history("/tmp", 5)
+    assert [(s.session, s.cwd) for s in sessions] == [("s-1", "/tmp")]
 
 
 async def test_claude_unconnected(claude: ClaudeCoder) -> None:

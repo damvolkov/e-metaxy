@@ -72,6 +72,13 @@ class BridgeTools:
         """Deliver `text` to a live session by name (see session_list); it reads it at its next step."""
         return await self._common_plain(self._bridge.send(peer, text, coder))
 
+    async def history(
+        self, cwd: str = "", limit: int = 25, coder: CoderKind = CoderKind.CLAUDE
+    ) -> list[dict[str, Any]]:
+        """The coder's recorded sessions, newest first: id, title, cwd, modified. `cwd` narrows to one project
+        (and its worktrees), empty means all. Pass a `session` id to task_start to resume it."""
+        return await self._common_plain(self._bridge.history(cwd, coder, limit))
+
     async def profiles(self) -> list[dict[str, Any]]:
         """The profiles a task may run under: coder, permission mode, tools, roots, limits."""
         return await self._common_plain(self._bridge.profiles())

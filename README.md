@@ -22,6 +22,7 @@ OpenHuman ──MCP (HTTP, loopback)──▶ e-metaxy ──Agent SDK──▶ 
 | `task_cancel(task)` | interrupts a running task |
 | `task_list(state?, limit?)` | newest tasks first |
 | `session_list(coder?)` | live interactive sessions: name, ref, idle/busy |
+| `session_history(cwd?, limit?, coder?)` | recorded sessions, newest first — an id to resume without knowing it |
 | `session_send(peer, text, coder?)` | delivers text to a live session's inbox |
 | `profile_list()` | the profiles a task may run under |
 

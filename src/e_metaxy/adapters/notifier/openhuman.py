@@ -1,10 +1,14 @@
 """e_metaxy.adapters.notifier.openhuman: tell OpenHuman a task ended — its core's own trigger, over JSON-RPC.
 
 `openhuman.webhooks_trigger_agent` runs OpenHuman's triage pipeline on the payload: the polymath reads the
-outcome and decides what to do with it. A failed call is logged and dropped — a callback never fails a task."""
+outcome and decides what to do with it. The `reason` is written as an instruction so a finished engineer's
+task is *acted on* — delivered to Damien — not merely filed. A failed call is logged and dropped —
+a callback never fails a task."""
 
+from collections.abc import Mapping
 from datetime import timedelta
 from itertools import count
+from types import MappingProxyType
 from typing import ClassVar, Final
 
 import msgspec
@@ -13,11 +17,19 @@ import wreq
 from beartype import beartype
 
 from adapters.base import BaseAdapter
-from e_metaxy.models.task import Task
+from e_metaxy.models.task import Task, TaskState
 
 log = structlog.get_logger()
 
 METHOD: Final = "openhuman.webhooks_trigger_agent"
+ACTION: Final[Mapping[TaskState, str]] = MappingProxyType(
+    {
+        TaskState.DONE: "send Damien the result on Discord",
+        TaskState.FAILED: "tell Damien the task failed and why",
+        TaskState.CANCELLED: "tell Damien the task was cancelled",
+        TaskState.RUNNING: "note that the engineer is still working",
+    }
+)
 
 
 @beartype
@@ -37,6 +49,13 @@ class OpenHumanNotifier(BaseAdapter):
 
     ##### PRIVATE METHODS #####
 
+    @staticmethod
+    def _notify_reason(task: Task) -> str:
+        """The triage line, written as an instruction: what to do, and the outcome to do it with.
+
+        The result and error travel complete in the payload; the reason is the order, not the attachment."""
+        return f"the engineer finished — {ACTION[task.state]}. {task.state} ({task.profile}): {task.prompt[:120]}"
+
     def _notify_body(self, task: Task) -> dict[str, object]:
         return {
             "jsonrpc": "2.0",
@@ -45,7 +64,7 @@ class OpenHumanNotifier(BaseAdapter):
             "params": {
                 "caller_id": f"e-metaxy:{task.id}",
                 "source": "external",
-                "reason": f"e-metaxy task {task.state}: {task.prompt[:120]}",
+                "reason": self._notify_reason(task),
                 "payload": msgspec.to_builtins(task, enc_hook=Task.enc_hook),
             },
         }
