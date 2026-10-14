@@ -55,6 +55,16 @@ async def test_claude_run_options_fresh(claude: ClaudeCoder, book: Mapping[str, 
     assert (options.resume, options.fork_session, options.max_turns) == (None, False, 8)
 
 
+async def test_claude_run_options_bypass(claude: ClaudeCoder, book: Mapping[str, Profile]) -> None:
+    options = claude._run_options(CoderSpec(prompt="p", cwd="/tmp", profile=book["direct"]))
+    assert (
+        options.permission_mode,
+        options.allowed_tools,
+        options.max_turns,
+        options.max_budget_usd,
+    ) == ("bypassPermissions", [], None, None)
+
+
 @pytest.mark.parametrize(
     ("message", "expected"),
     [

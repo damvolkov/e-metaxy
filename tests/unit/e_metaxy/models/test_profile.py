@@ -1,7 +1,6 @@
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-import msgspec
 import pytest
 
 from e_metaxy.models.profile import CoderKind, Profile, ProfileMode
@@ -14,12 +13,13 @@ async def test_profile_book(book: Mapping[str, Profile]) -> None:
     assert {name: (p.name, p.coder, p.mode) for name, p in book.items()} == {
         "research": ("research", CoderKind.CLAUDE, ProfileMode.DONT_ASK),
         "code": ("code", CoderKind.CLAUDE, ProfileMode.ACCEPT_EDITS),
+        "direct": ("direct", CoderKind.CLAUDE, ProfileMode.BYPASS),
     }
 
 
-async def test_profile_book_bypass_refused(resources: Path) -> None:
-    with pytest.raises(msgspec.ValidationError, match="mode"):
-        Profile.book((resources / "profiles" / "bypass.yaml").read_bytes())
+async def test_profile_book_bypass_loads(resources: Path) -> None:
+    book = Profile.book((resources / "profiles" / "bypass.yaml").read_bytes())
+    assert book["reckless"].mode is ProfileMode.BYPASS
 
 
 @pytest.mark.parametrize(

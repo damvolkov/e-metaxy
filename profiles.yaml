@@ -1,6 +1,11 @@
 # The nomos of the bridge: a caller names a profile, never a flag. `mode` is the coder's permission mode for any
-# tool outside `allow` — dontAsk denies it, acceptEdits accepts file edits, plan only plans. bypassPermissions is
-# not a member and fails the load. The user's ~/.claude permissions apply on top of every profile.
+# tool outside `allow` — dontAsk denies it, acceptEdits accepts file edits, plan only plans, bypassPermissions
+# approves everything (deny rules and hooks still hold). The user's ~/.claude loads on top of every profile.
+
+direct:
+  note: as if Damien worked in Claude Code himself — every tool, nothing asked, nothing limited; home and scratch
+  mode: bypassPermissions
+  roots: [~/, /tmp]
 
 research:
   note: read the workspace and the vault, search the web; never edits

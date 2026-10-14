@@ -149,4 +149,4 @@ async def test_bridge_peers_unknown_coder(bridge: Bridge) -> None:
 
 
 async def test_bridge_profiles(bridge: Bridge) -> None:
-    assert sorted(p.name for p in await bridge.profiles()) == ["code", "research"]
+    assert sorted(p.name for p in await bridge.profiles()) == ["code", "direct", "research"]

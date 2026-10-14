@@ -74,4 +74,8 @@ async def test_tools_sessions(connect: Connect) -> None:
 async def test_tools_profiles(connect: Connect) -> None:
     async with connect() as client:
         profiles = (await client.call_tool("profile_list", {})).structured_content["result"]
-        assert sorted((p["name"], p["mode"]) for p in profiles) == [("code", "acceptEdits"), ("research", "dontAsk")]
+        assert sorted((p["name"], p["mode"]) for p in profiles) == [
+            ("code", "acceptEdits"),
+            ("direct", "bypassPermissions"),
+            ("research", "dontAsk"),
+        ]
