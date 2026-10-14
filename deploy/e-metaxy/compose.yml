@@ -6,12 +6,12 @@ services:
     hostname: e-metaxy
     restart: unless-stopped
     user: "1000:1000"
+    # the host's loopback is the whole topology: it serves 127.0.0.1:45190 and calls back OpenHuman,
+    # which itself runs on host network. a bridge net would black-hole the callback.
+    network_mode: host
     labels:
       e-core.category: "bridge"
       e-core.port: "45190"
-    ports:
-      # 45190 — the MCP gateway to Claude Code: host loopback only, the boundary is unchanged by the container
-      - "127.0.0.1:45190:45190"
     volumes:
       # the subscription login, the session store and the hooks, at the paths they hold inside ~/.claude
       - ${HOME}/.claude:/home/damien/.claude
@@ -21,10 +21,9 @@ services:
     env_file:
       - ../../e-metaxy/env
     environment:
-      # 0.0.0.0 inside; the host maps only 127.0.0.1 — loopback stays the boundary
-      - METAXY_HOST=0.0.0.0
       # override the host-absolute path the env file carries: the book is bind-mounted here
       - METAXY_PROFILES=/app/profiles.yaml
+      - APP_ENV=prod
     healthcheck:
       test: ["CMD", "python", "-c", "import socket; socket.create_connection(('127.0.0.1', 45190), 3).close()"]
       interval: 30s
