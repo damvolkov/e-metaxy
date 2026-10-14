@@ -51,7 +51,8 @@ jobs:
           esac
           version="$M.$m.$p"
           git tag "v${version}"
-          git push origin "v${version}"
+          auth="AUTHORIZATION: basic $(printf '%s:%s' 'x-access-token' "$GH_TOKEN" | base64 -w0)"
+          git -c "http.https://github.com/.extraheader=${auth}" push origin "v${version}"
           gh release create "v${version}" --title "e-metaxy ${version}" --latest --verify-tag --generate-notes --notes-start-tag "${last:-v0.0.0}"
           echo "ref=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
           echo "version=${version}" >> "$GITHUB_OUTPUT"
