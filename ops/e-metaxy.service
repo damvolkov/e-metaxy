@@ -1,0 +1,17 @@
+[Unit]
+Description=e-metaxy — MCP gateway from polymath harnesses to Claude Code (loopback :45190)
+After=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=%h/workspaces/damien/e-metaxy
+# METAXY_* (token, OpenHuman core token, limits) — kept out of the repo, 0600.
+EnvironmentFile=-%h/.config/e-metaxy/env
+Environment=APP_ENV=prod
+ExecStart=%h/.local/bin/uv run --frozen --no-dev python -m e_metaxy
+Restart=on-failure
+RestartSec=5s
+TimeoutStopSec=30
+
+[Install]
+WantedBy=default.target

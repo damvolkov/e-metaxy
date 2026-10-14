@@ -1,0 +1,11 @@
+# Normalize line endings so byte-level fixtures are identical on every OS.
+* text=auto eol=lf
+*.png binary
+*.jpg binary
+*.gif binary
+*.ico binary
+*.svg text eol=lf
+*.dat binary
+*.so binary
+*.pyd binary
+*.dll binary
