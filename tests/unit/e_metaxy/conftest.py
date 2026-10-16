@@ -11,7 +11,7 @@ from e_metaxy.models.task import Task, TaskOrder
 if TYPE_CHECKING:
     from collections.abc import AsyncIterator, Mapping
 
-    from adapters.sqlite import SQLiteAdapter
+    from e_metaxy.adapters.sqlite import SQLiteAdapter
     from e_metaxy.models.profile import Profile
 
 

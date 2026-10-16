@@ -6,8 +6,8 @@ from typing import TYPE_CHECKING
 
 import pytest
 
-from adapters.sqlite import SQLiteAdapter
-from core.settings.db import DbSettings
+from e_metaxy.adapters.sqlite import SQLiteAdapter
+from e_metaxy.core.settings.db import DbSettings
 from e_metaxy.models.profile import Profile
 
 if TYPE_CHECKING:

@@ -24,7 +24,7 @@ export E_CORE_SRC := $(abspath $(TEMPLATES))/src/e_core
 .PHONY: help install sync lock core core-check common common-check lint type arch validate harden hooks test cov live check ci run unit build deploy clean
 
 help:
-	@printf "$(BOLD)$(CYAN)$(PROJECT)$(RESET) $(GRAY)· uv · mcp · granian · claude-agent-sdk — core/ops/adapters materialized from $(TEMPLATES)$(RESET)\n\n"
+	@printf "$(BOLD)$(CYAN)$(PROJECT)$(RESET) $(GRAY)· uv · mcp · granian · claude-agent-sdk — core/ops/adapters/processors materialized into e_metaxy/ from $(TEMPLATES)$(RESET)\n\n"
 	@awk 'BEGIN{FS=":.*##"} /^[a-z][a-zA-Z0-9_-]*:.*##/{printf "  $(GREEN)%-12s$(RESET) $(GRAY)%s$(RESET)\n",$$1,$$2}' $(MAKEFILE_LIST)
 
 # — env —
@@ -40,7 +40,7 @@ lock: ## refresh uv lockfile
 	@uv lock
 
 # — shared —
-core: ## materialize core/ + ops/ + adapters/ from e-templates systems/core (structural rewrite)
+core: ## materialize core + ops + adapters + processors into e_metaxy/ from systems/core (structural rewrite)
 	@uv run python scripts/materialize.py
 
 core-check: ## fail if the materialized core drifted from e-templates
@@ -64,8 +64,8 @@ common-check: ## fail if the shared files drifted from systems/core/common
 
 # — gates —
 lint: ## ruff check + format
-	@uv run ruff check --fix $(PACKAGE) src/core src/ops src/adapters scripts tests
-	@uv run ruff format $(PACKAGE) src/core src/ops src/adapters scripts tests
+	@uv run ruff check --fix $(PACKAGE) scripts tests
+	@uv run ruff format $(PACKAGE) scripts tests
 
 type: ## ty type check
 	@uv run ty check
@@ -101,23 +101,23 @@ run: ## serve the bridge on loopback (granian)
 	@uv run python -m $(MODULE) $(ARGS)
 
 unit: ## install and start the systemd user unit (host-native uv; `deploy` is the container service)
-	@install -Dm644 ops/e-metaxy.service $(HOME)/.config/systemd/user/e-metaxy.service
+	@install -Dm644 ops/emetaxy.service $(HOME)/.config/systemd/user/emetaxy.service
 	@systemctl --user daemon-reload
-	@systemctl --user enable --now e-metaxy.service
-	@systemctl --user --no-pager status e-metaxy.service | head -5
+	@systemctl --user enable --now emetaxy.service
+	@systemctl --user --no-pager status emetaxy.service | head -5
 
 build: ## build the gateway image
 	@docker build -t $(IMAGE) .
 
 deploy: build ## install compose + systemd unit, enable and (re)start the container as a permanent service
-	@mkdir -p $(HOME)/.config/compose/e-metaxy
-	@cp deploy/e-metaxy/compose.yml $(HOME)/.config/compose/e-metaxy/compose.yml
-	@cp deploy/systemd/e-metaxy.service $(HOME)/.config/systemd/user/e-metaxy.service
+	@mkdir -p $(HOME)/.config/compose/emetaxy
+	@cp deploy/emetaxy/compose.yml $(HOME)/.config/compose/emetaxy/compose.yml
+	@cp deploy/systemd/emetaxy.service $(HOME)/.config/systemd/user/emetaxy.service
 	@systemctl --user daemon-reload
-	@systemctl --user enable e-metaxy.service
-	@systemctl --user restart e-metaxy.service
-	@until [ "$$(docker inspect -f '{{.State.Health.Status}}' e-metaxy 2>/dev/null)" = healthy ]; do sleep 3; done
-	@printf "$(GREEN)✓ e-metaxy: container healthy on 127.0.0.1:45190 · $$(git log --oneline -1)$(RESET)\n"
+	@systemctl --user enable emetaxy.service
+	@systemctl --user restart emetaxy.service
+	@until [ "$$(docker inspect -f '{{.State.Health.Status}}' emetaxy 2>/dev/null)" = healthy ]; do sleep 3; done
+	@printf "$(GREEN)✓ emetaxy: container healthy on 127.0.0.1:45190 · $$(git log --oneline -1)$(RESET)\n"
 
 clean: ## remove caches and build artifacts
 	@rm -rf .pytest_cache .ruff_cache .coverage dist build

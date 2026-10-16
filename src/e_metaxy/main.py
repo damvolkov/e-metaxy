@@ -14,17 +14,24 @@ from mcp.server.transport_security import TransportSecuritySettings
 from starlette.applications import Starlette
 from starlette.routing import Mount
 
-from adapters.sqlite import SQLiteAdapter
-from core.logger import setup
-from core.settings import settings as core
-from core.settings.db import DbSettings
 from e_metaxy.adapters.coder.claude import ClaudeCoder
+from e_metaxy.adapters.docling import DoclingAdapter
+from e_metaxy.adapters.md.anytomd import AnytomdAdapter
 from e_metaxy.adapters.notifier.openhuman import OpenHumanNotifier
+from e_metaxy.adapters.sqlite import SQLiteAdapter
+from e_metaxy.api.converters import create_app
 from e_metaxy.config.metaxy import MetaxySettings
+from e_metaxy.core.logger import setup
+from e_metaxy.core.settings import settings as core
+from e_metaxy.core.settings.db import DbSettings
 from e_metaxy.logic.bridge import Bridge
+from e_metaxy.logic.converters import Converters
+from e_metaxy.mcp.converters import ProcessorTools
 from e_metaxy.mcp.guard import TokenGuard
 from e_metaxy.mcp.tools import BridgeTools
 from e_metaxy.models.profile import Profile
+from e_metaxy.processors.doc import DocProcessor
+from e_metaxy.processors.md import MDProcessor
 
 INSTRUCTIONS: Final = (
     "e-metaxy carries tasks to engineer harnesses (Claude Code) and their results back. task_start returns at once "
@@ -51,7 +58,7 @@ def quiet() -> None:
     logging.root.setLevel(logging.INFO)
 
 
-def tools(server: MCPServer, surface: BridgeTools) -> MCPServer:
+def tools(server: MCPServer, surface: BridgeTools, processors: ProcessorTools | None = None) -> MCPServer:
     """Explicit registration: every tool by its public name, nothing bound by a decorator."""
     table: Mapping[str, Callable[..., Any]] = {
         "task_start": surface.start,
@@ -62,7 +69,7 @@ def tools(server: MCPServer, surface: BridgeTools) -> MCPServer:
         "session_history": surface.history,
         "session_send": surface.send,
         "profile_list": surface.profiles,
-    }
+    } | ({} if processors is None else {"md_convert": processors.convert, "doc_read": processors.read})
     _ = [server.add_tool(fn, name=name) for name, fn in table.items()]
     return server
 
@@ -96,7 +103,14 @@ def assemble(st: MetaxySettings | None = None) -> Any:
         profiles=Profile.book(st.profiles.expanduser().read_bytes()),
         limit=st.limit,
     )
-    server = tools(MCPServer(name="e-metaxy", instructions=INSTRUCTIONS), BridgeTools(bridge))
+    ### the processors over their ports: the fast any-format renderer and the deep document reader.
+    anatomd, docling = AnytomdAdapter(), DoclingAdapter()
+    converters = Converters(MDProcessor(anatomd), DocProcessor(docling))
+    server = tools(
+        MCPServer(name="e-metaxy", instructions=INSTRUCTIONS),
+        BridgeTools(bridge),
+        ProcessorTools(converters),
+    )
     security = TransportSecuritySettings(
         allowed_hosts=[f"127.0.0.1:{st.port}", f"localhost:{st.port}"],
         allowed_origins=[f"http://127.0.0.1:{st.port}", f"http://localhost:{st.port}"],
@@ -106,12 +120,14 @@ def assemble(st: MetaxySettings | None = None) -> Any:
     @asynccontextmanager
     async def lifespan(_app: Starlette) -> AsyncGenerator[None]:
         async with AsyncExitStack() as stack:
-            _ = [await stack.enter_async_context(edge) for edge in (ledger, claude, *callers.values())]
+            _ = [
+                await stack.enter_async_context(edge) for edge in (ledger, claude, anatomd, docling, *callers.values())
+            ]
             await stack.enter_async_context(bridge)
             await stack.enter_async_context(server.session_manager.run())
             yield
 
-    app = Starlette(routes=[Mount("/", app=mcp_app)], lifespan=lifespan)
+    app = Starlette(routes=[Mount("/ops", app=create_app(converters)), Mount("/", app=mcp_app)], lifespan=lifespan)
     match st.token:
         case None:
             return app

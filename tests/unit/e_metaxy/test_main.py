@@ -5,9 +5,9 @@ import httpx2
 import pytest
 from fakes import lifespan
 
-from core.settings.base import Secret
 from e_metaxy.adapters.notifier.openhuman import OpenHumanNotifier
 from e_metaxy.config.metaxy import MetaxySettings
+from e_metaxy.core.settings.base import Secret
 from e_metaxy.main import _ToStructlog, assemble, notifiers
 from e_metaxy.mcp.guard import TokenGuard
 

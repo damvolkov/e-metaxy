@@ -12,7 +12,7 @@ from uuid import uuid7
 
 import msgspec
 
-from core.struct import CheckedStruct
+from e_metaxy.core.struct import CheckedStruct
 from e_metaxy.models.error import TaskStateError
 from e_metaxy.models.profile import CoderKind
 

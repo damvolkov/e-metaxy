@@ -29,7 +29,7 @@ from mcp import Client
 from mcp.client.stdio import StdioServerParameters
 from mcp.types import CallToolResult, TextContent
 
-from adapters.base import BaseAdapter
+from e_metaxy.adapters.base import BaseAdapter
 from e_metaxy.models.coder import (
     CoderEvent,
     CoderPeer,

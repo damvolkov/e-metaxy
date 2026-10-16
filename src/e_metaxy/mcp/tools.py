@@ -10,7 +10,7 @@ import msgspec
 from beartype import beartype
 from mcp.server.mcpserver.exceptions import ToolError
 
-from core.struct import CheckedStruct
+from e_metaxy.core.struct import CheckedStruct
 from e_metaxy.logic.bridge import Bridge
 from e_metaxy.models.error import MetaxyError
 from e_metaxy.models.profile import CoderKind

@@ -8,7 +8,7 @@ from enum import StrEnum
 
 import msgspec
 
-from core.struct import CheckedStruct
+from e_metaxy.core.struct import CheckedStruct
 from e_metaxy.models.profile import Profile
 
 

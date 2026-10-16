@@ -1,6 +1,6 @@
 """e_metaxy.models.error: the bridge's typed failures — one root, one class per refused target."""
 
-from core.errors import CoreError
+from e_metaxy.core.errors import CoreError
 
 
 ##### ROOT #####

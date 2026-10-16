@@ -10,7 +10,7 @@ from types import MappingProxyType
 
 import msgspec
 
-from core.struct import CheckedStruct
+from e_metaxy.core.struct import CheckedStruct
 
 
 ##### ENUMS #####

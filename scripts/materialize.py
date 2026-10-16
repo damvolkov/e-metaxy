@@ -1,10 +1,12 @@
-"""scripts/materialize: the hardened sed — copy the e-templates `systems/core` subset e-metaxy uses into `src/`.
+"""scripts/materialize: the hardened sed — copy the e-templates `systems/core` common set into `src/e_metaxy/`.
 
 libcst parses each source file as real 3.14 syntax (PEP 695 included, verified against the whole
-`e_core` tree) and rewrites *only* the import nodes `e_core.{core,ops,adapters,processors} → {core,ops,adapters,processors}`;
-every result is re-parsed with `ast.parse` and scanned for leftovers before it is written. `make core`
-materializes into `src/`; `make core-check` materializes into a throwaway tree under `/tmp` and diffs,
-so both modes run the exact same generation path and the drift-check cannot lie about a second one.
+`e_core` tree) and rewrites *only* the import nodes `e_core.{core,ops,adapters,processors} → e_metaxy.{...}`;
+every result is re-parsed with `ast.parse` and scanned for leftovers before it is written. The common set
+is injected *inside* the service package — `core`, `ops`, `adapters` and `processors` are subpackages of
+`e_metaxy`, like `logic` — so every project imports them by full path and they read as first-class modules.
+`make core` materializes into `src/e_metaxy/`; `make core-check` regenerates into a throwaway tree under `/tmp`
+and diffs, so both modes run the exact same generation path and the drift-check cannot lie about a second one.
 """
 
 import argparse
@@ -15,20 +17,24 @@ import shutil
 import sys
 import tempfile
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Final
 
 import libcst as cst
 
 if TYPE_CHECKING:
-    from collections.abc import Sequence
+    from collections.abc import Mapping, Sequence
 
 ROOT: Path = Path(__file__).resolve().parents[1]
+PKG: str = "e_metaxy"
 ### a standalone repo: the core lives in the e-templates checkout beside it; E_CORE_SRC points elsewhere.
 CORE_SRC: Path = Path(os.environ.get("E_CORE_SRC", ROOT.parent / "e-templates" / "systems" / "core" / "src" / "e_core"))
-SECTIONS: tuple[str, ...] = ("adapters", "core", "ops")
+SECTIONS: tuple[str, ...] = ("adapters", "core", "ops", "processors")
+### service subpackages that live inside a materialized section and must never be swept: the coder and
+### notifier adapters are e-metaxy's own, not copies of systems/core, yet they sit in e_metaxy/adapters/.
+PROTECTED: Final[Mapping[str, frozenset[str]]] = {"adapters": frozenset({"coder", "notifier"})}
 ### the TUI header belongs to the boilerplate wizard, not to a running service: same topology as the old sed.
-### the compose tool belongs to stack management (management materializes the whole ops area), not to a running service.
-### a bridge needs no TUI, snapshot, compose, code registry, redis or document conversion.
+### the compose tool belongs to stack management (management materializes the whole ops area), not a service.
+### a bridge needs no TUI, snapshot, compose, code registry or redis; docling returns when DocProcessor lands.
 EXCLUDES: frozenset[str] = frozenset(
     {
         "ops/tui.py",
@@ -36,7 +42,6 @@ EXCLUDES: frozenset[str] = frozenset(
         "ops/compose.py",
         "ops/registry.py",
         "adapters/redis.py",
-        "adapters/docling.py",
     }
 )
 
@@ -65,25 +70,25 @@ def _dotted(parts: Sequence[str]) -> cst.BaseExpression:
             return cst.Attribute(value=_dotted(init), attr=cst.Name(last))
 
 
-def _strip_e_core(name: cst.BaseExpression) -> cst.BaseExpression:
-    """`e_core.core.x` → `core.x`; anything outside a materialized section is returned untouched."""
+def _repackage(name: cst.BaseExpression) -> cst.BaseExpression:
+    """`e_core.core.x` → `e_metaxy.core.x`; anything outside a materialized section is returned untouched."""
     parts = _parts(name)
     hit = parts is not None and parts[0] == "e_core" and len(parts) > 1 and parts[1] in SECTIONS
-    return _dotted(parts[1:]) if hit else name
+    return _dotted([PKG, *parts[1:]]) if hit else name
 
 
-def _strip_alias(alias: object) -> object:
-    """One `import a.b [as c]` alias, stripped whatever its wrapper shape; anything else passes through."""
+def _repackage_alias(alias: object) -> object:
+    """One `import a.b [as c]` alias, repackaged whatever its wrapper shape; anything else passes through."""
     match alias:
         case cst.ImportAlias(name=name):
-            return alias.with_changes(name=_strip_e_core(name))
+            return alias.with_changes(name=_repackage(name))
         case cst.Element(node=cst.ImportAlias() as inner):
-            return alias.with_changes(node=_strip_alias(inner))
+            return alias.with_changes(node=_repackage_alias(inner))
         case _:
             return alias
 
 
-class _StripECore(cst.CSTTransformer):
+class _RepackageECore(cst.CSTTransformer):
     """Import statements only: docstrings and comments keep naming the source of truth verbatim."""
 
     def leave_Import(  # noqa: N802 — libcst dispatches visitor methods by node class name
@@ -93,7 +98,7 @@ class _StripECore(cst.CSTTransformer):
             case cst.ImportStar():
                 return updated_node
             case aliases:
-                return updated_node.with_changes(names=[_strip_alias(alias) for alias in aliases])
+                return updated_node.with_changes(names=[_repackage_alias(alias) for alias in aliases])
 
     def leave_ImportFrom(  # noqa: N802 — libcst dispatches by node class name
         self, _original_node: cst.ImportFrom, updated_node: cst.ImportFrom
@@ -102,7 +107,7 @@ class _StripECore(cst.CSTTransformer):
             case None:
                 return updated_node
             case module:
-                return updated_node.with_changes(module=_strip_e_core(module))
+                return updated_node.with_changes(module=_repackage(module))
 
 
 ##### VALIDATION #####
@@ -116,7 +121,7 @@ def _is_e_core_import(node: ast.AST) -> bool:
 
 def rewrite_source(text: str, path: str) -> str:
     """One file rewritten structurally, then hard-validated: parseable by `ast`, free of `e_core` imports."""
-    out = cst.parse_module(text).visit(_StripECore()).code
+    out = cst.parse_module(text).visit(_RepackageECore()).code
     match [node for node in ast.walk(ast.parse(out, filename=path)) if _is_e_core_import(node)]:
         case []:
             return out
@@ -135,25 +140,40 @@ def _sources(section: str) -> list[Path]:
     ]
 
 
+def _sweep(section_dir: Path, section: str) -> None:
+    """Clear the copied files under a section, sparing the protected service subpackages."""
+    protected = PROTECTED.get(section, frozenset())
+    for child in section_dir.iterdir():
+        if child.is_dir() and child.name in protected:
+            continue
+        shutil.rmtree(child) if child.is_dir() else child.unlink()
+
+
 def materialize(dest_root: Path) -> None:
-    """Write the three rewritten sections under `dest_root/src`, replacing any previous copy."""
+    """Write the rewritten sections under `dest_root/src/e_metaxy`, replacing any previous copy in place."""
+    package = dest_root / "src" / PKG
     for section in SECTIONS:
-        shutil.rmtree(dest_root / "src" / section, ignore_errors=True)
-    for section in SECTIONS:
+        if (section_dir := package / section).is_dir():
+            _sweep(section_dir, section)
         for path in _sources(section):
             rel = path.relative_to(CORE_SRC)
-            target = dest_root / "src" / rel
+            target = package / rel
             target.parent.mkdir(parents=True, exist_ok=True)
             target.write_text(rewrite_source(path.read_text(), str(rel)))
 
 
 def _materialized(dest_root: Path) -> set[Path]:
-    """The .py files currently materialized under `dest_root/src`, relative to `src`."""
-    return {
-        path.relative_to(dest_root / "src")
-        for section in SECTIONS
-        for path in (dest_root / "src" / section).rglob("*.py")
-    }
+    """The .py files materialized under `dest_root/src/e_metaxy`, relative to the package, service dirs spared."""
+    package = dest_root / "src" / PKG
+    out: set[Path] = set()
+    for section in SECTIONS:
+        protected = PROTECTED.get(section, frozenset())
+        for path in (package / section).rglob("*.py"):
+            rel = path.relative_to(package)
+            if len(rel.parts) > 1 and rel.parts[1] in protected:  # a service subpackage: never a copy
+                continue
+            out.add(rel)
+    return out
 
 
 def check(dest_root: Path) -> int:
@@ -161,6 +181,7 @@ def check(dest_root: Path) -> int:
     tmp = Path(tempfile.mkdtemp(prefix="e-metaxy-materialize-"))
     try:
         materialize(tmp)
+        package = dest_root / "src" / PKG
         expected = {path.relative_to(CORE_SRC) for section in SECTIONS for path in _sources(section)}
         actual = _materialized(dest_root)
         issues = [
@@ -169,12 +190,12 @@ def check(dest_root: Path) -> int:
             *(
                 f"{rel}: stale"
                 for rel in sorted(expected & actual)
-                if not filecmp.cmp(tmp / "src" / rel, dest_root / "src" / rel, shallow=False)
+                if not filecmp.cmp(tmp / "src" / PKG / rel, package / rel, shallow=False)
             ),
         ]
         match issues:
             case []:
-                print("✓ materialized core/ops/adapters in sync")
+                print(f"✓ materialized {PKG}/{{core,ops,adapters,processors}} in sync")
                 return 0
             case _:
                 print("✗ drift from systems/core (run make core):")
@@ -184,20 +205,19 @@ def check(dest_root: Path) -> int:
         shutil.rmtree(tmp, ignore_errors=True)
 
 
-def main(argv: Sequence[str] | None = None) -> int:
-    """CLI: default regenerates `src/`; `--check` is the read-only drift gate."""
+def main(argv: Sequence[str] | None = None) -> None:
+    """CLI: default regenerates `src/e_metaxy`; `--check` is the read-only drift gate."""
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "--check", action="store_true", help="regenerate into a tmp tree under /tmp and diff, exit 1 on drift"
     )
     match parser.parse_args(argv).check:
         case True:
-            return check(ROOT)
+            sys.exit(check(ROOT))
         case _:
             materialize(ROOT)
-            print("✓ materialized adapters/, core/, ops/ from systems/core")
-            return 0
+            print(f"✓ materialized {PKG}/{{adapters,core,ops,processors}} from systems/core")
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    main()

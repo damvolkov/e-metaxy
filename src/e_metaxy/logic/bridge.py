@@ -16,7 +16,7 @@ import msgspec
 import structlog
 from beartype import beartype
 
-from adapters.ports import StorePort
+from e_metaxy.adapters.ports import StorePort
 from e_metaxy.logic.ports import CoderPort, NotifierPort
 from e_metaxy.models.coder import CoderPeer, CoderReceipt, CoderSession, CoderSpec, FinishedEvent, StartedEvent
 from e_metaxy.models.error import RootDeniedError, UnknownCoderError, UnknownProfileError, UnknownTaskError

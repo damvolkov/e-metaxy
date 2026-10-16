@@ -5,7 +5,7 @@ from pathlib import Path
 
 from pydantic_settings import SettingsConfigDict
 
-from core.settings.base import BaseSettings, Secret
+from e_metaxy.core.settings.base import BaseSettings, Secret
 
 
 class MetaxySettings(BaseSettings):

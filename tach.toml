@@ -1,6 +1,5 @@
 ##### ROOTS #####
 source_roots = ["src"]
-exclude = ["tests", "docs", "scripts"]
 
 ##### RULES #####
 forbid_circular_dependencies = true
@@ -8,9 +7,10 @@ exact = true
 root_module = "forbid"
 
 ##### LAYERS #####
-# Ordered high → low: a layer may import lower layers, importing upward fails. The bridge (logic) sees ports and
-# models only; adapters and the MCP edge depend on it, never the reverse; main is the composition root.
-layers = ["root", "edge", "logic", "models", "adapters", "core", "ops"]
+# High → low: a layer imports strictly-lower layers only. The common set (core/ops/adapters/processors)
+# is materialized from systems/core but, being namespaced inside the package, is declared here at its true
+# place in the graph — core/ops at the bottom, the copied adapters above them. main (e_metaxy) is the root.
+layers = ["root", "edge", "logic", "processors", "models", "common", "base", "infra"]
 
 [rules]
 unused_ignore_directives = "error"
@@ -27,12 +27,22 @@ layer = "edge"
 depends_on = []
 
 [[modules]]
-path = "e_metaxy.adapters"
+path = "e_metaxy.api"
 layer = "edge"
 depends_on = []
 
 [[modules]]
 path = "e_metaxy.config"
+layer = "edge"
+depends_on = []
+
+[[modules]]
+path = "e_metaxy.adapters.coder"
+layer = "edge"
+depends_on = []
+
+[[modules]]
+path = "e_metaxy.adapters.notifier"
 layer = "edge"
 depends_on = []
 
@@ -47,16 +57,21 @@ layer = "models"
 depends_on = []
 
 [[modules]]
-path = "adapters"
-layer = "adapters"
+path = "e_metaxy.adapters"
+layer = "common"
 depends_on = []
 
 [[modules]]
-path = "core"
-layer = "core"
+path = "e_metaxy.processors"
+layer = "processors"
 depends_on = []
 
 [[modules]]
-path = "ops"
-layer = "ops"
+path = "e_metaxy.core"
+layer = "base"
+depends_on = []
+
+[[modules]]
+path = "e_metaxy.ops"
+layer = "infra"
 depends_on = []

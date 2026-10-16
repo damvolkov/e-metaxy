@@ -13,7 +13,7 @@ from e_metaxy.models.task import Task, TaskOrder, TaskState
 if TYPE_CHECKING:
     from collections.abc import Mapping
 
-    from adapters.sqlite import SQLiteAdapter
+    from e_metaxy.adapters.sqlite import SQLiteAdapter
 
 
 async def test_bridge_start_done(bridge: Bridge, order: TaskOrder, notifier: RecordingNotifier, settle: Settle) -> None:
