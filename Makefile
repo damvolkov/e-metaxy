@@ -21,7 +21,7 @@ export PYTHONPATH := $(CURDIR)/src
 export E_CORE_SRC := $(abspath $(TEMPLATES))/src/e_core
 
 ##### TARGETS #####
-.PHONY: help install sync lock core core-check common common-check lint type arch validate harden hooks test cov live check ci run unit build deploy clean
+.PHONY: help install sync lock core core-check common common-check lint type arch validate harden hooks test cov live check ci run unit build deploy probe clean
 
 help:
 	@printf "$(BOLD)$(CYAN)$(PROJECT)$(RESET) $(GRAY)· uv · mcp · granian · claude-agent-sdk — core/ops/adapters/processors materialized into e_metaxy/ from $(TEMPLATES)$(RESET)\n\n"
@@ -118,6 +118,9 @@ deploy: build ## install compose + systemd unit, enable and (re)start the contai
 	@systemctl --user restart emetaxy.service
 	@until [ "$$(docker inspect -f '{{.State.Health.Status}}' emetaxy 2>/dev/null)" = healthy ]; do sleep 3; done
 	@printf "$(GREEN)✓ emetaxy: container healthy on 127.0.0.1:45190 · $$(git log --oneline -1)$(RESET)\n"
+
+probe: ## drive the live service as an MCP client: owner sign-in, then list the tools or call one [TOOL=work_list INPUT='{"limit":3}']
+	@uv run python scripts/probe.py $(TOOL) $(if $(INPUT),'$(INPUT)')
 
 clean: ## remove caches and build artifacts
 	@rm -rf .pytest_cache .ruff_cache .coverage dist build
