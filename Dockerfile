@@ -19,7 +19,7 @@ RUN apt-get update \
 	&& npm cache clean --force
 ### the host's tools first, as in the owner's shell; the bridge's venv last, so a coder's `python` is never it.
 ENV HOME=/home/damien PYTHONUNBUFFERED=1 \
-	PATH="/home/damien/.local/bin:/home/damien/.cargo/bin:/usr/local/bin:/usr/bin:/bin:/app/.venv/bin"
+	PATH="/home/damien/.local/bin:/home/damien/.cargo/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/app/.venv/bin"
 WORKDIR /app
 COPY --from=builder /app/.venv .venv
 COPY --from=builder /app/profiles.yaml ./profiles.yaml
