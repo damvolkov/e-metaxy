@@ -31,6 +31,15 @@ async def test_bridge_start_spec(bridge: Bridge, coder: ScriptedCoder, order: Ta
     ]
 
 
+async def test_bridge_start_home_cwd(
+    bridge: Bridge, coder: ScriptedCoder, settle: Settle, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv("HOME", "/tmp")
+    task = await settle(bridge, await bridge.start(TaskOrder(prompt="go", profile="code", cwd="~/x")))
+    assert [s.cwd for s in coder.specs] == ["/tmp/x"]
+    assert task.cwd == "/tmp/x"
+
+
 @pytest.mark.parametrize(
     ("script", "state", "error"),
     [

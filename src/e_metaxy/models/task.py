@@ -6,6 +6,7 @@ ledger's key order is the order tasks were born in."""
 from collections.abc import Mapping
 from datetime import UTC, datetime
 from enum import StrEnum
+from pathlib import Path
 from types import MappingProxyType
 from typing import Final, Self
 from uuid import uuid7
@@ -45,6 +46,10 @@ class TaskOrder(CheckedStruct, frozen=True, kw_only=True):
     session: str = ""
     fork: bool = False
     caller: str = ""
+
+    def expanded(self) -> Self:
+        """The order with `~` in its cwd made the home: the coder needs the directory itself, the ledger what ran."""
+        return msgspec.structs.replace(self, cwd=str(Path(self.cwd).expanduser()))
 
 
 class Task(CheckedStruct, frozen=True, kw_only=True):

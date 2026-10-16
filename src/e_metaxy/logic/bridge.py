@@ -170,6 +170,7 @@ class Bridge:
 
     async def start(self, order: TaskOrder) -> Task:
         """A running task for the order; the run proceeds in the background."""
+        order = order.expanded()
         profile = self._start_profile(order)
         coder = self._common_coder(profile.coder)
         await self._start_root(order, profile)
