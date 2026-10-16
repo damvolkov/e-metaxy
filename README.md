@@ -3,30 +3,47 @@
 μεταξύ — *the in-between*. An MCP gateway that carries tasks from **polymath** harnesses (OpenHuman, Hermes) to
 **engineer** harnesses (Claude Code today, OpenCode next) and carries the results back.
 
-A caller never waits on work: `task_start` returns a task id at once; `task_status` reads it (or waits a bounded
-time); a caller that names itself is called back when the task ends. Live interactive Claude Code sessions are
-listed and messaged by name.
+A caller never waits on work: `work_start` returns a task id at once; `work_status` reads it (or waits a bounded
+time); a caller that names itself is called back when the task ends. Recorded sessions are found, read and
+continued; live interactive sessions are listed and messaged by name.
 
 ```
-OpenHuman ──MCP (HTTP, loopback)──▶ e-metaxy ──Agent SDK──▶ Claude Code (your login, your ~/.claude)
-    ▲                                  │  └──claude mcp serve──▶ live sessions (ListAgents · SendMessage)
-    └──── /rpc webhooks_trigger_agent ─┘  when a task ends
+OpenHuman ──MCP (HTTP, loopback, OAuth)──▶ e-metaxy ──Agent SDK──▶ Claude Code (your login, your ~/.claude)
+    ▲                                         │  └──claude mcp serve──▶ live sessions (ListAgents · SendMessage)
+    └──── /rpc webhooks_trigger_agent ────────┘  when a task ends
 ```
 
 ## Tools
 
-| tool | does |
-|---|---|
-| `task_start(prompt, profile, cwd, session?, fork?, caller?)` | runs the prompt on the profile's coder; `session` resumes, `fork` branches; returns at once |
-| `task_status(task, wait?)` | the task now, or once it ends within `wait` seconds |
-| `task_cancel(task)` | interrupts a running task |
-| `task_list(state?, limit?)` | newest tasks first |
-| `session_list(coder?)` | live interactive sessions: name, ref, idle/busy |
-| `session_history(cwd?, limit?, coder?)` | recorded sessions, newest first — an id to resume without knowing it |
-| `session_send(peer, text, coder?)` | delivers text to a live session's inbox |
-| `profile_list()` | the profiles a task may run under |
+| tool | scope | does |
+|---|---|---|
+| `work_start(prompt, project, profile?, session?, fork?, caller?)` | work | runs the prompt in Claude Code; `session` continues, `fork` branches; returns at once |
+| `work_status(task, wait?)` | work | the task now, or once it ends within `wait` seconds (≤25) |
+| `work_list(state?, limit?)` | work | newest tasks first |
+| `work_cancel(task)` | work | interrupts a running task |
+| `catalog(project?)` | work | the slash commands, skills and agents Claude Code offers in a project |
+| `session_find(project?, text?, limit?)` | sessions | recorded sessions, newest first, filtered by title, branch or tag |
+| `session_read(session, last?)` | sessions | a session and its last turns — where it stopped |
+| `session_update(session, title?, tag?)` | sessions | renames or tags a session |
+| `live_list()` | live | sessions open in a terminal: name, idle/busy |
+| `live_send(peer, text)` | live | delivers text to an open session's inbox |
 
-A skill or slash command is a prompt: `task_start(prompt="/research vLLM sleep mode", profile="research", …)`.
+A skill or slash command is a prompt: `work_start(prompt="/research vLLM sleep mode", project="e-voice", …)`. A
+project is a short name, resolved under `~/workspaces` (`METAXY_WORKSPACES`), or a path.
+
+## Auth
+
+OAuth 2.1 only, the way MCP clients expect it: e-metaxy is its own authorization server. A client registers
+itself (dynamic registration, PKCE), the browser lands on `/oauth/consent`, and the owner approves it with a
+passphrase. Access tokens are short JWTs bound to `/mcp`; refresh tokens rotate and can be revoked. `/ops` asks for
+the same token.
+
+```bash
+uv run e-metaxy keys     # CRYPTO__SECRET='…'          — the key that signs the tokens
+uv run e-metaxy owner    # METAXY_AUTH_OWNER_HASH='…'  — argon2 of the owner's passphrase (asked twice)
+```
+
+Both lines go to `~/.config/e-metaxy/env`; without an owner the service refuses to start.
 
 ## Profiles
 
@@ -44,14 +61,18 @@ make live           # the real Claude Code login on this host (spends a little q
 make run            # serve on 127.0.0.1:45190
 make deploy         # build the image, install compose + systemd unit: permanent container service
 make unit           # the same service host-native instead (uv, no docker)
+make probe          # the live service as an MCP client: owner sign-in, list the tools
+make probe TOOL=session_find INPUT='{"text":"voice"}'   # …or call one
 ```
 
-The container runs Claude Code inside: your `~/.claude` (login, sessions, hooks) and the ledger bind-mount at
-the same paths, `profiles.yaml` mounts read-only. `deploy/systemd/e-metaxy.service` keeps it up through boot and
-logout; images publish to `ghcr.io/damvolkov/e-metaxy` from the `release` workflow (manual dispatch, semver tag).
+The container runs Claude Code as you would at a terminal, with your setup mounted at the same paths: `~/.claude`
+and `~/.claude.json`, `~/workspaces`, the toolchains (`~/.local/bin`, uv, the native claude, rust) and the ledger.
+No ssh keys: git reaches GitHub over https with `GH_TOKEN`. `deploy/systemd/emetaxy.service` keeps it up through
+boot and logout; images publish to `ghcr.io/damvolkov/e-metaxy` from the `release` workflow (manual dispatch).
 
-Configuration is `METAXY_*` (see `.env.example`), read from `~/.config/e-metaxy/env` by the unit. The service runs
-as the user logged in to Claude Code: no API key — an `ANTHROPIC_API_KEY` in the environment is blanked for the
-coder so the subscription login is used.
+Configuration is `METAXY_*`, `CRYPTO__SECRET` and `GH_TOKEN`, read from `~/.config/e-metaxy/env`. `make probe`
+signs in with the passphrase in `~/.config/e-metaxy/passphrase` (`METAXY_PROBE_PASSPHRASE`). The service runs as
+the user logged in to Claude Code: no API key — an `ANTHROPIC_API_KEY` in the environment is blanked for the coder
+so the subscription login is used.
 
 Design and boundaries: [`docs/design.md`](docs/design.md).

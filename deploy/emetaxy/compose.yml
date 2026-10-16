@@ -12,9 +12,23 @@ services:
     labels:
       e-core.category: "bridge"
       e-core.port: "45190"
+    # the owner's setup at the host paths it names, and no more of the home than a coder works with:
+    # the code, the claude setup, the toolchains. no ssh keys: git reaches github over https with GH_TOKEN.
     volumes:
-      # the subscription login, the session store and the hooks, at the paths they hold inside ~/.claude
+      # the subscription login, the sessions, skills, agents, hooks; user-scope MCP servers live in .claude.json
       - ${HOME}/.claude:/home/damien/.claude
+      - ${HOME}/.claude.json:/home/damien/.claude.json
+      - ${HOME}/workspaces:/home/damien/workspaces
+      # the learner the hooks feed, and the memory the rules import
+      - ${HOME}/.autolearn:/home/damien/.autolearn
+      - ${HOME}/.config/memory:/home/damien/.config/memory:ro
+      # toolchains: uv and its pythons and tools, the native claude, rust (cargo keeps its registry cache)
+      - ${HOME}/.local/bin:/home/damien/.local/bin:ro
+      - ${HOME}/.local/share/uv:/home/damien/.local/share/uv:ro
+      - ${HOME}/.local/share/claude:/home/damien/.local/share/claude:ro
+      - ${HOME}/.cargo:/home/damien/.cargo
+      - ${HOME}/.rustup:/home/damien/.rustup:ro
+      - ${HOME}/.gitconfig:/home/damien/.gitconfig:ro
       - ${HOME}/.local/share/e-metaxy:/home/damien/.local/share/e-metaxy
       # the live nomos book, editable on the host; restart the unit to reread it
       - ${HOME}/workspaces/damien/e-metaxy/profiles.yaml:/app/profiles.yaml:ro
@@ -24,6 +38,10 @@ services:
       # override the host-absolute path the env file carries: the book is bind-mounted here
       - METAXY_PROFILES=/app/profiles.yaml
       - APP_ENV=prod
+      # the remotes say git@github.com; inside, the same repos go over https with the token gh holds
+      - GIT_CONFIG_COUNT=1
+      - GIT_CONFIG_KEY_0=url.https://github.com/.insteadOf
+      - GIT_CONFIG_VALUE_0=git@github.com:
     healthcheck:
       test: ["CMD", "python", "-c", "import socket; socket.create_connection(('127.0.0.1', 45190), 3).close()"]
       interval: 30s

@@ -37,7 +37,6 @@ from e_metaxy.config.metaxy import MetaxySettings
 from e_metaxy.core.crypto import Crypto
 from e_metaxy.core.logger import setup
 from e_metaxy.core.settings import settings as core
-from e_metaxy.core.settings.crypto import CryptoSettings
 from e_metaxy.core.settings.db import DbSettings
 from e_metaxy.logic.authority import Authority
 from e_metaxy.logic.bridge import Bridge
@@ -125,8 +124,7 @@ def assemble(
     ### granian imports the factory in its worker process: the logger is configured where the app runs.
     setup(env=core.app.app_env)
     quiet()
-    ### the core's CryptoSettings declares no prefix (it would read a bare SECRET): the key lives under CRYPTO__.
-    crypto = Crypto(CryptoSettings(_env_prefix="CRYPTO__")) if crypto is None else crypto
+    crypto = Crypto(core.crypto) if crypto is None else crypto
     ledger = SQLiteAdapter(DbSettings(db_path=st.ledger.expanduser()))
     authority = Authority(crypto=crypto, store=ledger, owner=owner(crypto, auth), policy=auth.policy)
     claude = ClaudeCoder(st.claude)

@@ -29,9 +29,9 @@ PKG: str = "e_metaxy"
 ### a standalone repo: the core lives in the e-templates checkout beside it; E_CORE_SRC points elsewhere.
 CORE_SRC: Path = Path(os.environ.get("E_CORE_SRC", ROOT.parent / "e-templates" / "systems" / "core" / "src" / "e_core"))
 SECTIONS: tuple[str, ...] = ("adapters", "core", "ops", "processors")
-### service subpackages that live inside a materialized section and must never be swept: the coder and
-### notifier adapters are e-metaxy's own, not copies of systems/core, yet they sit in e_metaxy/adapters/.
-PROTECTED: Final[Mapping[str, frozenset[str]]] = {"adapters": frozenset({"coder", "notifier"})}
+### service subpackages that live inside a materialized section and must never be swept: the coder, notifier and
+### owner adapters are e-metaxy's own, not copies of systems/core, yet they sit in e_metaxy/adapters/.
+PROTECTED: Final[Mapping[str, frozenset[str]]] = {"adapters": frozenset({"coder", "notifier", "owner"})}
 ### the TUI header belongs to the boilerplate wizard, not to a running service: same topology as the old sed.
 ### the compose tool belongs to stack management (management materializes the whole ops area), not a service.
 ### a bridge needs no TUI, snapshot, compose, code registry or redis; docling returns when DocProcessor lands.
