@@ -4,13 +4,13 @@ Nothing loads at import: `setup` and the `logger` singleton run on first use, ex
 
 import logging
 import sys
-from collections.abc import Callable, Sequence
+from collections.abc import Callable, Sequence  # noqa: TC003 — beartype resolves ELogger's annotations at runtime
 from typing import Any, ClassVar, Protocol, TextIO, runtime_checkable
 
 import beartype
 import msgspec
 import structlog
-from structlog.typing import (
+from structlog.typing import (  # noqa: TC002 — beartype resolves ELogger's annotations at runtime
     BindableLogger,
     EventDict,
     Processor,
