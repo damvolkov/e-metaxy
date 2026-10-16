@@ -11,19 +11,21 @@ from fakes import DONE_SCRIPT, Connect, ScriptedCoder, Wire
 from mcp import Client
 from mcp.server import MCPServer
 
-from e_metaxy.main import INSTRUCTIONS, tools
-from e_metaxy.mcp.tools import BridgeTools
+from e_metaxy.main import INSTRUCTIONS
+from e_metaxy.mcp.tools import BridgeTools, register
 
 if TYPE_CHECKING:
-    from collections.abc import AsyncGenerator
+    from collections.abc import AsyncGenerator, Mapping
+
+    from e_metaxy.models.profile import Profile
 
 
 @pytest.fixture
-def connect(wire: Wire) -> Connect:
+def connect(wire: Wire, book: Mapping[str, Profile]) -> Connect:
     @asynccontextmanager
     async def opened() -> AsyncGenerator[Client]:
         async with wire(ScriptedCoder(DONE_SCRIPT)) as bridge:
-            server = tools(MCPServer(name="e-metaxy", instructions=INSTRUCTIONS), BridgeTools(bridge))
+            server = register(MCPServer(name="e-metaxy", instructions=INSTRUCTIONS), BridgeTools(bridge), book)
             async with Client(server) as client:
                 yield client
 

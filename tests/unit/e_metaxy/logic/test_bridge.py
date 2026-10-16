@@ -1,12 +1,20 @@
 import asyncio
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 import pytest
 from fakes import RecordingNotifier, ScriptedCoder, Settle, Wire
 
 from e_metaxy.logic.bridge import INTERRUPTED, SILENT, Bridge
+from e_metaxy.logic.projects import ProjectIndex
 from e_metaxy.models.coder import FinishedEvent, StartedEvent
-from e_metaxy.models.error import RootDeniedError, UnknownCoderError, UnknownProfileError, UnknownTaskError
+from e_metaxy.models.error import (
+    RootDeniedError,
+    UnknownCoderError,
+    UnknownProfileError,
+    UnknownSessionError,
+    UnknownTaskError,
+)
 from e_metaxy.models.profile import CoderKind, Profile
 from e_metaxy.models.task import Task, TaskOrder, TaskState
 
@@ -81,7 +89,9 @@ async def test_bridge_start_refused(bridge: Bridge, order: TaskOrder, error: typ
 
 
 async def test_bridge_start_unknown_coder(ledger: SQLiteAdapter, book: Mapping[str, Profile], order: TaskOrder) -> None:
-    async with Bridge(coders={}, notifiers={}, ledger=ledger, profiles=book, limit=1) as bridge:
+    async with Bridge(
+        coders={}, notifiers={}, ledger=ledger, profiles=book, projects=ProjectIndex(Path("/tmp")), limit=1
+    ) as bridge:
         with pytest.raises(UnknownCoderError):
             await bridge.start(order)
 
@@ -157,5 +167,29 @@ async def test_bridge_peers_unknown_coder(bridge: Bridge) -> None:
         await bridge.peers(CoderKind.OPENCODE)
 
 
-async def test_bridge_profiles(bridge: Bridge) -> None:
-    assert sorted(p.name for p in await bridge.profiles()) == ["code", "direct", "research"]
+async def test_bridge_find_by_text_and_project(bridge: Bridge) -> None:
+    assert [row.session for row in await bridge.find(text="VOICE")] == ["s-new"]
+    assert [row.cwd for row in await bridge.find(project="/tmp", limit=1)] == ["/tmp"]
+    assert await bridge.find(text="nothing like it") == []
+
+
+async def test_bridge_read(bridge: Bridge) -> None:
+    read = await bridge.read("s-new", last=1)
+    assert (read.session.title, [t.text for t in read.turns]) == (
+        "fix the voice tests",
+        ["Threshold lowered to 0.4; tests green."],
+    )
+    with pytest.raises(UnknownSessionError):
+        await bridge.read("gone")
+
+
+async def test_bridge_update(bridge: Bridge) -> None:
+    updated = await bridge.update("s-new", title="vad fixed", tag="done")
+    assert (updated.title, updated.tag) == ("vad fixed", "done")
+    with pytest.raises(UnknownSessionError):
+        await bridge.update("gone", title="x")
+
+
+async def test_bridge_catalog(bridge: Bridge) -> None:
+    catalog = await bridge.catalog("/tmp")
+    assert (catalog.cwd, [c.name for c in catalog.commands]) == ("/tmp", ["research"])

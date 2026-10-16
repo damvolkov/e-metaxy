@@ -5,11 +5,14 @@ from collections.abc import AsyncGenerator, AsyncIterator, Awaitable, Callable, 
 from contextlib import AbstractAsyncContextManager, asynccontextmanager
 from typing import Any, ClassVar
 
+import msgspec
 from claude_agent_sdk import SystemMessage
 from mcp import Client
 
 from e_metaxy.logic.bridge import Bridge
 from e_metaxy.models.coder import (
+    CatalogEntry,
+    CoderCatalog,
     CoderEvent,
     CoderPeer,
     CoderReceipt,
@@ -17,7 +20,9 @@ from e_metaxy.models.coder import (
     CoderSpec,
     FinishedEvent,
     PeerStatus,
+    SessionTurn,
     StartedEvent,
+    TurnRole,
 )
 from e_metaxy.models.profile import CoderKind
 from e_metaxy.models.task import Task
@@ -38,6 +43,7 @@ class ScriptedCoder:
         self.fail = fail
         self.specs: list[CoderSpec] = []
         self.parked = asyncio.Event()
+        self.known: dict[str, CoderSession] = {"s-new": CoderSession(session="s-new", title="fix the voice tests")}
 
     async def run(self, spec: CoderSpec) -> AsyncIterator[CoderEvent]:
         self.specs.append(spec)
@@ -57,8 +63,38 @@ class ScriptedCoder:
     async def send(self, peer: str, text: str) -> CoderReceipt:
         return CoderReceipt(peer=peer, delivered=True, detail=text)
 
-    async def history(self, cwd: str, limit: int) -> list[CoderSession]:
-        return [CoderSession(session="s-old", title="earlier work", cwd=cwd or "/tmp")][:limit]
+    async def sessions(self, cwd: str, limit: int) -> list[CoderSession]:
+        rows = [
+            CoderSession(
+                session="s-new", title="fix the voice tests", cwd=cwd or "/tmp", branch="fix/vad", tag="voice"
+            ),
+            CoderSession(session="s-old", title="earlier work", cwd=cwd or "/tmp"),
+        ]
+        return rows[:limit]
+
+    async def session(self, session: str) -> CoderSession | None:
+        return self.known.get(session)
+
+    async def turns(self, session: str, last: int) -> list[SessionTurn]:
+        turns = [
+            SessionTurn(role=TurnRole.USER, text="fix the vad threshold"),
+            SessionTurn(role=TurnRole.TOOL, text="Edit"),
+            SessionTurn(role=TurnRole.ASSISTANT, text="Threshold lowered to 0.4; tests green."),
+        ]
+        return turns[-last:] if session in self.known and last > 0 else []
+
+    async def update(self, session: str, title: str | None, tag: str | None) -> None:
+        current = self.known[session]
+        self.known[session] = msgspec.structs.replace(
+            current, title=title or current.title, tag=current.tag if tag is None else tag
+        )
+
+    async def catalog(self, cwd: str) -> CoderCatalog:
+        return CoderCatalog(
+            cwd=cwd,
+            commands=(CatalogEntry(name="research", description="survey the state of the art", hint="<topic>"),),
+            agents=(CatalogEntry(name="architect", description="boundaries before code"),),
+        )
 
 
 class RecordingNotifier:

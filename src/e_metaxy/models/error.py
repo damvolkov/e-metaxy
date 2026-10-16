@@ -17,6 +17,14 @@ class UnknownTaskError(MetaxyError):
         self.task = task
 
 
+class UnknownSessionError(MetaxyError):
+    """No project of the coder holds a session with this id."""
+
+    def __init__(self, session: str) -> None:
+        super().__init__(f"unknown session {session!r}; session_find lists them")
+        self.session = session
+
+
 class UnknownProfileError(MetaxyError):
     """The caller named a profile the book does not declare."""
 
@@ -31,6 +39,39 @@ class UnknownCoderError(MetaxyError):
     def __init__(self, coder: str) -> None:
         super().__init__(f"no coder serves {coder!r}")
         self.coder = coder
+
+
+class UnknownConsentError(MetaxyError):
+    """No pending authorization carries this id: it never existed, was decided, or expired."""
+
+    def __init__(self, request: str) -> None:
+        super().__init__("this authorization request is unknown or expired; start the sign-in again")
+        self.request = request
+
+
+class UnknownProjectError(MetaxyError):
+    """No project of that name lives under the workspace root."""
+
+    def __init__(self, project: str, near: tuple[str, ...]) -> None:
+        hint = f"; close: {', '.join(near)}" if near else ""
+        super().__init__(f"no project named {project!r} under the workspace{hint}")
+        self.project = project
+
+
+class AmbiguousProjectError(MetaxyError):
+    """More than one project carries that name: the caller must pick a path."""
+
+    def __init__(self, project: str, paths: tuple[str, ...]) -> None:
+        super().__init__(f"{project!r} names several projects: {', '.join(paths)}; pass one of these paths")
+        self.project = project
+
+
+##### SETUP #####
+class OwnerUnsetError(MetaxyError):
+    """The bridge refuses to start without an owner: no client could ever be approved."""
+
+    def __init__(self) -> None:
+        super().__init__("no owner: run `e-metaxy owner` and set METAXY_AUTH_OWNER_HASH to the hash it prints")
 
 
 ##### POLICY #####

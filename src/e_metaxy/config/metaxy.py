@@ -15,8 +15,9 @@ class MetaxySettings(BaseSettings):
 
     host: str = "127.0.0.1"
     port: int = 45190
-    token: Secret | None = None
     profiles: Path = Path("profiles.yaml")
+    ### where short project names ("e-voice") are looked up, one and two levels deep.
+    workspaces: Path = Path("~/workspaces")
     ledger: Path = Path("~/.local/share/e-metaxy/ledger.db")
     limit: int = 4
     claude: str = "claude"

@@ -1,11 +1,13 @@
 """Package-wide fixtures: the bridge wired to a scripted coder and a recording notifier over a real ledger."""
 
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 import pytest
 from fakes import DONE_SCRIPT, RecordingNotifier, ScriptedCoder, Settle, Wire
 
 from e_metaxy.logic.bridge import Bridge
+from e_metaxy.logic.projects import ProjectIndex
 from e_metaxy.models.task import Task, TaskOrder
 
 if TYPE_CHECKING:
@@ -34,7 +36,12 @@ def order() -> TaskOrder:
 def wire(ledger: SQLiteAdapter, book: Mapping[str, Profile], notifier: RecordingNotifier) -> Wire:
     def build(coder: ScriptedCoder, limit: int = 2) -> Bridge:
         return Bridge(
-            coders={coder.kind: coder}, notifiers={notifier.name: notifier}, ledger=ledger, profiles=book, limit=limit
+            coders={coder.kind: coder},
+            notifiers={notifier.name: notifier},
+            ledger=ledger,
+            profiles=book,
+            projects=ProjectIndex(Path("/tmp")),
+            limit=limit,
         )
 
     return build

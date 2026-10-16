@@ -7,7 +7,7 @@ from claude_agent_sdk import AssistantMessage, CLINotFoundError, ResultError, Re
 from fakes import INIT, sdk_stream
 from mcp.types import CallToolResult, TextContent
 
-from e_metaxy.adapters.coder.claude import CHILD_ENV, ClaudeCoder, Query
+from e_metaxy.adapters.coder.claude import CHILD_ENV, TURN_CHARS, ClaudeCoder, Query
 from e_metaxy.models.coder import CoderSpec, FinishedEvent, PeerStatus, StartedEvent
 
 if TYPE_CHECKING:
@@ -160,26 +160,98 @@ async def test_claude_send_parse(result: CallToolResult, delivered: bool, detail
     assert (receipt.peer, receipt.delivered, receipt.detail) == ("e-jev-43", delivered, detail)
 
 
-async def test_claude_history_parse() -> None:
+def row(session: str, modified: int, **fields: object) -> SimpleNamespace:
+    base = {"custom_title": None, "summary": "", "first_prompt": None, "cwd": None, "git_branch": None, "tag": None}
+    return SimpleNamespace(session_id=session, last_modified=modified, **(base | fields))
+
+
+async def test_claude_sessions_parse() -> None:
     rows = [
-        SimpleNamespace(session_id="s-a", summary="first", last_modified=1_000, cwd="/x", first_prompt="p"),
-        SimpleNamespace(session_id="s-b", summary="", last_modified=3_000, cwd=None, first_prompt="fallback"),
-        SimpleNamespace(session_id="s-c", summary="third", last_modified=2_000, cwd="/y", first_prompt=None),
+        row("s-a", 1_000, summary="first", cwd="/x", first_prompt="p"),
+        row("s-b", 3_000, first_prompt="fallback", git_branch="feat/x", tag="voice"),
+        row("s-c", 2_000, custom_title="named", summary="third", cwd="/y"),
     ]
-    sessions = ClaudeCoder._history_parse(rows, limit=2)
-    assert [(s.session, s.title, s.cwd) for s in sessions] == [("s-b", "fallback", ""), ("s-c", "third", "/y")]
+    sessions = ClaudeCoder._sessions_parse(rows, limit=2)
+    assert [(s.session, s.title, s.cwd, s.branch, s.tag) for s in sessions] == [
+        ("s-b", "fallback", "", "feat/x", "voice"),
+        ("s-c", "named", "/y", "", ""),
+    ]
     assert sessions[0].modified.timestamp() == 3.0
 
 
-async def test_claude_history_off_loop(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_claude_sessions_off_loop(monkeypatch: pytest.MonkeyPatch) -> None:
     def listing(*, directory: str | None, limit: int | None, offset: int = 0, include_worktrees: bool = True) -> list:
-        return [
-            SimpleNamespace(session_id="s-1", summary="work", last_modified=1, cwd=directory or "", first_prompt=None)
-        ]
+        return [row("s-1", 1, summary="work", cwd=directory or "")]
 
     monkeypatch.setattr("e_metaxy.adapters.coder.claude.list_sessions", listing)
-    sessions = await ClaudeCoder().history("/tmp", 5)
+    sessions = await ClaudeCoder().sessions("/tmp", 5)
     assert [(s.session, s.cwd) for s in sessions] == [("s-1", "/tmp")]
+
+
+def message(kind: str, content: object) -> SimpleNamespace:
+    return SimpleNamespace(type=kind, message={"role": kind, "content": content})
+
+
+async def test_claude_turns_parse() -> None:
+    messages = [
+        message("user", "fix the vad"),
+        message("assistant", [{"type": "thinking", "thinking": "hm"}, {"type": "tool_use", "name": "Edit"}]),
+        message("user", [{"type": "tool_result", "content": "ok"}]),
+        message("assistant", [{"type": "text", "text": "done, tests green"}]),
+        SimpleNamespace(type="system", message={"content": "noise"}),
+    ]
+    turns = ClaudeCoder._turns_parse(messages, last=3)
+    assert [(t.role, t.text) for t in turns] == [
+        ("user", "fix the vad"),
+        ("tool", "Edit"),
+        ("assistant", "done, tests green"),
+    ]
+    assert ClaudeCoder._turns_parse(messages, last=0) == []
+
+
+async def test_claude_turns_cut_long_text() -> None:
+    turns = ClaudeCoder._turns_parse([message("assistant", "x" * 9000)], last=1)
+    assert len(turns[0].text) == TURN_CHARS
+
+
+async def test_claude_catalog_parse() -> None:
+    info = {
+        "commands": [
+            {"name": "research", "description": "survey", "argumentHint": "<topic>"},
+            {"description": "nameless"},
+        ],
+        "agents": [{"name": "architect", "description": "boundaries"}],
+    }
+    catalog = ClaudeCoder._catalog_parse("/w", info)
+    assert [(c.name, c.hint) for c in catalog.commands] == [("research", "<topic>")]
+    assert [a.name for a in catalog.agents] == ["architect"]
+
+
+async def test_claude_session_read_and_update_off_loop(monkeypatch: pytest.MonkeyPatch) -> None:
+    calls: list[tuple[str, ...]] = []
+    monkeypatch.setattr(
+        "e_metaxy.adapters.coder.claude.get_session_info",
+        lambda session, directory=None: row(session, 5, custom_title="t") if session == "s-1" else None,
+    )
+    monkeypatch.setattr(
+        "e_metaxy.adapters.coder.claude.get_session_messages",
+        lambda session, directory=None, limit=None, offset=0: [message("assistant", "hi")],
+    )
+    monkeypatch.setattr(
+        "e_metaxy.adapters.coder.claude.rename_session",
+        lambda session, title, directory=None: calls.append(("rename", session, title)),
+    )
+    monkeypatch.setattr(
+        "e_metaxy.adapters.coder.claude.tag_session",
+        lambda session, tag, directory=None: calls.append(("tag", session, str(tag))),
+    )
+    coder = ClaudeCoder()
+    found, missing = await coder.session("s-1"), await coder.session("s-2")
+    assert (found is not None and found.title, missing) == ("t", None)
+    assert [t.text for t in await coder.turns("s-1", 5)] == ["hi"]
+    await coder.update("s-1", " new name ", "")
+    await coder.update("s-1", None, None)
+    assert calls == [("rename", "s-1", "new name"), ("tag", "s-1", "None")]
 
 
 async def test_claude_unconnected(claude: ClaudeCoder) -> None:
@@ -221,3 +293,22 @@ async def test_claude_run(spec: CoderSpec, stream: Query, expected: list[object]
     events = [event async for event in ClaudeCoder("claude", runner=stream).run(spec)]
     seen = [e if isinstance(e, StartedEvent) else (e.result or e.error.split("(")[0]) for e in events]
     assert seen == expected
+
+
+async def test_claude_catalog_connects_and_closes(monkeypatch: pytest.MonkeyPatch) -> None:
+    class Client:
+        def __init__(self, options: object) -> None:
+            self.options = options
+
+        async def __aenter__(self) -> Client:
+            return self
+
+        async def __aexit__(self, *_: object) -> None:
+            return None
+
+        async def get_server_info(self) -> dict | None:
+            return {"commands": [{"name": "review", "description": "d"}], "agents": []}
+
+    monkeypatch.setattr("e_metaxy.adapters.coder.claude.ClaudeSDKClient", Client)
+    catalog = await ClaudeCoder().catalog("/w")
+    assert (catalog.cwd, [c.name for c in catalog.commands]) == ("/w", ["review"])
