@@ -63,10 +63,52 @@ class CoderReceipt(CheckedStruct, frozen=True, kw_only=True):
     detail: str = ""
 
 
+##### SESSIONS #####
 class CoderSession(CheckedStruct, frozen=True, kw_only=True):
-    """A recorded session of a coder — closed or live, addressable by id for a resume."""
+    """A recorded session of a coder — closed or live, addressable by id to read, rename or resume."""
 
     session: str
     title: str = ""
     cwd: str = ""
+    branch: str = ""
+    tag: str = ""
     modified: datetime = msgspec.field(default_factory=lambda: datetime.now(UTC))
+
+
+class TurnRole(StrEnum):
+    """Who spoke in a turn: the person, the coder, or a tool the coder called."""
+
+    USER = "user"
+    ASSISTANT = "assistant"
+    TOOL = "tool"
+
+
+class SessionTurn(CheckedStruct, frozen=True, kw_only=True):
+    """One readable step of a session: what the user asked, what the coder answered, which tool it called."""
+
+    role: TurnRole
+    text: str
+
+
+class SessionRead(CheckedStruct, frozen=True, kw_only=True):
+    """A session and its last turns, oldest first — enough to pick it up where it stopped."""
+
+    session: CoderSession
+    turns: tuple[SessionTurn, ...] = ()
+
+
+##### CATALOG #####
+class CatalogEntry(CheckedStruct, frozen=True, kw_only=True):
+    """A command, skill or agent the coder offers, with what it is for."""
+
+    name: str
+    description: str = ""
+    hint: str = ""
+
+
+class CoderCatalog(CheckedStruct, frozen=True, kw_only=True):
+    """What the coder can do in one project: its slash commands and skills, and its agents."""
+
+    cwd: str
+    commands: tuple[CatalogEntry, ...] = ()
+    agents: tuple[CatalogEntry, ...] = ()

@@ -18,8 +18,24 @@ from beartype import beartype
 
 from e_metaxy.adapters.ports import StorePort
 from e_metaxy.logic.ports import CoderPort, NotifierPort
-from e_metaxy.models.coder import CoderPeer, CoderReceipt, CoderSession, CoderSpec, FinishedEvent, StartedEvent
-from e_metaxy.models.error import RootDeniedError, UnknownCoderError, UnknownProfileError, UnknownTaskError
+from e_metaxy.logic.projects import ProjectIndex
+from e_metaxy.models.coder import (
+    CoderCatalog,
+    CoderPeer,
+    CoderReceipt,
+    CoderSession,
+    CoderSpec,
+    FinishedEvent,
+    SessionRead,
+    StartedEvent,
+)
+from e_metaxy.models.error import (
+    RootDeniedError,
+    UnknownCoderError,
+    UnknownProfileError,
+    UnknownSessionError,
+    UnknownTaskError,
+)
 from e_metaxy.models.profile import CoderKind, Profile
 from e_metaxy.models.task import Task, TaskOrder, TaskState
 
@@ -34,7 +50,7 @@ SILENT: Final = "the coder ended without a result"
 class Bridge:
     """Starts, supervises, cancels and lists tasks across coders; recovers what a restart cut short."""
 
-    __slots__ = ("_coders", "_gate", "_group", "_ledger", "_notifiers", "_profiles", "_runs", "_stack")
+    __slots__ = ("_coders", "_gate", "_group", "_ledger", "_notifiers", "_profiles", "_projects", "_runs", "_stack")
 
     def __init__(
         self,
@@ -43,9 +59,11 @@ class Bridge:
         notifiers: Mapping[str, NotifierPort],
         ledger: StorePort,
         profiles: Mapping[str, Profile],
+        projects: ProjectIndex,
         limit: int,
     ) -> None:
         self._coders = coders
+        self._projects = projects
         self._notifiers = notifiers
         self._ledger = ledger
         self._profiles = profiles
@@ -88,6 +106,18 @@ class Bridge:
                 raise UnknownCoderError(coder)
             case port:
                 return port
+
+    @staticmethod
+    async def _common_session(port: CoderPort, session: str) -> CoderSession:
+        match await port.session(session):
+            case None:
+                raise UnknownSessionError(session)
+            case found:
+                return found
+
+    async def _common_project(self, project: str) -> str:
+        """A project name or path as its directory — resolved off the loop, it touches the filesystem."""
+        return await anyio.to_thread.run_sync(self._projects.resolve, project)
 
     async def _start_root(self, order: TaskOrder, profile: Profile) -> None:
         """The cwd must live under a root of the profile — resolved off the loop, it touches the filesystem."""
@@ -170,6 +200,7 @@ class Bridge:
 
     async def start(self, order: TaskOrder) -> Task:
         """A running task for the order; the run proceeds in the background."""
+        order = msgspec.structs.replace(order, cwd=await self._common_project(order.cwd))
         profile = self._start_profile(order)
         coder = self._common_coder(profile.coder)
         await self._start_root(order, profile)
@@ -207,8 +238,37 @@ class Bridge:
     async def send(self, peer: str, text: str, coder: CoderKind = CoderKind.CLAUDE) -> CoderReceipt:
         return await self._common_coder(coder).send(peer, text)
 
-    async def history(self, cwd: str, coder: CoderKind = CoderKind.CLAUDE, limit: int = 25) -> list[CoderSession]:
-        return await self._common_coder(coder).history(cwd, limit)
+    async def find(
+        self, project: str = "", text: str = "", limit: int = 10, coder: CoderKind = CoderKind.CLAUDE
+    ) -> list[CoderSession]:
+        """Recorded sessions, newest first: of one project (or all), whose title, branch or tag holds `text`."""
+        cwd = await self._common_project(project) if project else ""
+        needle = text.casefold()
+        rows = await self._common_coder(coder).sessions(cwd, limit if not needle else 500)
+        hits = (row for row in rows if needle in f"{row.title} {row.branch} {row.tag}".casefold())
+        return [row for row, _ in zip(hits, range(limit), strict=False)]
 
-    async def profiles(self) -> list[Profile]:
-        return list(self._profiles.values())
+    async def read(self, session: str, last: int = 6, coder: CoderKind = CoderKind.CLAUDE) -> SessionRead:
+        """A session and its last turns — what it was about and where it stopped."""
+        port = self._common_coder(coder)
+        async with asyncio.TaskGroup() as group:
+            info = group.create_task(port.session(session))
+            turns = group.create_task(port.turns(session, last))
+        match info.result():
+            case None:
+                raise UnknownSessionError(session)
+            case found:
+                return SessionRead(session=found, turns=tuple(turns.result()))
+
+    async def update(
+        self, session: str, title: str | None = None, tag: str | None = None, coder: CoderKind = CoderKind.CLAUDE
+    ) -> CoderSession:
+        """The session after renaming and/or tagging it."""
+        port = self._common_coder(coder)
+        await self._common_session(port, session)
+        await port.update(session, title, tag)
+        return await self._common_session(port, session)
+
+    async def catalog(self, project: str = "", coder: CoderKind = CoderKind.CLAUDE) -> CoderCatalog:
+        """The commands, skills and agents the coder offers in a project."""
+        return await self._common_coder(coder).catalog(await self._common_project(project))
