@@ -41,7 +41,7 @@ services:
       # the remotes say git@github.com; inside, the same repos go over https with the token gh holds
       - GIT_CONFIG_COUNT=1
       - GIT_CONFIG_KEY_0=url.https://github.com/.insteadOf
-      - GIT_CONFIG_VALUE_0=git@github.com:
+      - "GIT_CONFIG_VALUE_0=git@github.com:"
     healthcheck:
       test: ["CMD", "python", "-c", "import socket; socket.create_connection(('127.0.0.1', 45190), 3).close()"]
       interval: 30s
