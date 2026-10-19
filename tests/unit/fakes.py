@@ -3,12 +3,14 @@
 import asyncio
 from collections.abc import AsyncGenerator, AsyncIterator, Awaitable, Callable, Coroutine
 from contextlib import AbstractAsyncContextManager, asynccontextmanager
+from types import SimpleNamespace
 from typing import Any, ClassVar
 
 import msgspec
 from claude_agent_sdk import SystemMessage
 from mcp import Client
 
+from e_metaxy.adapters.ports import MdConversion
 from e_metaxy.logic.bridge import Bridge
 from e_metaxy.models.coder import (
     CatalogEntry,
@@ -32,6 +34,10 @@ type Settle = Callable[[Bridge, Task], Awaitable[Task]]
 type Connect = Callable[[], AbstractAsyncContextManager[Client]]
 
 UUID = "7b4fb561-4dde-463f-b54b-e8c9114b3682"
+### the live app's seeded identity: where it answers, the owner's passphrase, the signing secret.
+BASE = "http://127.0.0.1:45190"
+PASSPHRASE = "the owner's words"
+SECRET = "k" * 48
 
 
 class ScriptedCoder:
@@ -151,3 +157,16 @@ def sdk_stream(messages: list[object], raises: Exception | None = None) -> Calla
                 raise failure
 
     return run
+
+
+def stub(*, fail: Exception | None = None) -> Any:
+    """A converter port that renders everything as `# A`, or raises `fail`."""
+
+    async def convert(data: bytes, *, extension: str) -> MdConversion:
+        match fail:
+            case Exception():
+                raise fail
+            case _:
+                return MdConversion(markdown="# A")
+
+    return SimpleNamespace(convert=convert, name="stub")

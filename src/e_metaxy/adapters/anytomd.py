@@ -1,4 +1,4 @@
-"""adapters/md/anytomd: anytomd bound to Python — one engine for every format, PDF and image descriptions folded in.
+"""adapters/anytomd: anytomd bound to Python — one engine for every format, PDF and image descriptions folded in.
 
 `convert_bytes` renders office, markup, tables, notebooks, code and text; a PDF goes through the bundled
 liteparse `PdfConverter`; an image is annotated by the configured OpenAI-compatible vision model. Format

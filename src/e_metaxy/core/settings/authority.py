@@ -1,11 +1,10 @@
-"""e_metaxy.config.authority: the authorization server's knobs — METAXY_AUTH_* in the environment or `.env`."""
+"""core/settings/authority: the authorization server's knobs — METAXY_AUTH_* in the environment or `.env`."""
 
 from datetime import timedelta
 
 from pydantic_settings import SettingsConfigDict
 
 from e_metaxy.core.settings.base import BaseSettings, Secret
-from e_metaxy.models.auth import Policy
 
 
 class AuthoritySettings(BaseSettings):
@@ -21,19 +20,3 @@ class AuthoritySettings(BaseSettings):
     code_ttl: timedelta = timedelta(minutes=5)
     consent_ttl: timedelta = timedelta(minutes=10)
     attempts: int = 3
-
-    @property
-    def policy(self) -> Policy:
-        """Everything the authority needs, the owner's hash excepted: that goes to the owner alone."""
-        return Policy(
-            issuer=self.issuer,
-            access_ttl=self.access_ttl,
-            refresh_ttl=self.refresh_ttl,
-            code_ttl=self.code_ttl,
-            consent_ttl=self.consent_ttl,
-            attempts=self.attempts,
-        )
-
-    @property
-    def resource(self) -> str:
-        return self.policy.resource

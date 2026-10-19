@@ -14,8 +14,8 @@ from typing import Final
 from granian.constants import Interfaces
 from granian.server import Server
 
-from e_metaxy.config.metaxy import MetaxySettings
 from e_metaxy.core.crypto import Crypto
+from e_metaxy.core.settings import settings as st
 from e_metaxy.core.settings.base import Secret
 from e_metaxy.core.settings.crypto import CryptoSettings
 
@@ -23,11 +23,10 @@ USAGE: Final = "usage: e-metaxy [serve | keys | owner]"
 
 
 def serve() -> None:
-    st = MetaxySettings()
     Server(
-        "e_metaxy.main:assemble",
-        address=st.host,
-        port=st.port,
+        "e_metaxy.main:create_app",
+        address=st.metaxy.host,
+        port=st.metaxy.port,
         interface=Interfaces.ASGI,
         factory=True,
         workers=1,

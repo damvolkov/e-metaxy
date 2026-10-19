@@ -31,7 +31,7 @@ def test_main_serve_hands_the_factory_to_granian(monkeypatch: pytest.MonkeyPatch
 
     monkeypatch.setattr(cli, "Server", Server)
     cli.main(["serve"])
-    assert (seen["target"], seen["factory"], seen["served"]) == ("e_metaxy.main:assemble", True, True)
+    assert (seen["target"], seen["factory"], seen["served"]) == ("e_metaxy.main:create_app", True, True)
 
 
 def test_main_keys_prints_a_quoted_secret(capsys: pytest.CaptureFixture[str]) -> None:

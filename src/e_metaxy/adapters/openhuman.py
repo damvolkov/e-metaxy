@@ -1,4 +1,4 @@
-"""e_metaxy.adapters.notifier.openhuman: tell OpenHuman a task ended — its core's own trigger, over JSON-RPC.
+"""e_metaxy.adapters.openhuman: tell OpenHuman a task ended — its core's own trigger, over JSON-RPC.
 
 `openhuman.webhooks_trigger_agent` runs OpenHuman's triage pipeline: the classifier sees only the envelope's
 label and the **payload**, never the reason — so the order ("send Damien the result") and the outcome to
@@ -33,7 +33,7 @@ ACTION: Final[Mapping[TaskState, str]] = MappingProxyType(
 
 
 @beartype
-class OpenHumanNotifier(BaseAdapter):
+class OpenHumanAdapter(BaseAdapter):
     """One wreq client against the OpenHuman core's `/rpc`, authenticated with its core token."""
 
     name: ClassVar[str] = "openhuman"
@@ -79,7 +79,7 @@ class OpenHumanNotifier(BaseAdapter):
     def _common_connected(self) -> wreq.Client:
         match self._client:
             case None:
-                msg = "OpenHumanNotifier not connected: the lifespan opens it"
+                msg = "OpenHumanAdapter not connected: the lifespan opens it"
                 raise RuntimeError(msg)
             case client:
                 return client

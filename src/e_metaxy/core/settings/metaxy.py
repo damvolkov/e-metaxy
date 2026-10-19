@@ -1,4 +1,4 @@
-"""e_metaxy.config.metaxy: the bridge's knobs — METAXY_* in the environment or `.env`."""
+"""core/settings/metaxy: the bridge's knobs — METAXY_* in the environment or `.env`."""
 
 from datetime import timedelta
 from pathlib import Path

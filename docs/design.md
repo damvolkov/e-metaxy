@@ -43,9 +43,9 @@ workspace root (`root/name`, `root/*/name`; ambiguous or unknown names are refus
 | port | does | adapter v1 | next |
 |---|---|---|---|
 | `Coder` | `run(spec) → Outcome`, `sessions`, `session`, `turns`, `update`, `catalog`, `peers()`, `send(peer, text)` | `ClaudeCoder` — Claude Agent SDK (`run`), a `claude mcp serve` child (`peers`, `send` via ListAgents/SendMessage) | `OpenCodeCoder` — `opencode serve` |
-| `Notifier` | `notify(task)` on a terminal state | `OpenHumanNotifier` — `POST /rpc openhuman.webhooks_trigger_agent` | webhook, Hermes |
+| `Notifier` | `notify(task)` on a terminal state | `OpenHumanAdapter` — `POST /rpc openhuman.webhooks_trigger_agent` | webhook, Hermes |
 | `Ledger` | tasks by id, newest first; the authority's records | core `StorePort` (sqlite KV, msgspec bytes) | — |
-| `Owner` | `admits(secret)` | `PassphraseOwner` — argon2 hash checked by core `Crypto` | passkey |
+| `Owner` | `admits(secret)` | `PassphraseAdapter` — argon2 hash checked by core `Crypto` | passkey |
 
 `Bridge` (logic) owns the lifecycle: it starts each run inside one `TaskGroup` bounded by a semaphore, records
 every transition in the ledger, interrupts on cancel, and notifies the caller when a task ends. It imports ports

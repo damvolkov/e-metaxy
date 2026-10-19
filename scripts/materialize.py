@@ -22,16 +22,28 @@ from typing import TYPE_CHECKING, Final
 import libcst as cst
 
 if TYPE_CHECKING:
-    from collections.abc import Mapping, Sequence
+    from collections.abc import Sequence
 
 ROOT: Path = Path(__file__).resolve().parents[1]
 PKG: str = "e_metaxy"
 ### a standalone repo: the core lives in the e-templates checkout beside it; E_CORE_SRC points elsewhere.
 CORE_SRC: Path = Path(os.environ.get("E_CORE_SRC", ROOT.parent / "e-templates" / "systems" / "core" / "src" / "e_core"))
 SECTIONS: tuple[str, ...] = ("adapters", "core", "ops", "processors")
-### service subpackages that live inside a materialized section and must never be swept: the coder, notifier and
-### owner adapters are e-metaxy's own, not copies of systems/core, yet they sit in e_metaxy/adapters/.
-PROTECTED: Final[Mapping[str, frozenset[str]]] = {"adapters": frozenset({"coder", "notifier", "owner"})}
+### e-metaxy's own modules inside a materialized section, never swept and never diffed: its adapters (the coder,
+### the OpenHuman caller, the owner's passphrase), the lifespan chain and middleware stack both doors share, and
+### the two settings scopes the composer discovers beside the common ones. A path protects itself and its subtree.
+PROTECTED: Final[frozenset[Path]] = frozenset(
+    Path(path)
+    for path in (
+        "adapters/coder",
+        "adapters/openhuman.py",
+        "adapters/passphrase.py",
+        "core/lifespan",
+        "core/middlewares.py",
+        "core/settings/authority.py",
+        "core/settings/metaxy.py",
+    )
+)
 ### the TUI header belongs to the boilerplate wizard, not to a running service: same topology as the old sed.
 ### the compose tool belongs to stack management (management materializes the whole ops area), not a service.
 ### a bridge needs no TUI, snapshot, compose, code registry or redis; docling returns when DocProcessor lands.
@@ -140,21 +152,29 @@ def _sources(section: str) -> list[Path]:
     ]
 
 
-def _sweep(section_dir: Path, section: str) -> None:
-    """Clear the copied files under a section, sparing the protected service subpackages."""
-    protected = PROTECTED.get(section, frozenset())
-    for child in section_dir.iterdir():
-        if child.is_dir() and child.name in protected:
-            continue
-        shutil.rmtree(child) if child.is_dir() else child.unlink()
+def _protected(rel: Path) -> bool:
+    """Whether a package-relative path is e-metaxy's own: itself or an ancestor is protected."""
+    return not PROTECTED.isdisjoint((rel, *rel.parents))
+
+
+def _sweep(package: Path, section: str) -> None:
+    """Clear the copied files under a section, sparing e-metaxy's own; directories left empty go with them."""
+    copies = [path for path in (package / section).rglob("*.py") if not _protected(path.relative_to(package))]
+    _ = [path.unlink() for path in copies]
+    empty = [
+        path
+        for path in sorted((package / section).rglob("*"), reverse=True)
+        if path.is_dir() and not any(path.iterdir())
+    ]
+    _ = [path.rmdir() for path in empty]
 
 
 def materialize(dest_root: Path) -> None:
     """Write the rewritten sections under `dest_root/src/e_metaxy`, replacing any previous copy in place."""
     package = dest_root / "src" / PKG
     for section in SECTIONS:
-        if (section_dir := package / section).is_dir():
-            _sweep(section_dir, section)
+        if (package / section).is_dir():
+            _sweep(package, section)
         for path in _sources(section):
             rel = path.relative_to(CORE_SRC)
             target = package / rel
@@ -163,17 +183,14 @@ def materialize(dest_root: Path) -> None:
 
 
 def _materialized(dest_root: Path) -> set[Path]:
-    """The .py files materialized under `dest_root/src/e_metaxy`, relative to the package, service dirs spared."""
+    """The .py files materialized under `dest_root/src/e_metaxy`, relative to the package, e-metaxy's own spared."""
     package = dest_root / "src" / PKG
-    out: set[Path] = set()
-    for section in SECTIONS:
-        protected = PROTECTED.get(section, frozenset())
-        for path in (package / section).rglob("*.py"):
-            rel = path.relative_to(package)
-            if len(rel.parts) > 1 and rel.parts[1] in protected:  # a service subpackage: never a copy
-                continue
-            out.add(rel)
-    return out
+    return {
+        rel
+        for section in SECTIONS
+        for path in (package / section).rglob("*.py")
+        if "__pycache__" not in (rel := path.relative_to(package)).parts and not _protected(rel)
+    }
 
 
 def check(dest_root: Path) -> int:
