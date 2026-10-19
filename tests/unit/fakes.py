@@ -31,6 +31,8 @@ type Wire = Callable[..., Bridge]
 type Settle = Callable[[Bridge, Task], Awaitable[Task]]
 type Connect = Callable[[], AbstractAsyncContextManager[Client]]
 
+UUID = "7b4fb561-4dde-463f-b54b-e8c9114b3682"
+
 
 class ScriptedCoder:
     """Plays a fixed event script per run; `hold` parks the run after its first event until cancelled."""
@@ -43,7 +45,10 @@ class ScriptedCoder:
         self.fail = fail
         self.specs: list[CoderSpec] = []
         self.parked = asyncio.Event()
-        self.known: dict[str, CoderSession] = {"s-new": CoderSession(session="s-new", title="fix the voice tests")}
+        self.known: dict[str, CoderSession] = {
+            "s-new": CoderSession(session="s-new", title="fix the voice tests"),
+            UUID: CoderSession(session=UUID, title="Tools MCP en tools.py"),
+        }
 
     async def run(self, spec: CoderSpec) -> AsyncIterator[CoderEvent]:
         self.specs.append(spec)
@@ -69,6 +74,8 @@ class ScriptedCoder:
                 session="s-new", title="fix the voice tests", cwd=cwd or "/tmp", branch="fix/vad", tag="voice"
             ),
             CoderSession(session="s-old", title="earlier work", cwd=cwd or "/tmp"),
+            CoderSession(session=UUID, title="Tools MCP en tools.py", cwd=cwd or "/tmp"),
+            CoderSession(session="7b4fb5ff-twin", title="a twin by prefix", cwd=cwd or "/tmp"),
         ]
         return rows[:limit]
 

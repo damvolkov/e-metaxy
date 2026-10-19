@@ -30,6 +30,7 @@ from e_metaxy.models.coder import (
     StartedEvent,
 )
 from e_metaxy.models.error import (
+    AmbiguousSessionError,
     RootDeniedError,
     UnknownCoderError,
     UnknownProfileError,
@@ -44,6 +45,9 @@ log = structlog.get_logger()
 KEY: Final = "task:"
 INTERRUPTED: Final = "interrupted: the bridge restarted while the task ran; resume its session"
 SILENT: Final = "the coder ended without a result"
+### the sessions a prefix or a title is matched against, and the shortest prefix taken for an id.
+SCAN: Final = 500
+PREFIX: Final = 6
 
 
 @beartype
@@ -109,11 +113,27 @@ class Bridge:
 
     @staticmethod
     async def _common_session(port: CoderPort, session: str) -> CoderSession:
-        match await port.session(session):
-            case None:
-                raise UnknownSessionError(session)
-            case found:
+        """A session by what a caller copies reliably: its id, a unique id prefix, the first block of an id
+        mangled in the copy, or its exact title."""
+        match await port.session(ref := session.strip()):
+            case CoderSession() as found:
                 return found
+        head, key = ref.split("-")[0], ref.casefold()
+        rows = await port.sessions("", SCAN)
+        hits = [
+            row
+            for row in rows
+            if (len(ref) >= PREFIX and row.session.startswith(ref))
+            or (len(head) >= PREFIX and row.session.startswith(head))
+            or row.title.casefold() == key
+        ]
+        match hits:
+            case [one]:
+                return one
+            case []:
+                raise UnknownSessionError(session)
+            case many:
+                raise AmbiguousSessionError(session, tuple(row.session for row in many))
 
     async def _common_project(self, project: str) -> str:
         """A project name or path as its directory — resolved off the loop, it touches the filesystem."""
@@ -203,6 +223,8 @@ class Bridge:
         order = msgspec.structs.replace(order, cwd=await self._common_project(order.cwd))
         profile = self._start_profile(order)
         coder = self._common_coder(profile.coder)
+        resumed = (await self._common_session(coder, order.session)).session if order.session else ""
+        order = msgspec.structs.replace(order, session=resumed)
         await self._start_root(order, profile)
         task = await self._common_save(Task.open(order, profile.coder))
         spec = CoderSpec(prompt=order.prompt, cwd=order.cwd, profile=profile, session=order.session, fork=order.fork)
@@ -251,23 +273,17 @@ class Bridge:
     async def read(self, session: str, last: int = 6, coder: CoderKind = CoderKind.CLAUDE) -> SessionRead:
         """A session and its last turns — what it was about and where it stopped."""
         port = self._common_coder(coder)
-        async with asyncio.TaskGroup() as group:
-            info = group.create_task(port.session(session))
-            turns = group.create_task(port.turns(session, last))
-        match info.result():
-            case None:
-                raise UnknownSessionError(session)
-            case found:
-                return SessionRead(session=found, turns=tuple(turns.result()))
+        found = await self._common_session(port, session)
+        return SessionRead(session=found, turns=tuple(await port.turns(found.session, last)))
 
     async def update(
         self, session: str, title: str | None = None, tag: str | None = None, coder: CoderKind = CoderKind.CLAUDE
     ) -> CoderSession:
         """The session after renaming and/or tagging it."""
         port = self._common_coder(coder)
-        await self._common_session(port, session)
-        await port.update(session, title, tag)
-        return await self._common_session(port, session)
+        found = await self._common_session(port, session)
+        await port.update(found.session, title, tag)
+        return await self._common_session(port, found.session)
 
     async def catalog(self, project: str = "", coder: CoderKind = CoderKind.CLAUDE) -> CoderCatalog:
         """The commands, skills and agents the coder offers in a project."""

@@ -3,12 +3,13 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 import pytest
-from fakes import RecordingNotifier, ScriptedCoder, Settle, Wire
+from fakes import UUID, RecordingNotifier, ScriptedCoder, Settle, Wire
 
 from e_metaxy.logic.bridge import INTERRUPTED, SILENT, Bridge
 from e_metaxy.logic.projects import ProjectIndex
 from e_metaxy.models.coder import FinishedEvent, StartedEvent
 from e_metaxy.models.error import (
+    AmbiguousSessionError,
     RootDeniedError,
     UnknownCoderError,
     UnknownProfileError,
@@ -32,10 +33,10 @@ async def test_bridge_start_done(bridge: Bridge, order: TaskOrder, notifier: Rec
 
 async def test_bridge_start_spec(bridge: Bridge, coder: ScriptedCoder, order: TaskOrder, settle: Settle) -> None:
     await settle(
-        bridge, await bridge.start(TaskOrder(prompt="go", profile="code", cwd="/tmp/x", session="s-0", fork=True))
+        bridge, await bridge.start(TaskOrder(prompt="go", profile="code", cwd="/tmp/x", session="s-new", fork=True))
     )
     assert [(s.prompt, s.cwd, s.profile.name, s.session, s.fork) for s in coder.specs] == [
-        ("go", "/tmp/x", "code", "s-0", True)
+        ("go", "/tmp/x", "code", "s-new", True)
     ]
 
 
@@ -193,3 +194,33 @@ async def test_bridge_update(bridge: Bridge) -> None:
 async def test_bridge_catalog(bridge: Bridge) -> None:
     catalog = await bridge.catalog("/tmp")
     assert (catalog.cwd, [c.name for c in catalog.commands]) == ("/tmp", ["research"])
+
+
+@pytest.mark.parametrize(
+    "ref",
+    [UUID, "7b4fb561", "7b4fb561-4dde-463f-54b-e8c9114b3682", "tools mcp en tools.py", f"  {UUID} "],
+    ids=["id", "prefix", "mangled", "title", "padded"],
+)
+async def test_bridge_read_resolves_what_a_caller_copies(bridge: Bridge, ref: str) -> None:
+    assert (await bridge.read(ref, last=1)).session.session == UUID
+
+
+async def test_bridge_ambiguous_prefix_names_the_candidates(bridge: Bridge) -> None:
+    with pytest.raises(AmbiguousSessionError, match="7b4fb5ff-twin"):
+        await bridge.read("7b4fb5")
+    with pytest.raises(UnknownSessionError):
+        await bridge.read("7b4f")
+
+
+async def test_bridge_update_by_title(bridge: Bridge) -> None:
+    updated = await bridge.update("Tools MCP en tools.py", tag="drill")
+    assert (updated.session, updated.tag) == (UUID, "drill")
+
+
+async def test_bridge_start_resumes_by_prefix_and_refuses_an_unknown_session(
+    bridge: Bridge, coder: ScriptedCoder, settle: Settle
+) -> None:
+    await settle(bridge, await bridge.start(TaskOrder(prompt="go", profile="code", cwd="/tmp/x", session="7b4fb561")))
+    assert [s.session for s in coder.specs] == [UUID]
+    with pytest.raises(UnknownSessionError):
+        await bridge.start(TaskOrder(prompt="go", profile="code", cwd="/tmp/x", session="nope"))

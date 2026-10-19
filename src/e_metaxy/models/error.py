@@ -25,6 +25,14 @@ class UnknownSessionError(MetaxyError):
         self.session = session
 
 
+class AmbiguousSessionError(MetaxyError):
+    """A prefix or title that matches more than one session: the caller must pass a longer one."""
+
+    def __init__(self, session: str, matches: tuple[str, ...]) -> None:
+        super().__init__(f"{session!r} matches several sessions: {', '.join(matches)}; pass one of these ids")
+        self.session = session
+
+
 class UnknownProfileError(MetaxyError):
     """The caller named a profile the book does not declare."""
 
