@@ -1,5 +1,5 @@
 ##### BUILDER #####
-FROM ghcr.io/astral-sh/uv:0.12.15-python3.14-trixie-slim AS builder
+FROM ghcr.io/astral-sh/uv:0.13.1-python3.14-trixie-slim AS builder
 WORKDIR /app
 COPY pyproject.toml uv.lock ./
 RUN uv sync --frozen --no-dev --no-install-project
