@@ -27,6 +27,7 @@ from mcp.types import ToolAnnotations
 from e_metaxy.core.struct import CheckedStruct
 from e_metaxy.logic.bridge import Bridge
 from e_metaxy.logic.converters import Converters
+from e_metaxy.logic.eng import EngDesk
 from e_metaxy.models.auth import Scope
 from e_metaxy.models.error import MetaxyError
 from e_metaxy.models.profile import Profile
@@ -57,6 +58,19 @@ class ToolSpec(CheckedStruct, frozen=True, kw_only=True):
 
 TOOLS: Final[Mapping[str, ToolSpec]] = MappingProxyType(
     {
+        "eng": ToolSpec(
+            method="eng",
+            scope=Scope.WORK,
+            title="Run an eng order",
+            description=(
+                "Pass the user's `eng` message exactly as typed, prefix included; the grammar is parsed here, "
+                "never by you. `project`: the project the conversation is about, for an order that names none. "
+                "`caller`: who to call back when started work ends. Grammar: `eng [project:] <order>` new session · "
+                "`eng @ref: <order>` continue · `eng @ref+: <order>` branch · `eng @ref?` where it stopped · "
+                "`eng @ref = <title>` rename · `eng ls [project]` sessions · `eng ps` tasks · `eng stop <task>`. "
+                "`ref` is a session id, its first 8 characters or its exact title. Answers {{verb, result}}."
+            ),
+        ),
         "work_start": ToolSpec(
             method="start",
             scope=Scope.WORK,
@@ -205,10 +219,11 @@ class BaseTools:
 class BridgeTools(BaseTools):
     """The MCP surface over one bridge."""
 
-    __slots__ = ("_bridge",)
+    __slots__ = ("_bridge", "_desk")
 
-    def __init__(self, bridge: Bridge) -> None:
+    def __init__(self, bridge: Bridge, desk: EngDesk) -> None:
         self._bridge = bridge
+        self._desk = desk
 
     ##### PRIVATE METHODS #####
 
@@ -224,6 +239,11 @@ class BridgeTools(BaseTools):
     ############################################################
 
     ##### PUBLIC #####
+
+    async def eng(self, text: str, project: str = "", profile: str = "code", caller: str = "") -> dict[str, Any]:
+        self._common_scope(Scope.WORK)
+        verb, result = await self._common_plain(self._desk.run(text, project, profile, caller))
+        return {"verb": verb, "result": result}
 
     async def start(
         self,

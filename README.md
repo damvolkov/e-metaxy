@@ -17,6 +17,7 @@ OpenHuman ──MCP (HTTP, loopback, OAuth)──▶ e-metaxy ──Agent SDK─
 
 | tool | scope | does |
 |---|---|---|
+| `eng(text, project?, profile?, caller?)` | work · sessions | the user's `eng` message as typed, in the grammar every front shares: `eng [project:] <order>` new · `eng @ref: <order>` continue · `eng @ref+: <order>` branch · `eng @ref?` read · `eng @ref = <title>` rename · `eng ls [project]` · `eng ps` · `eng stop <task>` |
 | `work_start(prompt, project, profile?, session?, fork?, caller?)` | work | runs the prompt in Claude Code; `session` continues, `fork` branches; returns at once |
 | `work_status(task, wait?)` | work | the task now, or once it ends within `wait` seconds (≤25) |
 | `work_list(state?, limit?)` | work | newest tasks first |

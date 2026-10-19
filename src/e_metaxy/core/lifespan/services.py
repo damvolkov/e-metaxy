@@ -21,6 +21,7 @@ from e_metaxy.core.settings.authority import AuthoritySettings
 from e_metaxy.logic.authority import Authority
 from e_metaxy.logic.bridge import Bridge
 from e_metaxy.logic.converters import Converters
+from e_metaxy.logic.eng import EngDesk
 from e_metaxy.logic.ports import OwnerPort
 from e_metaxy.logic.projects import ProjectIndex
 from e_metaxy.models.auth import Policy
@@ -33,12 +34,13 @@ from e_metaxy.processors.md import MDProcessor
 ##### SECTION #####
 @dataclass(frozen=True, slots=True)
 class ServicesState:
-    """The typed services section: the signing engine, the token policy, and the three engines the doors call."""
+    """The typed services section: the signing engine, the token policy, and the engines the doors call."""
 
     crypto: Crypto
     policy: Policy
     authority: Authority
     bridge: Bridge
+    desk: EngDesk
     converters: Converters
     profiles: Mapping[str, Profile]
 
@@ -71,18 +73,21 @@ async def lifespan(app: Litestar) -> AsyncGenerator[None]:
     edges: AdaptersState = system.adapters
     crypto, rules = Crypto(st.crypto), policy(st.authority)
     profiles = Profile.book(await anyio.Path(conf.profiles.expanduser()).read_bytes())
+    projects = ProjectIndex(conf.workspaces)
+    bridge = Bridge(
+        coders={edges.coder.kind: edges.coder},
+        notifiers=edges.callers,
+        ledger=edges.store,
+        profiles=profiles,
+        projects=projects,
+        limit=conf.limit,
+    )
     services = ServicesState(
         crypto=crypto,
         policy=rules,
         authority=Authority(crypto=crypto, store=edges.store, owner=owner(crypto, st.authority), policy=rules),
-        bridge=Bridge(
-            coders={edges.coder.kind: edges.coder},
-            notifiers=edges.callers,
-            ledger=edges.store,
-            profiles=profiles,
-            projects=ProjectIndex(conf.workspaces),
-            limit=conf.limit,
-        ),
+        bridge=bridge,
+        desk=EngDesk(bridge, projects),
         converters=Converters(MDProcessor(edges.md), DocProcessor(edges.doc)),
         profiles=profiles,
     )
