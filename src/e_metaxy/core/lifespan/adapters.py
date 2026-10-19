@@ -13,6 +13,7 @@ from litestar import Litestar
 
 from e_metaxy.adapters.anytomd import AnytomdAdapter
 from e_metaxy.adapters.coder.claude import ClaudeCoder
+from e_metaxy.adapters.discord import DiscordAdapter
 from e_metaxy.adapters.docling import DoclingAdapter
 from e_metaxy.adapters.openhuman import OpenHumanAdapter
 from e_metaxy.adapters.ports import DocumentPort, MdConvertPort, StorePort
@@ -44,13 +45,14 @@ class AdaptersState:
 
 
 def callers(conf: MetaxySettings) -> Mapping[str, NotifierPort]:
-    """The callers the bridge can call back — OpenHuman only when its core token is configured."""
-    match conf.openhuman_token:
-        case None:
-            return {}
-        case token:
-            notifier = OpenHumanAdapter(conf.openhuman_url, token.get_secret_value(), timeout=conf.openhuman_timeout)
-            return {notifier.name: notifier}
+    """The callers the bridge can call back — each one only when its credential is configured."""
+    built: tuple[NotifierPort | None, ...] = (
+        OpenHumanAdapter(conf.openhuman_url, conf.openhuman_token.get_secret_value(), timeout=conf.openhuman_timeout)
+        if conf.openhuman_token
+        else None,
+        DiscordAdapter(conf.discord_webhook.get_secret_value()) if conf.discord_webhook else None,
+    )
+    return {notifier.name: notifier for notifier in built if notifier is not None}
 
 
 @asynccontextmanager

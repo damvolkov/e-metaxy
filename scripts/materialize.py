@@ -30,13 +30,14 @@ PKG: str = "e_metaxy"
 CORE_SRC: Path = Path(os.environ.get("E_CORE_SRC", ROOT.parent / "e-templates" / "systems" / "core" / "src" / "e_core"))
 SECTIONS: tuple[str, ...] = ("adapters", "core", "ops", "processors")
 ### e-metaxy's own modules inside a materialized section, never swept and never diffed: its adapters (the coder,
-### the OpenHuman caller, the owner's passphrase), the lifespan chain and middleware stack both doors share, and
+### the OpenHuman and Discord callers, the owner's passphrase), the lifespan chain and middleware stack both doors share, and
 ### the two settings scopes the composer discovers beside the common ones. A path protects itself and its subtree.
 PROTECTED: Final[frozenset[Path]] = frozenset(
     Path(path)
     for path in (
         "adapters/coder",
         "adapters/openhuman.py",
+        "adapters/discord.py",
         "adapters/passphrase.py",
         "core/lifespan",
         "core/middlewares.py",

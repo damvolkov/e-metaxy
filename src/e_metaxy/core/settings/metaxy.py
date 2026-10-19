@@ -25,3 +25,5 @@ class MetaxySettings(BaseSettings):
     openhuman_token: Secret | None = None
     ### the trigger answers once OpenHuman's triage turn (an LLM call) ends: minutes, not seconds.
     openhuman_timeout: timedelta = timedelta(minutes=5)
+    ### a channel webhook: tasks a chat front started with caller `discord` post their outcome there.
+    discord_webhook: Secret | None = None
