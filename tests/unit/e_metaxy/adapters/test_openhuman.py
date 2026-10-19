@@ -5,7 +5,7 @@ import msgspec
 import pytest
 from werkzeug import Request, Response
 
-from e_metaxy.adapters.notifier.openhuman import METHOD, OpenHumanNotifier
+from e_metaxy.adapters.openhuman import METHOD, OpenHumanAdapter
 from e_metaxy.models.profile import CoderKind
 from e_metaxy.models.task import Task, TaskOrder, TaskState
 
@@ -22,12 +22,12 @@ def ended() -> Task:
 
 
 @pytest.fixture
-async def notifier(httpserver: HTTPServer) -> AsyncIterator[OpenHumanNotifier]:
-    async with OpenHumanNotifier(httpserver.url_for("/rpc"), "core-token", timeout=timedelta(seconds=2)) as opened:
+async def notifier(httpserver: HTTPServer) -> AsyncIterator[OpenHumanAdapter]:
+    async with OpenHumanAdapter(httpserver.url_for("/rpc"), "core-token", timeout=timedelta(seconds=2)) as opened:
         yield opened
 
 
-async def test_openhuman_notify(httpserver: HTTPServer, notifier: OpenHumanNotifier, ended: Task) -> None:
+async def test_openhuman_notify(httpserver: HTTPServer, notifier: OpenHumanAdapter, ended: Task) -> None:
     seen: list[dict] = []
 
     def handle(request: Request) -> Response:
@@ -50,7 +50,7 @@ async def test_openhuman_notify(httpserver: HTTPServer, notifier: OpenHumanNotif
     ) == (True, True)
 
 
-async def test_openhuman_notify_failed(httpserver: HTTPServer, notifier: OpenHumanNotifier) -> None:
+async def test_openhuman_notify_failed(httpserver: HTTPServer, notifier: OpenHumanAdapter) -> None:
     order = TaskOrder(prompt="break", profile="code", cwd="/tmp", caller="openhuman")
     broken = Task.open(order, CoderKind.CLAUDE).move(TaskState.FAILED, error="boom")
     seen: list[dict] = []
@@ -66,7 +66,7 @@ async def test_openhuman_notify_failed(httpserver: HTTPServer, notifier: OpenHum
 
 
 async def test_openhuman_notify_swallows_failure(
-    httpserver: HTTPServer, notifier: OpenHumanNotifier, ended: Task
+    httpserver: HTTPServer, notifier: OpenHumanAdapter, ended: Task
 ) -> None:
     httpserver.expect_request("/rpc", method="POST").respond_with_data("down", status=503)
     assert await notifier.notify(ended) is None
@@ -74,10 +74,10 @@ async def test_openhuman_notify_swallows_failure(
 
 async def test_openhuman_unconnected(ended: Task) -> None:
     with pytest.raises(RuntimeError, match="not connected"):
-        OpenHumanNotifier("http://127.0.0.1:1/rpc", "t")._common_connected()
+        OpenHumanAdapter("http://127.0.0.1:1/rpc", "t")._common_connected()
 
 
 async def test_openhuman_close_idempotent() -> None:
-    notifier = OpenHumanNotifier("http://127.0.0.1:1/rpc", "t")
+    notifier = OpenHumanAdapter("http://127.0.0.1:1/rpc", "t")
     await notifier.close()
     assert notifier._client is None

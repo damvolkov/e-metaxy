@@ -9,8 +9,9 @@ root_module = "forbid"
 ##### LAYERS #####
 # High → low: a layer imports strictly-lower layers only. The common set (core/ops/adapters/processors)
 # is materialized from systems/core but, being namespaced inside the package, is declared here at its true
-# place in the graph — core/ops at the bottom, the copied adapters above them. main (e_metaxy) is the root.
-layers = ["root", "edge", "logic", "processors", "models", "common", "base", "infra"]
+# place in the graph — core/ops at the bottom, the copied adapters above them. main (e_metaxy) is the root;
+# the lifespan chain composes every layer, so it sits right under it — its typed `AppState` stays in the base.
+layers = ["root", "composition", "edge", "logic", "processors", "models", "common", "base", "infra"]
 
 [rules]
 unused_ignore_directives = "error"
@@ -20,6 +21,16 @@ unused_ignore_directives = "error"
 path = "e_metaxy"
 layer = "root"
 depends_on = []
+
+[[modules]]
+path = "e_metaxy.core.lifespan"
+layer = "composition"
+depends_on = []
+
+[[modules]]
+path = "e_metaxy.core.lifespan.state"
+layer = "base"
+depends_on = ["e_metaxy.core"]
 
 [[modules]]
 path = "e_metaxy.mcp"
@@ -32,17 +43,12 @@ layer = "edge"
 depends_on = []
 
 [[modules]]
-path = "e_metaxy.config"
-layer = "edge"
-depends_on = []
-
-[[modules]]
 path = "e_metaxy.adapters.coder"
 layer = "edge"
 depends_on = []
 
 [[modules]]
-path = "e_metaxy.adapters.notifier"
+path = "e_metaxy.adapters.openhuman"
 layer = "edge"
 depends_on = []
 

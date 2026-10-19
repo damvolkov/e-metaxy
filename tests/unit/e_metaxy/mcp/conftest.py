@@ -7,12 +7,15 @@ from contextlib import asynccontextmanager
 from typing import TYPE_CHECKING
 
 import pytest
-from fakes import DONE_SCRIPT, Connect, ScriptedCoder, Wire
+from fakes import DONE_SCRIPT, Connect, ScriptedCoder, Wire, stub
 from mcp import Client
 from mcp.server import MCPServer
 
-from e_metaxy.main import INSTRUCTIONS
-from e_metaxy.mcp.tools import BridgeTools, register
+from e_metaxy.core.lifespan.mcp import INSTRUCTIONS
+from e_metaxy.logic.converters import Converters
+from e_metaxy.mcp.tools import BridgeTools, ConverterTools, Surface, register
+from e_metaxy.processors.doc import DocProcessor
+from e_metaxy.processors.md import MDProcessor
 
 if TYPE_CHECKING:
     from collections.abc import AsyncGenerator, Mapping
@@ -25,7 +28,14 @@ def connect(wire: Wire, book: Mapping[str, Profile]) -> Connect:
     @asynccontextmanager
     async def opened() -> AsyncGenerator[Client]:
         async with wire(ScriptedCoder(DONE_SCRIPT)) as bridge:
-            server = register(MCPServer(name="e-metaxy", instructions=INSTRUCTIONS), BridgeTools(bridge), book)
+            server = register(
+                MCPServer(name="e-metaxy", instructions=INSTRUCTIONS),
+                {
+                    Surface.BRIDGE: BridgeTools(bridge),
+                    Surface.CONVERTER: ConverterTools(Converters(MDProcessor(stub()), DocProcessor(stub()))),
+                },
+                book,
+            )
             async with Client(server) as client:
                 yield client
 

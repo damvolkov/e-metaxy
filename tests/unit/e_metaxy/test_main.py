@@ -2,30 +2,18 @@
 
 import base64
 import hashlib
-import logging
 import secrets
+from collections.abc import Callable
 from typing import TYPE_CHECKING
 from urllib.parse import parse_qs, urlparse
 
-import httpx2
-import pytest
-from fakes import lifespan
-
-from e_metaxy.adapters.notifier.openhuman import OpenHumanNotifier
-from e_metaxy.config.authority import AuthoritySettings
-from e_metaxy.config.metaxy import MetaxySettings
-from e_metaxy.core.crypto import Crypto
-from e_metaxy.core.settings.base import Secret
-from e_metaxy.core.settings.crypto import CryptoSettings
-from e_metaxy.main import _ToStructlog, assemble, notifiers
-from e_metaxy.models.error import OwnerUnsetError
+from fakes import BASE, PASSPHRASE
 
 if TYPE_CHECKING:
-    from collections.abc import AsyncIterator
-    from pathlib import Path
+    import httpx2
 
-BASE = "http://127.0.0.1:45190"
-PASSPHRASE = "the owner's words"
+type Bearer = Callable[[str], dict[str, str]]
+
 REDIRECT = "http://127.0.0.1:9999/callback"
 INIT = {
     "jsonrpc": "2.0",
@@ -38,30 +26,6 @@ MCP_HEADERS = {"accept": "application/json, text/event-stream", "content-type": 
 
 def query(url: str) -> dict[str, str]:
     return {key: values[0] for key, values in parse_qs(urlparse(url).query).items()}
-
-
-@pytest.fixture
-def settings(resources: Path, tmp_path: Path, fake_claude: str) -> MetaxySettings:
-    return MetaxySettings(
-        profiles=resources / "profiles" / "book.yaml", ledger=tmp_path / "ledger.db", claude=fake_claude
-    )
-
-
-@pytest.fixture
-def crypto() -> Crypto:
-    return Crypto(CryptoSettings(secret=Secret("k" * 48)))
-
-
-@pytest.fixture
-async def auth(crypto: Crypto) -> AuthoritySettings:
-    return AuthoritySettings(issuer=BASE, owner_hash=Secret(await crypto.hash_password(PASSPHRASE)))
-
-
-@pytest.fixture
-async def http(settings: MetaxySettings, auth: AuthoritySettings, crypto: Crypto) -> AsyncIterator[httpx2.AsyncClient]:
-    app = assemble(settings, auth, crypto)
-    async with lifespan(app), httpx2.AsyncClient(transport=httpx2.ASGITransport(app), base_url=BASE) as client:
-        yield client
 
 
 async def sign_in(http: httpx2.AsyncClient) -> dict[str, str]:
@@ -114,24 +78,6 @@ async def sign_in(http: httpx2.AsyncClient) -> dict[str, str]:
     return {**tokens.json(), "client_id": registered["client_id"]}
 
 
-@pytest.mark.parametrize(("token", "expected"), [(None, []), (Secret("core"), ["openhuman"])], ids=["off", "on"])
-async def test_main_notifiers(token: Secret | None, expected: list[str]) -> None:
-    built = notifiers(MetaxySettings(openhuman_token=token))
-    assert (list(built), all(isinstance(n, OpenHumanNotifier) for n in built.values())) == (expected, True)
-
-
-async def test_main_refuses_to_start_without_an_owner(settings: MetaxySettings, crypto: Crypto) -> None:
-    with pytest.raises(OwnerUnsetError):
-        assemble(settings, AuthoritySettings(issuer=BASE), crypto)
-
-
-async def test_main_quiet_routes_stdlib(settings: MetaxySettings, auth: AuthoritySettings, crypto: Crypto) -> None:
-    _ = assemble(settings, auth, crypto)
-    assert any(isinstance(h, _ToStructlog) for h in logging.root.handlers)
-    assert not any(type(h).__module__.startswith("rich") for h in logging.root.handlers)
-    logging.getLogger("mcp.test").warning("routed without raising")
-
-
 async def test_main_metadata_advertises_the_authority(http: httpx2.AsyncClient) -> None:
     server = (await http.get("/.well-known/oauth-authorization-server")).json()
     resource = (await http.get("/.well-known/oauth-protected-resource/mcp")).json()
@@ -147,7 +93,37 @@ async def test_main_mcp_needs_a_token(http: httpx2.AsyncClient) -> None:
 
 
 async def test_main_ops_needs_a_token(http: httpx2.AsyncClient) -> None:
-    assert (await http.get("/ops/health")).status_code == 401
+    refused = await http.get("/ops/health")
+    assert refused.status_code == 401
+    assert "resource_metadata" in refused.headers.get("www-authenticate", "")
+
+
+async def test_main_ops_refuses_a_forged_token(http: httpx2.AsyncClient) -> None:
+    refused = await http.get("/ops/health", headers={"authorization": "Bearer not-a-jwt"})
+    assert refused.status_code == 401
+    assert "Invalid or expired token" in refused.headers["www-authenticate"]
+
+
+async def test_main_docs_alias_lands_on_the_root(http: httpx2.AsyncClient) -> None:
+    moved = await http.get("/schema/openapi.json")
+    assert (moved.status_code, moved.headers["location"]) == (307, "/docs/openapi.json")
+    assert "/ops/md" in (await http.get("/docs/openapi.json")).json()["paths"]
+
+
+async def test_main_ops_needs_the_work_scope(http: httpx2.AsyncClient, bearer: Bearer) -> None:
+    assert (await http.get("/ops/health", headers=bearer("sessions"))).status_code == 403
+    assert (await http.get("/ops/health", headers=bearer("work"))).status_code == 200
+
+
+async def test_main_health_is_public(http: httpx2.AsyncClient) -> None:
+    assert (await http.get("/health")).json() == {"status": "ok"}
+
+
+async def test_main_both_doors_carry_a_request_id(http: httpx2.AsyncClient, bearer: Bearer) -> None:
+    rest = await http.get("/ops/health", headers=bearer("work"))
+    mcp = await http.post("/mcp", json=INIT, headers={**MCP_HEADERS, **bearer("work")})
+    assert (rest.status_code, mcp.status_code) == (200, 200)
+    assert rest.headers["x-request-id"] != mcp.headers["x-request-id"]
 
 
 async def test_main_sign_in_opens_mcp_and_ops_then_refresh_and_revoke(http: httpx2.AsyncClient) -> None:

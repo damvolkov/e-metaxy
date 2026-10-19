@@ -1,4 +1,4 @@
-"""e_metaxy.adapters.owner.passphrase: the owner proven by a passphrase — its argon2 hash, checked by the crypto engine."""
+"""e_metaxy.adapters.passphrase: the owner proven by a passphrase — its argon2 hash, checked by the crypto engine."""
 
 from typing import ClassVar
 
@@ -9,7 +9,7 @@ from e_metaxy.core.errors import CryptoError
 
 
 @beartype
-class PassphraseOwner:
+class PassphraseAdapter:
     """Admits the secret whose hash the deployment holds; the slow check runs off the event loop."""
 
     name: ClassVar[str] = "passphrase"

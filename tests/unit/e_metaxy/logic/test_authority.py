@@ -9,10 +9,11 @@ from mcp.server.auth.provider import AuthorizationParams, IdentityAssertionParam
 from mcp.shared.auth import OAuthClientInformationFull
 from pydantic import AnyUrl
 
-from e_metaxy.adapters.owner.passphrase import PassphraseOwner
-from e_metaxy.config.authority import AuthoritySettings
+from e_metaxy.adapters.passphrase import PassphraseAdapter
 from e_metaxy.core.crypto import Crypto
+from e_metaxy.core.lifespan.services import policy
 from e_metaxy.core.settings import Secret
+from e_metaxy.core.settings.authority import AuthoritySettings
 from e_metaxy.core.settings.crypto import CryptoSettings
 from e_metaxy.logic.authority import CONSENT_PATH, Authority
 from e_metaxy.models.error import UnknownConsentError
@@ -38,7 +39,7 @@ def crypto() -> Crypto:
 async def authority(crypto: Crypto, ledger: SQLiteAdapter) -> Authority:
     hashed = await crypto.hash_password(PASSPHRASE)
     settings = AuthoritySettings(issuer=ISSUER, owner_hash=Secret(hashed), attempts=2)
-    return Authority(crypto=crypto, store=ledger, owner=PassphraseOwner(crypto, hashed), policy=settings.policy)
+    return Authority(crypto=crypto, store=ledger, owner=PassphraseAdapter(crypto, hashed), policy=policy(settings))
 
 
 @pytest.fixture
@@ -134,8 +135,8 @@ async def test_authority_consent_expires(
     stale = Authority(
         crypto=crypto,
         store=ledger,
-        owner=PassphraseOwner(crypto, hashed),
-        policy=AuthoritySettings(issuer=ISSUER, consent_ttl=timedelta(seconds=-1)).policy,
+        owner=PassphraseAdapter(crypto, hashed),
+        policy=policy(AuthoritySettings(issuer=ISSUER, consent_ttl=timedelta(seconds=-1))),
     )
     with pytest.raises(UnknownConsentError):
         await stale.pending(await parked(stale, client, params))
