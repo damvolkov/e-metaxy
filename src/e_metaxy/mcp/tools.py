@@ -52,7 +52,7 @@ TOOLS: Final[Mapping[str, ToolSpec]] = MappingProxyType(
                 "commands, agents, hooks). Returns at once with `id` (the task) and, once known, `session`. "
                 '`prompt`: plain words, or a command/skill such as "/research vLLM sleep mode" (see catalog). '
                 '`project`: a short name ("e-voice") or a path. `session`: continue that conversation instead of '
-                'starting one; `fork`: branch it. `caller`: who to call back when it ends ("openhuman"). '
+                'starting one (its id, the first 8 characters of it, or its exact title); `fork`: branch it. `caller`: who to call back when it ends ("openhuman"). '
                 "Next: work_status with `id`; keep `session` to continue later.\n\nProfiles:\n{profiles}"
             ),
         ),
@@ -107,7 +107,8 @@ TOOLS: Final[Mapping[str, ToolSpec]] = MappingProxyType(
             title="Read where a session stopped",
             description=(
                 "A session and its last `last` turns, oldest first: what the user asked, what Claude Code answered, "
-                "which tools it called. Read it before continuing a session with work_start."
+                "which tools it called. `session`: its id, the first 8 characters of it, or its exact title. "
+                "Read it before continuing a session with work_start."
             ),
             read_only=True,
         ),
