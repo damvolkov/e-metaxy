@@ -53,6 +53,11 @@ layer = "edge"
 depends_on = []
 
 [[modules]]
+path = "e_metaxy.adapters.discord"
+layer = "edge"
+depends_on = []
+
+[[modules]]
 path = "e_metaxy.logic"
 layer = "logic"
 depends_on = []
