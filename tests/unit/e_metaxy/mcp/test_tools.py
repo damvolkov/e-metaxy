@@ -231,3 +231,14 @@ async def test_tools_converter_md_convert_describes_a_real_image() -> None:
     markdown = files[0]["markdown"]
     assert markdown.startswith("![")
     assert "](" in markdown
+
+
+async def test_tools_eng_runs_the_shared_grammar(connect: Connect) -> None:
+    async with connect() as client:
+        listed = (await client.call_tool("eng", {"text": "eng ls", "project": "/tmp"})).structured_content
+        refused = await client.call_tool("eng", {"text": "eng"})
+        assert (listed["verb"], [row["session"] for row in listed["result"]][:1], refused.is_error) == (
+            "list",
+            ["s-new"],
+            True,
+        )

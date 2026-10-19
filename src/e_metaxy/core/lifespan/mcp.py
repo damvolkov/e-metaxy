@@ -29,6 +29,7 @@ INSTRUCTIONS: Final = (
     "watches it; caller='openhuman' calls you back when it ends. A session is a Claude Code conversation: "
     "session_find locates one, session_read shows where it stopped, work_start with session=<id> continues it. "
     "catalog lists the commands and skills a project offers. A project is a short name ('e-voice') or a path. "
+    "A message the user starts with `eng` goes to the eng tool untouched: it parses the shared grammar itself. "
     "md_convert renders any file to Markdown; doc_read reads a document deeply."
 )
 
@@ -72,7 +73,10 @@ async def lifespan(app: Litestar) -> AsyncGenerator[None]:
     """Build the server over the services, run its session manager, then mount the section under `system.mcp`."""
     system, conf = AppState.of(app).system, st.metaxy
     services: ServicesState = system.services
-    surfaces = {Surface.BRIDGE: BridgeTools(services.bridge), Surface.CONVERTER: ConverterTools(services.converters)}
+    surfaces = {
+        Surface.BRIDGE: BridgeTools(services.bridge, services.desk),
+        Surface.CONVERTER: ConverterTools(services.converters),
+    }
     server = register(
         MCPServer(
             name="e-metaxy",

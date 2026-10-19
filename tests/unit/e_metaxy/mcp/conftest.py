@@ -4,6 +4,7 @@ The in-memory client opens anyio scopes that must close in the task that opened 
 out a context factory and each test opens its own connection."""
 
 from contextlib import asynccontextmanager
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 import pytest
@@ -13,6 +14,8 @@ from mcp.server import MCPServer
 
 from e_metaxy.core.lifespan.mcp import INSTRUCTIONS
 from e_metaxy.logic.converters import Converters
+from e_metaxy.logic.eng import EngDesk
+from e_metaxy.logic.projects import ProjectIndex
 from e_metaxy.mcp.tools import BridgeTools, ConverterTools, Surface, register
 from e_metaxy.processors.doc import DocProcessor
 from e_metaxy.processors.md import MDProcessor
@@ -31,7 +34,7 @@ def connect(wire: Wire, book: Mapping[str, Profile]) -> Connect:
             server = register(
                 MCPServer(name="e-metaxy", instructions=INSTRUCTIONS),
                 {
-                    Surface.BRIDGE: BridgeTools(bridge),
+                    Surface.BRIDGE: BridgeTools(bridge, EngDesk(bridge, ProjectIndex(Path("/tmp")))),
                     Surface.CONVERTER: ConverterTools(Converters(MDProcessor(stub()), DocProcessor(stub()))),
                 },
                 book,

@@ -25,6 +25,13 @@ class UnknownSessionError(MetaxyError):
         self.session = session
 
 
+class EmptyOrderError(MetaxyError):
+    """An `eng` order with nothing after the prefix."""
+
+    def __init__(self) -> None:
+        super().__init__("empty order; try `eng <project>: <order>`, `eng @<session>: <order>`, `eng ls` or `eng ps`")
+
+
 class AmbiguousSessionError(MetaxyError):
     """A prefix or title that matches more than one session: the caller must pass a longer one."""
 
