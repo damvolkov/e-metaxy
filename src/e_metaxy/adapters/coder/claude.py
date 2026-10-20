@@ -60,6 +60,8 @@ SOURCES: Final[tuple[SettingSource, ...]] = ("user", "project")
 CHILD_ENV: Final = {"ANTHROPIC_API_KEY": ""}
 ### a turn longer than this is cut: the read is a summary to pick a session up, not a transcript export.
 TURN_CHARS: Final = 4000
+### the openings of user turns the harness writes, never the person: they are noise in a read of where work stopped.
+HARNESS: Final = ("<task-notification>", "<system-reminder>", "<command-", "<local-command-")
 
 
 @beartype
@@ -177,11 +179,12 @@ class ClaudeCoder(BaseAdapter):
 
     @staticmethod
     def _turns_block(role: str, block: Any) -> SessionTurn | None:
-        """One content block as a readable turn: text speaks, a tool call is named, results and thinking stay out."""
+        """One content block as a readable turn: text speaks, a tool call is named; results, thinking and what the
+        harness itself injects as a user turn (task notifications, reminders, command echoes) stay out."""
         match (role, block):
-            case (_, str() as text) if text.strip():
+            case (_, str() as text) if text.strip() and not text.lstrip().startswith(HARNESS):
                 return SessionTurn(role=TurnRole(role), text=text[:TURN_CHARS])
-            case (_, {"type": "text", "text": str(text)}) if text.strip():
+            case (_, {"type": "text", "text": str(text)}) if text.strip() and not text.lstrip().startswith(HARNESS):
                 return SessionTurn(role=TurnRole(role), text=text[:TURN_CHARS])
             case ("assistant", {"type": "tool_use", "name": str(name)}):
                 return SessionTurn(role=TurnRole.TOOL, text=name)

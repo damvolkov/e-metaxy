@@ -31,6 +31,7 @@ from e_metaxy.models.coder import (
 )
 from e_metaxy.models.error import (
     AmbiguousSessionError,
+    AmbiguousTaskError,
     RootDeniedError,
     UnknownCoderError,
     UnknownProfileError,
@@ -83,7 +84,18 @@ class Bridge:
         return task
 
     async def _common_load(self, task: str) -> Task:
-        match await self._ledger.get(KEY + task):
+        """A task by its id, or a unique head or tail of it: ids are uuid7, so tasks born in the same minute share
+        their head and a chat shows the random tail."""
+        match await self._ledger.get(KEY + (ref := task.strip())):
+            case None if len(ref) >= PREFIX:
+                hits = [key async for key in self._ledger.keys(KEY) if key.startswith(KEY + ref) or key.endswith(ref)]
+                match hits:
+                    case [one]:
+                        return await self._common_load(one.removeprefix(KEY))
+                    case []:
+                        raise UnknownTaskError(task)
+                    case many:
+                        raise AmbiguousTaskError(task, tuple(key.removeprefix(KEY) for key in many))
             case None:
                 raise UnknownTaskError(task)
             case raw:

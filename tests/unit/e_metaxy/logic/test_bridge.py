@@ -10,6 +10,7 @@ from e_metaxy.logic.projects import ProjectIndex
 from e_metaxy.models.coder import FinishedEvent, StartedEvent
 from e_metaxy.models.error import (
     AmbiguousSessionError,
+    AmbiguousTaskError,
     RootDeniedError,
     UnknownCoderError,
     UnknownProfileError,
@@ -224,3 +225,16 @@ async def test_bridge_start_resumes_by_prefix_and_refuses_an_unknown_session(
     assert [s.session for s in coder.specs] == [UUID]
     with pytest.raises(UnknownSessionError):
         await bridge.start(TaskOrder(prompt="go", profile="code", cwd="/tmp/x", session="nope"))
+
+
+async def test_bridge_task_by_head_or_tail(bridge: Bridge, order: TaskOrder, settle: Settle) -> None:
+    first = await settle(bridge, await bridge.start(order))
+    second = await settle(bridge, await bridge.start(order))
+    assert (await bridge.status(first.id[-8:])).id == first.id
+    assert (await bridge.status(f"  {second.id} ")).id == second.id
+    with pytest.raises(AmbiguousTaskError, match="several tasks"):
+        await bridge.status(first.id[:6])
+    with pytest.raises(UnknownTaskError):
+        await bridge.status("zzzzzzzz")
+    with pytest.raises(UnknownTaskError):
+        await bridge.status("abc")
