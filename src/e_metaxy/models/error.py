@@ -25,6 +25,14 @@ class UnknownSessionError(MetaxyError):
         self.session = session
 
 
+class AmbiguousTaskError(MetaxyError):
+    """A task prefix that matches more than one task: the caller must pass a longer one."""
+
+    def __init__(self, task: str, matches: tuple[str, ...]) -> None:
+        super().__init__(f"{task!r} matches several tasks: {', '.join(matches)}; pass a longer prefix")
+        self.task = task
+
+
 class EmptyOrderError(MetaxyError):
     """An `eng` order with nothing after the prefix."""
 

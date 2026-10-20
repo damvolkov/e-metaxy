@@ -312,3 +312,12 @@ async def test_claude_catalog_connects_and_closes(monkeypatch: pytest.MonkeyPatc
     monkeypatch.setattr("e_metaxy.adapters.coder.claude.ClaudeSDKClient", Client)
     catalog = await ClaudeCoder().catalog("/w")
     assert (catalog.cwd, [c.name for c in catalog.commands]) == ("/w", ["review"])
+
+
+async def test_claude_turns_drop_what_the_harness_injects() -> None:
+    messages = [
+        message("user", "<task-notification> <task-id>b9</task-id> ...</task-notification>"),
+        message("user", [{"type": "text", "text": "  <system-reminder>noise</system-reminder>"}]),
+        message("user", "keep going"),
+    ]
+    assert [t.text for t in ClaudeCoder._turns_parse(messages, last=5)] == ["keep going"]

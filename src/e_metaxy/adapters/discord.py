@@ -50,7 +50,7 @@ class DiscordAdapter(BaseAdapter):
         """Head with where and which session, the outcome, and how to go on — within Discord's 2000 characters."""
         where = task.cwd.rsplit("/", 1)[-1] or "workspace"
         session = task.session[:8] or "—"
-        head = f"{MARK[task.state]} · {where} · sesión `{session}` · tarea `{task.id[:8]}`"
+        head = f"{MARK[task.state]} · {where} · sesión `{session}` · tarea `{task.id[-8:]}`"
         tail = f"\n\n`eng @{session}: …` para seguir"
         body = (task.result or task.error or task.state.value).strip()
         room = LIMIT - len(head) - len(tail) - 2
