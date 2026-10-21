@@ -1,9 +1,9 @@
 version = 1
-revision = 3
+revision = 5
 requires-python = ">=3.14"
 
 [options]
-exclude-newer = "2026-10-20T22:00:00Z"
+exclude-newer = "2026-10-21T00:00:00Z"
 
 [[package]]
 name = "aiosqlite"
@@ -38,21 +38,22 @@ wheels = [
 
 [[package]]
 name = "anytomd"
-version = "1.3.1.post3"
+version = "1.4.1"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/cd/69/f48a445a281f22165d92ec40a23ac4652d7eea089973ff3bb570a4a36c96/anytomd-1.3.1.post3.tar.gz", hash = "sha256:ef380941242bfab37450ba878c33db5f519d133374d745d014203a5e55e804f3", size = 65581, upload-time = "2026-10-15T17:18:20.235Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/1f/fc/8310f6cf06ec15d3b8d1ce870afe8a6cc962aed6959a9813bc01804ecde9/anytomd-1.4.1.tar.gz", hash = "sha256:33091fe2f5cf9d647def83085f899111d5e1e37b5128a65fa33355528ca1f0a7", size = 62966, upload-time = "2026-10-19T16:09:11.868Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/2e/f0/69b8975cd2c4efb350492867018428c1bbcbed9ce5eb336efac4924bb45f/anytomd-1.3.1.post3-cp312-abi3-macosx_10_12_x86_64.whl", hash = "sha256:1cdf1e73237ae86eb83f7001997cd91616a296ff83ad904351de09b4cb84184d", size = 2614120, upload-time = "2026-10-15T17:18:09.912Z" },
-    { url = "https://files.pythonhosted.org/packages/8e/4f/9fd7e6c93a680dc2e26d9fd66e98e422c14b055b0ec98ad6b7dd330744c4/anytomd-1.3.1.post3-cp312-abi3-macosx_11_0_arm64.whl", hash = "sha256:774f3015ddb69378224de345fc2e382ebf2aa81a075dbe11203d9081e1a9d1ab", size = 2495281, upload-time = "2026-10-15T17:18:12.1Z" },
-    { url = "https://files.pythonhosted.org/packages/7c/a7/3b611ad45c19c960ab969bbdaf7043af279b618a7f0885c8a7d05258cfc9/anytomd-1.3.1.post3-cp312-abi3-manylinux_2_28_aarch64.whl", hash = "sha256:a44a1e822bf2857101e56732000e030540bf2e164cf2b0bb672d5bca53dce443", size = 2655158, upload-time = "2026-10-15T17:18:14.541Z" },
-    { url = "https://files.pythonhosted.org/packages/9d/75/e13fc2ad320342bdec476906daa5a9be26e4192df16bfece64f0db22b2f5/anytomd-1.3.1.post3-cp312-abi3-manylinux_2_28_x86_64.whl", hash = "sha256:081cbe5d9d475036cfe67dcaf3a0c28a92553b544228156ef4fe69b7205cd2e7", size = 2736402, upload-time = "2026-10-15T17:18:16.633Z" },
-    { url = "https://files.pythonhosted.org/packages/b5/32/725a5b02fbb4554ed857df1a7d679bd33c9a416bb207fb9d57b2f8f6216b/anytomd-1.3.1.post3-cp312-abi3-win_amd64.whl", hash = "sha256:0be9a27c9f3cffb9871116310ca120935a34e15f4c624352ceda01f719749e5b", size = 2737081, upload-time = "2026-10-15T17:18:18.321Z" },
+    { url = "https://files.pythonhosted.org/packages/e3/56/26201e161f00762fb22dac2537eed76bf69408ecd8ba781f0e5a04220222/anytomd-1.4.1-cp312-abi3-macosx_10_12_x86_64.whl", hash = "sha256:e77142409f7e7ecf84d6653884a30f21d90f6441e5ef6c20c8f393384875c3ef", size = 1312637, upload-time = "2026-10-19T16:09:02.875Z" },
+    { url = "https://files.pythonhosted.org/packages/4b/6a/563ac87dd4011eca20afb130ebfa60cec890415f74067e29e3174b72ec39/anytomd-1.4.1-cp312-abi3-macosx_11_0_arm64.whl", hash = "sha256:32013b8301cc87c19eb05327b1d0099b6e72d5c9422b37c7094f462c65c1ead1", size = 1268891, upload-time = "2026-10-19T16:09:04.985Z" },
+    { url = "https://files.pythonhosted.org/packages/16/d6/f139e320bc043e19ea26efb2ea937108df8fb00c5cf41110a63697c4cb6e/anytomd-1.4.1-cp312-abi3-manylinux_2_28_aarch64.whl", hash = "sha256:9e6ac0450671403518841bc25199de0cf6b91d72d11e9432a836c65afce1622d", size = 1352894, upload-time = "2026-10-19T16:09:07.163Z" },
+    { url = "https://files.pythonhosted.org/packages/ab/b6/d3c387f2b28f8a1113400a8eac07cd01d8459f06cd052fc8110a616463cb/anytomd-1.4.1-cp312-abi3-manylinux_2_28_x86_64.whl", hash = "sha256:99d26ed0b4eeccbd0eb51188f49ab8e0704cad68acc1151a5c133661fda42935", size = 1377537, upload-time = "2026-10-19T16:09:08.743Z" },
+    { url = "https://files.pythonhosted.org/packages/5a/38/577249b953c3742707108d48e52984e409880bc9190a4721408f4396fae7/anytomd-1.4.1-cp312-abi3-win_amd64.whl", hash = "sha256:3634f64f416715fe014a0b7da10a65b84a4c344c9e5bd889a70c706e998e948c", size = 1319512, upload-time = "2026-10-19T16:09:10.435Z" },
 ]
 
 [package.optional-dependencies]
 full = [
     { name = "liteparse" },
     { name = "openai" },
+    { name = "pydantic-settings" },
 ]
 
 [[package]]
@@ -592,7 +593,7 @@ test = [
 requires-dist = [
     { name = "aiosqlite", specifier = ">=0.20" },
     { name = "anyio", specifier = ">=4.15.1" },
-    { name = "anytomd", extras = ["full"], specifier = ">=1.3.1.post2,<1.4" },
+    { name = "anytomd", extras = ["full"], specifier = ">=1.4.1,<1.5" },
     { name = "argon2-cffi", specifier = ">=25.1.0" },
     { name = "asgi-correlation-id", specifier = ">=5.0" },
     { name = "bcrypt", specifier = ">=5.0.0" },
