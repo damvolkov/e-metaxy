@@ -60,7 +60,7 @@ the roots `cwd` must live under, and turn/budget limits. Your `~/.claude` loads 
 ## Run
 
 ```bash
-make install        # materialize the e-templates core, sync, hooks
+make install        # materialize the e-arkhetypo core, sync, hooks
 make check          # lint · ty · tach · validate · drift · tests
 make live           # the real Claude Code login on this host (spends a little quota)
 make run            # serve on 127.0.0.1:45190

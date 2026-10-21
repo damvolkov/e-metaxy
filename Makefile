@@ -3,7 +3,7 @@ PROJECT    ?= e-metaxy
 PACKAGE    ?= src/e_metaxy
 MODULE     ?= e_metaxy
 IMAGE      ?= ghcr.io/damvolkov/e-metaxy:latest
-TEMPLATES  ?= ../e-templates/systems/core
+TEMPLATES  ?= ../e-arkhetypo/projects/python/core
 COMMON_SRC ?= $(TEMPLATES)/common
 TESTARGS    =
 ARGS        = $(filter-out $@,$(MAKECMDGOALS))
@@ -40,13 +40,13 @@ lock: ## refresh uv lockfile
 	@uv lock
 
 # — shared —
-core: ## materialize core + ops + adapters + processors into e_metaxy/ from systems/core (structural rewrite)
+core: ## materialize core + ops + adapters + processors into e_metaxy/ from projects/python/core (structural rewrite)
 	@uv run python scripts/materialize.py
 
-core-check: ## fail if the materialized core drifted from e-templates
+core-check: ## fail if the materialized core drifted from e-arkhetypo
 	@uv run python scripts/materialize.py --check
 
-common: ## materialize shared project files from systems/core/common
+common: ## materialize shared project files from projects/python/core/common
 	@mkdir -p .github
 	@cp $(COMMON_SRC)/prek.toml prek.toml
 	@cp $(COMMON_SRC)/gitattributes .gitattributes
@@ -54,7 +54,7 @@ common: ## materialize shared project files from systems/core/common
 	@cp $(COMMON_SRC)/dependabot.yml .github/dependabot.yml
 	@cp $(COMMON_SRC)/CODEOWNERS .github/CODEOWNERS
 
-common-check: ## fail if the shared files drifted from systems/core/common
+common-check: ## fail if the shared files drifted from projects/python/core/common
 	@diff $(COMMON_SRC)/prek.toml prek.toml \
 	 && diff $(COMMON_SRC)/gitattributes .gitattributes \
 	 && diff $(COMMON_SRC)/python-version .python-version \
