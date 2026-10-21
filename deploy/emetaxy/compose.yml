@@ -29,7 +29,7 @@ services:
       - ${HOME}/.cargo:/home/damien/.cargo
       - ${HOME}/.rustup:/home/damien/.rustup:ro
       - ${HOME}/.gitconfig:/home/damien/.gitconfig:ro
-      - ${HOME}/.local/share/e-metaxy:/home/damien/.local/share/e-metaxy
+      - ../data/emetaxy:/home/damien/.local/share/e-metaxy
       # the live nomos book, editable on the host; restart the unit to reread it
       - ${HOME}/workspaces/damien/e-metaxy/profiles.yaml:/app/profiles.yaml:ro
     env_file:
