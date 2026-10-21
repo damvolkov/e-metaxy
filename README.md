@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="assets/logo.svg" alt="e-metaxy" width="220" />
+</p>
+
 # e-metaxy
 
 μεταξύ — *the in-between*. An MCP gateway that carries tasks from **polymath** harnesses (OpenHuman, Hermes) to
