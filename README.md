@@ -1,8 +1,8 @@
-<p align="center">
-  <img src="assets/logo.svg" alt="e-metaxy" width="220" />
-</p>
-
 # e-metaxy
+
+<p align="center">
+  <img src="assets/logo.svg" alt="e-metaxy" height="110" />
+</p>
 
 μεταξύ — *the in-between*. An MCP gateway that carries tasks from **polymath** harnesses (OpenHuman, Hermes) to
 **engineer** harnesses (Claude Code today, OpenCode next) and carries the results back.
