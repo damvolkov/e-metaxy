@@ -1,4 +1,4 @@
-"""scripts/materialize: the hardened sed — copy the e-templates `systems/core` common set into `src/e_metaxy/`.
+"""scripts/materialize: the hardened sed — copy the e-arkhetypo `projects/python/core` common set into `src/e_metaxy/`.
 
 libcst parses each source file as real 3.14 syntax (PEP 695 included, verified against the whole
 `e_core` tree) and rewrites *only* the import nodes `e_core.{core,ops,adapters,processors} → e_metaxy.{...}`;
@@ -26,8 +26,10 @@ if TYPE_CHECKING:
 
 ROOT: Path = Path(__file__).resolve().parents[1]
 PKG: str = "e_metaxy"
-### a standalone repo: the core lives in the e-templates checkout beside it; E_CORE_SRC points elsewhere.
-CORE_SRC: Path = Path(os.environ.get("E_CORE_SRC", ROOT.parent / "e-templates" / "systems" / "core" / "src" / "e_core"))
+### a standalone repo: the core lives in the e-arkhetypo checkout beside it; E_CORE_SRC points elsewhere.
+CORE_SRC: Path = Path(
+    os.environ.get("E_CORE_SRC", ROOT.parent / "e-arkhetypo" / "projects" / "python" / "core" / "src" / "e_core")
+)
 SECTIONS: tuple[str, ...] = ("adapters", "core", "ops", "processors")
 ### e-metaxy's own modules inside a materialized section, never swept and never diffed: its adapters (the coder,
 ### the OpenHuman and Discord callers, the owner's passphrase), the lifespan chain and middleware stack both doors share, and
@@ -216,7 +218,7 @@ def check(dest_root: Path) -> int:
                 print(f"✓ materialized {PKG}/{{core,ops,adapters,processors}} in sync")
                 return 0
             case _:
-                print("✗ drift from systems/core (run make core):")
+                print("✗ drift from projects/python/core (run make core):")
                 print("\n".join(f"  {issue}" for issue in issues))
                 return 1
     finally:
@@ -234,7 +236,7 @@ def main(argv: Sequence[str] | None = None) -> None:
             sys.exit(check(ROOT))
         case _:
             materialize(ROOT)
-            print(f"✓ materialized {PKG}/{{adapters,core,ops,processors}} from systems/core")
+            print(f"✓ materialized {PKG}/{{adapters,core,ops,processors}} from projects/python/core")
 
 
 if __name__ == "__main__":

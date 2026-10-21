@@ -30,7 +30,7 @@ dependencies = [
     ##### processors (materialized common set) — liteparse reads PDFs in-process, polars frames the deep doc #####
     "liteparse>=2.14",
     "polars>=2.0",
-    ### 1.4 drops `detect_format`, which the materialized MDProcessor calls: the pin moves with systems/core.
+    ### 1.4 drops `detect_format`, which the materialized MDProcessor calls: the pin moves with projects/python/core.
     "anytomd[full]>=1.3.1.post2,<1.4",
     ##### core #####
     "structlog>=26.1",
@@ -87,7 +87,7 @@ dev = [
     { include-group = "lint" },
     { include-group = "test" },
     "prek>=0.4",
-    ### structural rewrite of systems/core at materialization time (scripts/materialize.py); parses real 3.14 syntax.
+    ### structural rewrite of projects/python/core at materialization time (scripts/materialize.py); parses real 3.14 syntax.
     "libcst>=1.9",
 ]
 
@@ -118,7 +118,7 @@ include = ["src/", "tests/", "README.md", "profiles.yaml"]
 line-length = 120
 target-version = "py314"
 src = ["src", "tests"]
-### the materialized common set is linted at its source (systems/core); its copies under e_metaxy must stay
+### the materialized common set is linted at its source (projects/python/core); its copies under e_metaxy must stay
 ### byte-identical to the generator, so ruff never touches them (else `make core-check` reports drift).
 ### e-metaxy's own modules inside those sections (the lifespan chain, the middleware stack, two settings scopes, three
 ### adapters) are linted here: the globs name the copies, never a whole section.
@@ -168,7 +168,7 @@ python-version = "3.14"
 
 [tool.ty.src]
 include = ["src", "tests"]
-### the common set is materialized and type-checked at its source (e-templates systems/core); its copies
+### the common set is materialized and type-checked at its source (e-arkhetypo projects/python/core); its copies
 ### under e_metaxy are not edited or checked here — e-metaxy's own modules inside those sections are.
 exclude = [
     "src/e_metaxy/core/*",
@@ -211,7 +211,7 @@ markers = [
 ##### COVERAGE #####
 [tool.coverage.run]
 ### the common set (core, ops, processors, the copied adapters) is materialized and tested at its source
-### (systems/core); the gate covers only the service — its edges, logic, models, lifespans and own adapters.
+### (projects/python/core); the gate covers only the service — its edges, logic, models, lifespans and own adapters.
 source_pkgs = ["e_metaxy"]
 branch = true
 parallel = true
