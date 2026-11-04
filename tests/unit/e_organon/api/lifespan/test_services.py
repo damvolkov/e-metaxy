@@ -5,8 +5,8 @@ from typing import TYPE_CHECKING, cast
 
 from e_organon.api.lifespan import services
 from e_organon.api.state import AppState
-from infra.state import State
-from ops.crypto import Crypto
+from e_organon.infra.state import State
+from e_organon.ops.crypto import Crypto
 
 if TYPE_CHECKING:
     from litestar import Litestar

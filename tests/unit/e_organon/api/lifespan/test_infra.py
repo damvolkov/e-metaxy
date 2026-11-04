@@ -3,8 +3,8 @@
 from typing import TYPE_CHECKING
 
 from e_organon.api.lifespan.infra import SharedState
-from infra.logger import logger
-from infra.settings import settings as st
+from e_organon.infra.logger import logger
+from e_organon.infra.settings import settings as st
 
 if TYPE_CHECKING:
     from litestar.testing import TestClient

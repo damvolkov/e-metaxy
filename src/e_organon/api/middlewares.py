@@ -16,15 +16,15 @@ from litestar.middleware import DefineMiddleware
 from litestar.types import ASGIApp
 
 from e_organon.api.state import AppState
-from infra.auth.middleware import TokenMiddleware
-from infra.auth.resolver import CallerResolver
-from infra.logger import logger
-from infra.settings import settings as st
+from e_organon.infra.auth.middleware import TokenMiddleware
+from e_organon.infra.auth.resolver import CallerResolver
+from e_organon.infra.logger import logger
+from e_organon.infra.settings import settings as st
 
 if TYPE_CHECKING:
     from litestar.types import Message, Receive, Scope, Send
 
-    from infra.config.api import APISettings
+    from e_organon.infra.config.api import APISettings
 
 
 ##### MIDDLEWARES #####

@@ -5,8 +5,8 @@ from typing import TYPE_CHECKING
 from litestar.testing import TestClient
 
 from e_organon.api.lifespan import engines
+from e_organon.infra.settings import Settings
 from e_organon.main import create_app
-from infra.settings import Settings
 
 if TYPE_CHECKING:
     import pytest

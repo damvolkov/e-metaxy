@@ -28,12 +28,12 @@ from e_organon.api.deps import (
     to_user,
 )
 from e_organon.api.security import SECURITY
+from e_organon.infra.auth.guard import OPT
+from e_organon.infra.auth.models import Access, Caller
+from e_organon.infra.logger import logger
+from e_organon.infra.state import State
 from e_organon.models.user import User, UserCreate, UserRecord, UserUpdate
-from infra.auth.guard import OPT
-from infra.auth.models import Access, Caller
-from infra.logger import logger
-from infra.state import State
-from ports.store import StorePort
+from e_organon.ports.store import StorePort
 
 
 ##### HANDLERS #####

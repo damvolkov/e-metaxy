@@ -6,8 +6,8 @@ from typing import TYPE_CHECKING
 import pytest
 
 from e_organon.api import admin
-from infra.errors import AuthClosedError
-from infra.settings import Settings
+from e_organon.infra.errors import AuthClosedError
+from e_organon.infra.settings import Settings
 
 if TYPE_CHECKING:
     from support.auth import FakeAuth

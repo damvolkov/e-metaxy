@@ -5,8 +5,8 @@ from typing import Never
 
 import anyio
 
+from e_organon.infra.settings import settings as st
 from e_organon.models.error import OutsideRootsError
-from infra.settings import settings as st
 
 
 ##### FILES #####

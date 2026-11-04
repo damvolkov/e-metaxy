@@ -9,10 +9,10 @@ from litestar.status_codes import HTTP_401_UNAUTHORIZED
 from litestar.testing import AsyncTestClient
 from mcp import types
 
+from e_organon.infra.config.mcp import MCPSettings
+from e_organon.infra.settings import Settings
 from e_organon.main import create_app
 from e_organon.mcp import mount
-from infra.config.mcp import MCPSettings
-from infra.settings import Settings
 from support.mcp import BASE
 
 if TYPE_CHECKING:

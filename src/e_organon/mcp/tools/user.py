@@ -12,13 +12,13 @@ from litestar.handlers import HTTPRouteHandler
 from litestar.params import JSONBody
 
 from e_organon.api.router import user as router
+from e_organon.infra.auth.models import Access, Caller
+from e_organon.infra.mcp.models import MCPTool
+from e_organon.infra.state import State
 from e_organon.mcp.models import NoArgs, UserArgs, UserUpdateArgs
 from e_organon.mcp.refusals import REFUSALS
 from e_organon.models.user import User, UserCreate, UserUpdate
-from infra.auth.models import Access, Caller
-from infra.mcp.models import MCPTool
-from infra.state import State
-from ports.store import StorePort
+from e_organon.ports.store import StorePort
 
 ##### TOOLS — what a client is told #####
 LIST: Final = MCPTool(

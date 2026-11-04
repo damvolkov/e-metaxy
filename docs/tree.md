@@ -7,7 +7,7 @@ One tool = four files that share its name: `services/<section>/<word>.py` (the w
 ```
 e-organon/
 ├── src/
-│   ├── e_organon/
+│   └── e_organon/                     the ONE package: everything the project runs hangs here
 │   │   ├── main.py                    ● composition root: routers, MCP door, lifespan chain
 │   │   ├── __main__.py                ● serve · admin
 │   │   ├── settings/
@@ -40,24 +40,25 @@ e-organon/
 │   │   │   ├── audio/ video/ text/ data/ web/   ○
 │   │   │   ├── organon/               ○ find.py job.py artifact.py
 │   │   │   └── tekton/                ○ eng.py work.py session.py live.py catalog.py (ported from e_metaxy)
-│   │   └── models/                    ● flow.py error.py doc.py   ○ image.py audio.py … artifact.py job.py tekton.py
-│   ├── engines/                       ● (c) auth cache dispatch health telemetry
-│   │                                  ○ artifact.py (content-addressed store) · gpu.py (the slot) · coder.py (Claude Agent SDK)
-│   ├── processors/                    ● (c) doc.py (DocProcessor)
-│   │                                  ○ pdf.py · image.py · signature.py · scan.py · media.py · table.py · text.py
-│   ├── ports/                         ● (c) 18: documents markdown pages ner embed rerank queue store llm …
-│   │                                  ○ pdf.py raster.py matting.py detect.py ocr.py speech.py office.py grammar.py
-│   │                                    translate.py pii.py media.py table.py browser.py search.py coder.py
-│   ├── providers/
-│   │   ├── drivers/                   ● (c) documents/docling ner/gliner embed/tei rerank/tei queue/{pgqueuer,awa}
-│   │   │                                    database/psqlpy store/{redis,sqlite} http/wreq auth/postgres llm …
-│   │   │                              ○ speech/evoice · office/gotenberg · grammar/languagetool · browser/playwright
-│   │   │                                search/searxng · meta/exiftool · coder/claude · pii/presidio
-│   │   └── adapters/                  ● (c) markdown/anytomd pages/liteparse extract language/lingua cache watch telemetry
-│   │                                  ○ pdf/{pikepdf,pdfium,pyhanko} raster/vips vision/opencv inference/onnx
-│   │                                    table/duckdb media/ffmpeg render/{typst,pandoc,resvg} code/{zxing,vtracer}
-│   ├── infra/                         ● (c) auth config mcp errors logger settings state …
-│   └── ops/                           ● (c) compose crypto file hash image registry wrappers
+│   │   ├── models/                    ● flow.py error.py doc.py   ○ image.py audio.py … artifact.py job.py tekton.py
+│   │   │
+│   │   │   ── e-arkhetypo's common, materialized whole INSIDE the package (c) ──
+│   │   ├── engines/                   ● (c) auth cache dispatch health telemetry
+│   │   │                              ○ artifact.py (content-addressed store) · gpu.py (the slot) · coder.py (Claude Agent SDK)
+│   │   ├── processors/                ● (c) doc.py (DocProcessor)
+│   │   │                              ○ pdf.py · image.py · signature.py · scan.py · media.py · table.py · text.py
+│   │   ├── ports/                     ● (c) 18: documents markdown pages ner embed rerank queue store llm …
+│   │   │                              ○ pdf raster matting detect ocr speech office grammar translate pii media table browser search coder
+│   │   ├── providers/
+│   │   │   ├── drivers/               ● (c) documents/docling ner/gliner embed/tei rerank/tei queue/{pgqueuer,awa}
+│   │   │   │                                database/psqlpy store/{redis,sqlite} http/wreq auth/postgres llm …
+│   │   │   │                          ○ speech/evoice office/gotenberg grammar/languagetool browser/playwright
+│   │   │   │                            search/searxng meta/exiftool coder/claude pii/presidio
+│   │   │   └── adapters/              ● (c) markdown/anytomd pages/liteparse extract language/lingua cache watch telemetry
+│   │   │                              ○ pdf/{pikepdf,pdfium,pyhanko} raster/vips vision/opencv inference/onnx
+│   │   │                                table/duckdb media/ffmpeg render/{typst,pandoc,resvg} code/{zxing,vtracer}
+│   │   ├── infra/                     ● (c) auth config mcp errors logger settings state …
+│   │   └── ops/                       ● (c) compose crypto file hash image registry wrappers
 ├── tests/
 │   ├── unit/                          ● mirror of src (185 tests, 100 % coverage)
 │   ├── acceptance/                    ○ golden files per tool: input → expected output (hash or semantic)

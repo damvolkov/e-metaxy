@@ -13,8 +13,8 @@ from e_organon.services.flow import ToolFlow
 if TYPE_CHECKING:
     from collections.abc import AsyncIterator
 
+    from e_organon.processors.doc import DocProcessor
     from e_organon.services.files import AllowedFiles
-    from processors.doc import DocProcessor
 
 STEPS: tuple[str, ...] = ("resolve", "read")
 

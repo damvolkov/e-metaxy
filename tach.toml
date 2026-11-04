@@ -17,21 +17,21 @@ unused_ignore_directives = "error"
 ### the service stands on the materialized sections and on its own models; nothing materialized imports it back.
 [[modules]]
 path = "e_organon"
-depends_on = ["e_organon.api", "e_organon.api.lifespan", "e_organon.mcp", "e_organon.websockets", "infra", "infra.auth", "infra.mcp"]
+depends_on = ["e_organon.api", "e_organon.api.lifespan", "e_organon.mcp", "e_organon.websockets", "e_organon.infra", "e_organon.infra.auth", "e_organon.infra.mcp"]
 
 [[modules]]
 path = "e_organon.api"
 depends_on = [
     "e_organon.models",
     "e_organon.services",
-    "engines",
-    "providers.drivers",
-    "providers.adapters",
-    "ports",
-    "infra",
-    "infra.auth",
-    "infra.errors",
-    "ops",
+    "e_organon.engines",
+    "e_organon.providers.drivers",
+    "e_organon.providers.adapters",
+    "e_organon.ports",
+    "e_organon.infra",
+    "e_organon.infra.auth",
+    "e_organon.infra.errors",
+    "e_organon.ops",
 ]
 
 ### the composition root's lifespans stand on every section and on the MCP door they build the server of; the door reads
@@ -42,78 +42,78 @@ depends_on = [
     "e_organon.api",
     "e_organon.mcp",
     "e_organon.services",
-    "engines",
-    "processors",
-    "providers.drivers",
-    "providers.adapters",
-    "ports",
-    "infra",
-    "infra.auth",
-    "infra.mcp",
-    "infra.errors",
-    "ops",
+    "e_organon.engines",
+    "e_organon.processors",
+    "e_organon.providers.drivers",
+    "e_organon.providers.adapters",
+    "e_organon.ports",
+    "e_organon.infra",
+    "e_organon.infra.auth",
+    "e_organon.infra.mcp",
+    "e_organon.infra.errors",
+    "e_organon.ops",
 ]
 
 [[modules]]
 path = "e_organon.mcp"
-depends_on = ["e_organon.api", "e_organon.models", "engines", "ports", "infra", "infra.auth", "infra.mcp", "infra.errors"]
+depends_on = ["e_organon.api", "e_organon.models", "e_organon.engines", "e_organon.ports", "e_organon.infra", "e_organon.infra.auth", "e_organon.infra.mcp", "e_organon.infra.errors"]
 
 [[modules]]
 path = "e_organon.websockets"
-depends_on = ["e_organon.api", "e_organon.models", "infra", "infra.errors"]
+depends_on = ["e_organon.api", "e_organon.models", "e_organon.infra", "e_organon.infra.errors"]
 
 [[modules]]
 path = "e_organon.models"
-depends_on = ["infra", "infra.errors"]
+depends_on = ["e_organon.infra", "e_organon.infra.errors"]
 
 ### the canonical tools: each a workflow over ports, the engines and processors it composes, and its section's models.
 ### Services name no concretion — the lifespans hand them what meets each port.
 [[modules]]
 path = "e_organon.services"
-depends_on = ["e_organon.models", "engines", "processors", "ports", "infra", "infra.errors", "ops"]
+depends_on = ["e_organon.models", "e_organon.engines", "e_organon.processors", "e_organon.ports", "e_organon.infra", "e_organon.infra.errors", "e_organon.ops"]
 
 ##### MATERIALIZED #####
 ### engines, processors, drivers and adapters are the execution level: each stands on ports, infra and ops, and none
 ### lists another — the horizontal ban is the absence of an edge.
 [[modules]]
-path = "engines"
-depends_on = ["ports", "infra", "infra.auth", "infra.errors", "ops"]
+path = "e_organon.engines"
+depends_on = ["e_organon.ports", "e_organon.infra", "e_organon.infra.auth", "e_organon.infra.errors", "e_organon.ops"]
 
 [[modules]]
-path = "processors"
-depends_on = ["ports", "infra", "infra.errors", "ops"]
+path = "e_organon.processors"
+depends_on = ["e_organon.ports", "e_organon.infra", "e_organon.infra.errors", "e_organon.ops"]
 
 [[modules]]
-path = "providers.drivers"
-depends_on = ["ports", "infra", "infra.auth", "infra.errors", "ops"]
+path = "e_organon.providers.drivers"
+depends_on = ["e_organon.ports", "e_organon.infra", "e_organon.infra.auth", "e_organon.infra.errors", "e_organon.ops"]
 
 [[modules]]
-path = "providers.adapters"
-depends_on = ["ports", "infra", "infra.errors", "ops"]
+path = "e_organon.providers.adapters"
+depends_on = ["e_organon.ports", "e_organon.infra", "e_organon.infra.errors", "e_organon.ops"]
 
 ### ports are the bottleneck of the import graph: they see infra and nothing else.
 [[modules]]
-path = "ports"
-depends_on = ["infra", "infra.auth", "infra.errors"]
+path = "e_organon.ports"
+depends_on = ["e_organon.infra", "e_organon.infra.auth", "e_organon.infra.errors"]
 
 [[modules]]
-path = "infra"
-depends_on = ["ops", "infra.errors"]
+path = "e_organon.infra"
+depends_on = ["e_organon.ops", "e_organon.infra.errors"]
 
 ### the opt-in infra packages look only down: nothing in `infra` proper imports them, and the MCP engine rides the auth package.
 [[modules]]
-path = "infra.auth"
-depends_on = ["infra", "infra.errors"]
+path = "e_organon.infra.auth"
+depends_on = ["e_organon.infra", "e_organon.infra.errors"]
 
 [[modules]]
-path = "infra.mcp"
-depends_on = ["infra", "infra.auth", "infra.errors"]
+path = "e_organon.infra.mcp"
+depends_on = ["e_organon.infra", "e_organon.infra.auth", "e_organon.infra.errors"]
 
 ### the error tree is the floor of the package: every module, `ops` included, raises from it and it imports nothing.
 [[modules]]
-path = "infra.errors"
+path = "e_organon.infra.errors"
 depends_on = []
 
 [[modules]]
-path = "ops"
-depends_on = ["infra.errors"]
+path = "e_organon.ops"
+depends_on = ["e_organon.infra.errors"]

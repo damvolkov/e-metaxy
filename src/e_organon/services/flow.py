@@ -7,9 +7,9 @@ would have sent. REST streams or batches per request; the MCP twin batches."""
 
 from typing import TYPE_CHECKING
 
+from e_organon.infra.logger import logger
 from e_organon.models.error import FlowError
 from e_organon.models.flow import Done, Event, Failed
-from infra.logger import logger
 
 if TYPE_CHECKING:
     from collections.abc import AsyncIterator

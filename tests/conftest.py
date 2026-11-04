@@ -17,9 +17,9 @@ import fakeredis.aioredis
 import pytest
 
 from e_organon.api.lifespan import providers as providers_module
-from infra.auth.models import Role
-from providers.drivers.database import psqlpy as psqlpy_module
-from providers.drivers.store import redis as redis_module
+from e_organon.infra.auth.models import Role
+from e_organon.providers.drivers.database import psqlpy as psqlpy_module
+from e_organon.providers.drivers.store import redis as redis_module
 from support.auth import FakeAuth
 from support.psqlpy import FakePsqlpyServer
 

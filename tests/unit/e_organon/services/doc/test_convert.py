@@ -8,11 +8,11 @@ import pytest
 
 from e_organon.models.doc import ConvertIn, ConvertOut
 from e_organon.models.flow import Done, Failed, Step
+from e_organon.processors.doc import DocProcessor
+from e_organon.providers.adapters.markdown.anytomd import AnytomdAdapter
+from e_organon.providers.adapters.pages.liteparse import LiteparseAdapter
 from e_organon.services.doc.convert import ConvertDocService
 from e_organon.services.files import AllowedFiles
-from processors.doc import DocProcessor
-from providers.adapters.markdown.anytomd import AnytomdAdapter
-from providers.adapters.pages.liteparse import LiteparseAdapter
 
 if TYPE_CHECKING:
     from collections.abc import AsyncIterator

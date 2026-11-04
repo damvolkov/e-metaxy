@@ -6,9 +6,9 @@ import pytest
 from litestar import Litestar
 
 from e_organon.api.lifespan import db
-from infra.config.base import Secret
-from infra.config.providers.drivers.database.psqlpy import PsqlpySettings
-from infra.errors import DatabaseError
+from e_organon.infra.config.base import Secret
+from e_organon.infra.config.providers.drivers.database.psqlpy import PsqlpySettings
+from e_organon.infra.errors import DatabaseError
 
 
 class FakeDriver:

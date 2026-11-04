@@ -12,10 +12,10 @@ from litestar.handlers import HTTPRouteHandler
 from litestar.status_codes import HTTP_200_OK, HTTP_503_SERVICE_UNAVAILABLE
 
 from e_organon.api.deps import DepKey, graph
-from engines.health import ProviderHealth
-from infra.auth.guard import OPT
-from infra.auth.models import Access
-from infra.state import State
+from e_organon.engines.health import ProviderHealth
+from e_organon.infra.auth.guard import OPT
+from e_organon.infra.auth.models import Access
+from e_organon.infra.state import State
 
 
 async def health() -> dict[str, str]:

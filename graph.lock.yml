@@ -14,7 +14,7 @@ units:
   area: engines
   name: auth
   files:
-  - src/engines/auth.py
+  - src/e_organon/engines/auth.py
   package: false
   tests:
   - tests/unit/engines/test_auth.py
@@ -43,7 +43,7 @@ units:
   area: engines
   name: health
   files:
-  - src/engines/health.py
+  - src/e_organon/engines/health.py
   package: false
   tests:
   - tests/unit/engines/test_health.py
@@ -66,7 +66,7 @@ units:
   area: engines
   name: telemetry
   files:
-  - src/engines/telemetry.py
+  - src/e_organon/engines/telemetry.py
   package: false
   tests:
   - tests/unit/engines/test_telemetry.py
@@ -86,7 +86,7 @@ units:
   area: infra
   name: background
   files:
-  - src/infra/background.py
+  - src/e_organon/infra/background.py
   package: false
   tests:
   - tests/unit/infra/test_background.py
@@ -107,7 +107,7 @@ units:
   area: infra
   name: errors
   files:
-  - src/infra/errors.py
+  - src/e_organon/infra/errors.py
   package: false
   tests:
   - tests/unit/infra/test_errors.py
@@ -128,7 +128,7 @@ units:
   area: infra
   name: events
   files:
-  - src/infra/events.py
+  - src/e_organon/infra/events.py
   package: false
   tests:
   - tests/unit/infra/test_events.py
@@ -148,7 +148,7 @@ units:
   area: infra
   name: logger
   files:
-  - src/infra/logger.py
+  - src/e_organon/infra/logger.py
   package: false
   tests:
   - tests/unit/infra/test_logger.py
@@ -174,7 +174,7 @@ units:
   area: infra
   name: proxy
   files:
-  - src/infra/proxy.py
+  - src/e_organon/infra/proxy.py
   package: false
   tests:
   - tests/unit/infra/test_proxy.py
@@ -190,7 +190,7 @@ units:
   area: infra
   name: settings
   files:
-  - src/infra/settings.py
+  - src/e_organon/infra/settings.py
   package: false
   tests:
   - tests/unit/infra/test_settings.py
@@ -213,7 +213,7 @@ units:
   area: infra
   name: state
   files:
-  - src/infra/state.py
+  - src/e_organon/infra/state.py
   package: false
   tests:
   - tests/unit/infra/test_state.py
@@ -227,7 +227,7 @@ units:
   area: infra
   name: struct
   files:
-  - src/infra/struct.py
+  - src/e_organon/infra/struct.py
   package: false
   tests:
   - tests/unit/infra/test_struct.py
@@ -241,7 +241,7 @@ units:
   area: ops
   name: crypto
   files:
-  - src/ops/crypto.py
+  - src/e_organon/ops/crypto.py
   package: false
   tests:
   - tests/unit/ops/test_crypto.py
@@ -258,7 +258,7 @@ units:
   area: ops
   name: file
   files:
-  - src/ops/file.py
+  - src/e_organon/ops/file.py
   package: false
   tests:
   - tests/unit/ops/test_file.py
@@ -275,7 +275,7 @@ units:
   area: ops
   name: hash
   files:
-  - src/ops/hash.py
+  - src/e_organon/ops/hash.py
   package: false
   tests:
   - tests/unit/ops/test_hash.py
@@ -290,7 +290,7 @@ units:
   area: ops
   name: image
   files:
-  - src/ops/image.py
+  - src/e_organon/ops/image.py
   package: false
   tests:
   - tests/unit/ops/test_image.py
@@ -306,7 +306,7 @@ units:
   area: ops
   name: registry
   files:
-  - src/ops/registry.py
+  - src/e_organon/ops/registry.py
   package: false
   tests:
   - tests/unit/ops/test_registry.py
@@ -322,7 +322,7 @@ units:
   area: ops
   name: wrappers
   files:
-  - src/ops/wrappers.py
+  - src/e_organon/ops/wrappers.py
   package: false
   tests:
   - tests/unit/ops/test_wrappers.py
@@ -336,7 +336,7 @@ units:
   area: ports
   name: auth
   files:
-  - src/ports/auth.py
+  - src/e_organon/ports/auth.py
   package: false
   tests: []
   deps:
@@ -352,7 +352,7 @@ units:
   area: ports
   name: database
   files:
-  - src/ports/database.py
+  - src/e_organon/ports/database.py
   package: false
   tests:
   - tests/unit/ports/test_database_real.py
@@ -368,7 +368,7 @@ units:
   area: ports
   name: documents
   files:
-  - src/ports/documents.py
+  - src/e_organon/ports/documents.py
   package: false
   tests: []
   deps:
@@ -384,7 +384,7 @@ units:
   area: ports
   name: extract
   files:
-  - src/ports/extract.py
+  - src/e_organon/ports/extract.py
   package: false
   tests: []
   deps:
@@ -399,7 +399,7 @@ units:
   area: ports
   name: http
   files:
-  - src/ports/http.py
+  - src/e_organon/ports/http.py
   package: false
   tests: []
   deps:
@@ -414,7 +414,7 @@ units:
   area: ports
   name: language
   files:
-  - src/ports/language.py
+  - src/e_organon/ports/language.py
   package: false
   tests: []
   deps:
@@ -429,7 +429,7 @@ units:
   area: ports
   name: markdown
   files:
-  - src/ports/markdown.py
+  - src/e_organon/ports/markdown.py
   package: false
   tests: []
   deps:
@@ -445,7 +445,7 @@ units:
   area: ports
   name: pages
   files:
-  - src/ports/pages.py
+  - src/e_organon/ports/pages.py
   package: false
   tests: []
   deps:
@@ -461,7 +461,7 @@ units:
   area: ports
   name: provider
   files:
-  - src/ports/provider.py
+  - src/e_organon/ports/provider.py
   package: false
   tests:
   - tests/unit/ports/test_provider.py
@@ -486,7 +486,7 @@ units:
   area: ports
   name: store
   files:
-  - src/ports/store.py
+  - src/e_organon/ports/store.py
   package: false
   tests: []
   deps:
@@ -501,7 +501,7 @@ units:
   area: ports
   name: watch
   files:
-  - src/ports/watch.py
+  - src/e_organon/ports/watch.py
   package: false
   tests: []
   deps:
@@ -516,7 +516,7 @@ units:
   area: processors
   name: doc
   files:
-  - src/processors/doc.py
+  - src/e_organon/processors/doc.py
   package: false
   tests:
   - tests/unit/processors/test_doc.py
@@ -548,7 +548,7 @@ units:
   area: processors
   name: models
   files:
-  - src/processors/models.py
+  - src/e_organon/processors/models.py
   package: false
   tests:
   - tests/unit/processors/test_models.py

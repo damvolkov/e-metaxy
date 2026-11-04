@@ -10,11 +10,11 @@ from contextlib import asynccontextmanager
 
 from litestar import Litestar
 
-from infra.config.providers.drivers.database.psqlpy import PsqlpySettings
-from infra.errors import DatabaseError
-from infra.logger import logger
-from infra.settings import settings as st
-from providers.drivers.database.psqlpy import PsqlpyDriver
+from e_organon.infra.config.providers.drivers.database.psqlpy import PsqlpySettings
+from e_organon.infra.errors import DatabaseError
+from e_organon.infra.logger import logger
+from e_organon.infra.settings import settings as st
+from e_organon.providers.drivers.database.psqlpy import PsqlpyDriver
 
 
 ##### ROWS #####

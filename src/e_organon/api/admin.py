@@ -6,12 +6,12 @@ the same engine and driver the service runs — every earlier admin key revoked,
 
 from contextlib import AsyncExitStack
 
-from engines.auth import AuthEngine
-from infra.auth.models import Issued
-from infra.logger import logger
-from infra.settings import settings as st
-from providers.drivers.auth.postgres import PostgresAuthDriver
-from providers.drivers.database.psqlpy import PsqlpyDriver
+from e_organon.engines.auth import AuthEngine
+from e_organon.infra.auth.models import Issued
+from e_organon.infra.logger import logger
+from e_organon.infra.settings import settings as st
+from e_organon.providers.drivers.auth.postgres import PostgresAuthDriver
+from e_organon.providers.drivers.database.psqlpy import PsqlpyDriver
 
 
 async def mint() -> Issued:

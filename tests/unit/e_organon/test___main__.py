@@ -8,9 +8,9 @@ from typing import TYPE_CHECKING, Any, Self
 import granian
 
 from e_organon.api import admin
+from e_organon.infra.auth.models import Issued, Role
+from e_organon.infra.settings import settings as st
 from e_organon.main import create_app
-from infra.auth.models import Issued, Role
-from infra.settings import settings as st
 
 if TYPE_CHECKING:
     import pytest

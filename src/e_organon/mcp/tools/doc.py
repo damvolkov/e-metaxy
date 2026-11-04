@@ -7,9 +7,9 @@ from typing import Final
 from litestar.handlers import HTTPRouteHandler
 
 from e_organon.api.router import doc as router
+from e_organon.infra.auth.models import Access
+from e_organon.infra.mcp.models import MCPTool
 from e_organon.mcp.refusals import REFUSALS
-from infra.auth.models import Access
-from infra.mcp.models import MCPTool
 
 ##### TOOLS — what a client is told #####
 CONVERT: Final = MCPTool(

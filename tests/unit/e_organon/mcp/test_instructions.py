@@ -2,9 +2,9 @@
 
 import pytest
 
+from e_organon.infra.mcp.models import TOOL
 from e_organon.mcp.instructions import INSTRUCTIONS
 from e_organon.mcp.registry import ROUTES
-from infra.mcp.models import TOOL
 
 NAMES = sorted(route.opt[TOOL].name for route in ROUTES)
 

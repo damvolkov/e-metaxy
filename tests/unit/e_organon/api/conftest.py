@@ -7,8 +7,8 @@ from typing import TYPE_CHECKING, Final
 
 import pytest
 
-from infra.proxy import LazyProxy
-from infra.state import State
+from e_organon.infra.proxy import LazyProxy
+from e_organon.infra.state import State
 
 ### shared by nature, never a node held twice: interned atoms, and the lazy singletons `shared` mirrors on purpose.
 ATOMS: Final[tuple[type, ...]] = (str, bytes, int, float, bool, type(None), LazyProxy)
@@ -20,7 +20,10 @@ if TYPE_CHECKING:
 
 ### the strata are every package of the service but its edge, `api`, where the lifespans and their sections live.
 SERVICE: Final[str] = "e_organon."
-EDGE: Final[str] = "e_organon.api."
+### the edge and the materialized common are tools, never a stratum's node: they live in the package, placed by no chain.
+EDGE: Final[tuple[str, ...]] = tuple(
+    f"e_organon.{section}." for section in ("api", "engines", "infra", "ops", "ports", "processors", "providers")
+)
 
 
 def leaves(node: object, chain: tuple[str, ...]) -> Iterator[tuple[str, str]]:

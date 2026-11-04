@@ -26,13 +26,13 @@ from e_organon.api.middlewares import MIDDLEWARES, cors_config
 from e_organon.api.router import auth, doc, health, user
 from e_organon.api.security import BEARER_SCHEME, SecuritySchemeName
 from e_organon.api.state import AppState
+from e_organon.infra.auth.guard import OPT, guard
+from e_organon.infra.auth.models import Access
+from e_organon.infra.mcp.guard import internal
+from e_organon.infra.state import State
 from e_organon.mcp import mount
 from e_organon.mcp import registry as tools
 from e_organon.websockets import telemetry
-from infra.auth.guard import OPT, guard
-from infra.auth.models import Access
-from infra.mcp.guard import internal
-from infra.state import State
 
 ### the API's routers, each route declaring its access (`opt=OPT[...]`).
 GUARDED: Final = (health.ROUTES, user.ROUTES, auth.ROUTES, doc.ROUTES)

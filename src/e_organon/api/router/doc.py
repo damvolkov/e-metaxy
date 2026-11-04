@@ -13,10 +13,10 @@ from litestar.params import JSONBody
 from e_organon.api.deps import DepKey, graph
 from e_organon.api.security import SECURITY
 from e_organon.api.stream import answer
+from e_organon.infra.auth.guard import OPT
+from e_organon.infra.auth.models import Access
+from e_organon.infra.state import State
 from e_organon.models.doc import ConvertIn
-from infra.auth.guard import OPT
-from infra.auth.models import Access
-from infra.state import State
 
 TOOL_DEPS: Final[dict[str, Provide]] = {DepKey.GRAPH.value: Provide(graph, sync_to_thread=False)}
 

@@ -14,10 +14,10 @@ from litestar import Litestar
 from structlog.typing import BindableLogger
 
 from e_organon.api.state import AppState
-from infra.logger import logger
-from infra.proxy import LazyProxy
-from infra.settings import Settings
-from infra.settings import settings as st
+from e_organon.infra.logger import logger
+from e_organon.infra.proxy import LazyProxy
+from e_organon.infra.settings import Settings
+from e_organon.infra.settings import settings as st
 
 
 ##### SECTION #####

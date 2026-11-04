@@ -14,13 +14,13 @@ from importlib.metadata import version
 from litestar import Litestar
 
 from e_organon.api.state import AppState
+from e_organon.infra.logger import logger
+from e_organon.infra.mcp.registry import MCPRegistry
+from e_organon.infra.mcp.server import MCPServer
+from e_organon.infra.settings import settings as st
 from e_organon.mcp.instructions import INSTRUCTIONS
 from e_organon.mcp.registry import ROUTES
 from e_organon.mcp.state import MCPState
-from infra.logger import logger
-from infra.mcp.registry import MCPRegistry
-from infra.mcp.server import MCPServer
-from infra.settings import settings as st
 
 
 @asynccontextmanager

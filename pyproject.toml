@@ -129,7 +129,7 @@ bump = true
 fallback-version = "0.0.0"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/e_organon", "src/infra", "src/ops", "src/ports", "src/providers", "src/engines", "src/processors"]
+packages = ["src/e_organon"]
 
 [tool.hatch.build.targets.sdist]
 include = ["src/", "tests/", "README.md"]
@@ -158,22 +158,22 @@ ignore = ["E501", "ISC001", "PLR0913"]
 "src/e_organon/main.py" = ["TC001", "TC002", "TC003"]
 "src/e_organon/mcp/**" = ["TC001", "TC002", "TC003"]
 ### the one module that speaks the MCP protocol: an SDK upgrade touches it alone.
-"src/infra/mcp/server.py" = ["TID251"]
+"src/e_organon/infra/mcp/server.py" = ["TID251"]
 ### NON_SERVICE is an exclusion vocabulary for host tokens, not a socket bind.
-"src/ops/compose.py" = ["S104"]
-"src/providers/adapters/language/lingua.py" = ["TID251"]
-"src/providers/adapters/watch/watchfiles.py" = ["TID251"]
+"src/e_organon/ops/compose.py" = ["S104"]
+"src/e_organon/providers/adapters/language/lingua.py" = ["TID251"]
+"src/e_organon/providers/adapters/watch/watchfiles.py" = ["TID251"]
 
 [tool.ruff.lint.isort]
-known-first-party = ["e_organon", "infra", "ops", "ports", "providers", "engines", "processors"]
+known-first-party = ["e_organon"]
 
 [tool.ruff.lint.flake8-type-checking]
 ### pydantic and msgspec resolve these classes' annotations at runtime: their imports must stay real.
 runtime-evaluated-base-classes = [
     "pydantic.BaseModel",
-    "infra.config.base.BaseSettings",
+    "e_organon.infra.config.base.BaseSettings",
     "msgspec.Struct",
-    "infra.struct.CheckedStruct",
+    "e_organon.infra.struct.CheckedStruct",
 ]
 
 [tool.ruff.lint.flake8-tidy-imports]
@@ -221,6 +221,7 @@ markers = [
 [tool.coverage.run]
 ### infra/, ops/, ports/, providers/, engines/ and processors/ are materialized and tested at their source (projects/python/common); the gate covers the service.
 source_pkgs = ["e_organon"]
+omit = ["src/e_organon/engines/*", "src/e_organon/infra/*", "src/e_organon/ops/*", "src/e_organon/ports/*", "src/e_organon/processors/*", "src/e_organon/providers/*"]
 branch = true
 parallel = true
 

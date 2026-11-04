@@ -14,24 +14,24 @@ from dataclasses import dataclass, fields
 from litestar import Litestar
 
 from e_organon.api.state import AppState
-from infra.logger import logger
-from infra.settings import settings as st
-from ports.auth import AuthPort
-from ports.database import DatabasePort
-from ports.documents import DocumentPort
-from ports.http import HTTPPort
-from ports.markdown import MarkdownPort
-from ports.pages import PagesPort
-from ports.provider import Provider
-from ports.store import StorePort
-from providers.adapters.markdown.anytomd import AnytomdAdapter
-from providers.adapters.pages.liteparse import LiteparseAdapter
-from providers.drivers.auth.postgres import PostgresAuthDriver
-from providers.drivers.database.psqlpy import PsqlpyDriver
-from providers.drivers.documents.docling import DoclingDriver
-from providers.drivers.http.wreq import WreqDriver
-from providers.drivers.store.redis import RedisDriver
-from providers.drivers.store.sqlite import SqliteDriver
+from e_organon.infra.logger import logger
+from e_organon.infra.settings import settings as st
+from e_organon.ports.auth import AuthPort
+from e_organon.ports.database import DatabasePort
+from e_organon.ports.documents import DocumentPort
+from e_organon.ports.http import HTTPPort
+from e_organon.ports.markdown import MarkdownPort
+from e_organon.ports.pages import PagesPort
+from e_organon.ports.provider import Provider
+from e_organon.ports.store import StorePort
+from e_organon.providers.adapters.markdown.anytomd import AnytomdAdapter
+from e_organon.providers.adapters.pages.liteparse import LiteparseAdapter
+from e_organon.providers.drivers.auth.postgres import PostgresAuthDriver
+from e_organon.providers.drivers.database.psqlpy import PsqlpyDriver
+from e_organon.providers.drivers.documents.docling import DoclingDriver
+from e_organon.providers.drivers.http.wreq import WreqDriver
+from e_organon.providers.drivers.store.redis import RedisDriver
+from e_organon.providers.drivers.store.sqlite import SqliteDriver
 
 ### the roles a deployment may leave empty: each stays out of `named` (and the health survey) until its setting is set.
 OPTIONAL: frozenset[str] = frozenset({"docling"})

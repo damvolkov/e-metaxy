@@ -7,8 +7,8 @@ from typing import TYPE_CHECKING
 import pytest
 
 from e_organon.api.lifespan.providers import OPTIONAL, ProvidersState
-from providers.drivers.store.redis import RedisDriver
-from providers.drivers.store.sqlite import SqliteDriver
+from e_organon.providers.drivers.store.redis import RedisDriver
+from e_organon.providers.drivers.store.sqlite import SqliteDriver
 from support.auth import FakeAuth
 
 if TYPE_CHECKING:

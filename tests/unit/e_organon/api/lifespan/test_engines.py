@@ -9,13 +9,13 @@ from litestar.testing import TestClient
 from e_organon.api.lifespan import engines
 from e_organon.api.lifespan.engines import EnginesState
 from e_organon.api.lifespan.providers import OPTIONAL, ProvidersState
+from e_organon.engines.auth import AuthEngine
+from e_organon.infra.auth.models import Role
+from e_organon.infra.settings import Settings
+from e_organon.infra.settings import settings as st
 from e_organon.main import create_app
-from engines.auth import AuthEngine
-from infra.auth.models import Role
-from infra.settings import Settings
-from infra.settings import settings as st
-from ops.crypto import Crypto
-from providers.drivers.store.sqlite import SqliteDriver
+from e_organon.ops.crypto import Crypto
+from e_organon.providers.drivers.store.sqlite import SqliteDriver
 
 if TYPE_CHECKING:
     import pytest

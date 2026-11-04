@@ -7,11 +7,11 @@ from litestar.handlers import HTTPRouteHandler
 from litestar.params import JSONBody
 
 from e_organon.api.router import health as router
+from e_organon.infra.auth.models import Access
+from e_organon.infra.mcp.models import MCPTool
+from e_organon.infra.state import State
 from e_organon.mcp.models import NoArgs, Status
 from e_organon.mcp.refusals import REFUSALS
-from infra.auth.models import Access
-from infra.mcp.models import MCPTool
-from infra.state import State
 
 ##### TOOLS — what a client is told #####
 HEALTH: Final = MCPTool(

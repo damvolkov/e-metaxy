@@ -17,11 +17,11 @@ from litestar.connection import Request
 from litestar.di import NamedDependency
 
 from e_organon.api.state import AppState
+from e_organon.engines.auth import AuthEngine
+from e_organon.infra.auth.models import Caller
+from e_organon.infra.state import State
 from e_organon.models.user import User, UserRecord
-from engines.auth import AuthEngine
-from infra.auth.models import Caller
-from infra.state import State
-from ports.store import StorePort
+from e_organon.ports.store import StorePort
 
 USER_KEY: str = "user:"
 

@@ -4,7 +4,7 @@ from pathlib import Path
 
 from pydantic_settings import SettingsConfigDict
 
-from infra.config.base import BaseSettings
+from e_organon.infra.config.base import BaseSettings
 
 
 ##### SETTINGS #####

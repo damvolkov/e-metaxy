@@ -10,8 +10,8 @@ from uuid import UUID
 
 import msgspec
 
+from e_organon.engines.health import ProviderHealth
 from e_organon.models.user import EMAIL_PATTERN
-from engines.health import ProviderHealth
 
 
 class NoArgs(msgspec.Struct, frozen=True, kw_only=True):

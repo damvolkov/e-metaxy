@@ -5,9 +5,9 @@ who, each tool admits them at its own access."""
 from litestar.handlers import ASGIRouteHandler
 
 from e_organon.api.state import AppState
-from infra.config.mcp import MCPSettings
-from infra.mcp.mount import MCPMount
-from infra.settings import settings as st
+from e_organon.infra.config.mcp import MCPSettings
+from e_organon.infra.mcp.mount import MCPMount
+from e_organon.infra.settings import settings as st
 
 
 def routes(settings: MCPSettings | None = None) -> tuple[ASGIRouteHandler, ...]:

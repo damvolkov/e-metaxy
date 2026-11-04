@@ -5,10 +5,10 @@ deliberate edit of that file, never a side effect."""
 import json
 from typing import TYPE_CHECKING
 
+from e_organon.infra.auth.guard import ACCESS
+from e_organon.infra.mcp.models import TOOL
+from e_organon.infra.mcp.registry import MCPRegistry
 from e_organon.mcp.registry import ROUTES
-from infra.auth.guard import ACCESS
-from infra.mcp.models import TOOL
-from infra.mcp.registry import MCPRegistry
 
 if TYPE_CHECKING:
     from pytest_resources import Resources

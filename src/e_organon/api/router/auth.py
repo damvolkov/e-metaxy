@@ -19,10 +19,10 @@ from litestar.status_codes import HTTP_200_OK, HTTP_400_BAD_REQUEST, HTTP_503_SE
 
 from e_organon.api.deps import DepKey, auth, caller, graph
 from e_organon.api.security import SECURITY
-from engines.auth import AuthEngine
-from infra.auth.guard import OPT
-from infra.auth.models import Access, Account, Caller, Issued
-from infra.errors import AuthClosedError, AuthNameError
+from e_organon.engines.auth import AuthEngine
+from e_organon.infra.auth.guard import OPT
+from e_organon.infra.auth.models import Access, Account, Caller, Issued
+from e_organon.infra.errors import AuthClosedError, AuthNameError
 
 
 ##### CONTRACT #####

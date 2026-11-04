@@ -4,7 +4,7 @@ transports live — preflight answered, correlation id propagated; the access lo
 from uuid import uuid4
 
 from e_organon.api.middlewares import cors_config
-from infra.config.api import APISettings, HTTPMethod
+from e_organon.infra.config.api import APISettings, HTTPMethod
 
 
 def test_cors_config_reads_the_singleton_when_no_settings_given() -> None:

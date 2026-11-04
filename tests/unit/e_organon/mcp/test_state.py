@@ -3,10 +3,10 @@ the engine's over the door's registry, built by the lifespan that runs it."""
 
 from typing import TYPE_CHECKING
 
+from e_organon.infra.mcp.server import MCPServer
 from e_organon.mcp.instructions import INSTRUCTIONS
 from e_organon.mcp.registry import ROUTES
 from e_organon.mcp.state import MCPState
-from infra.mcp.server import MCPServer
 
 if TYPE_CHECKING:
     from litestar import Litestar
