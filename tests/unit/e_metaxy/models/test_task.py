@@ -7,16 +7,15 @@ from e_metaxy.models.task import Task, TaskOrder, TaskState
 
 @pytest.fixture
 def order() -> TaskOrder:
-    return TaskOrder(prompt="ping", profile="research", cwd="/tmp", session="s-1", fork=True, caller="openhuman")
+    return TaskOrder(prompt="ping", profile="research", cwd="/tmp", session="s-1", fork=True)
 
 
 async def test_task_open(order: TaskOrder) -> None:
     task = Task.open(order, CoderKind.CLAUDE)
-    assert (task.state, task.parent, task.fork, task.caller, task.session) == (
+    assert (task.state, task.parent, task.fork, task.session) == (
         TaskState.RUNNING,
         "s-1",
         True,
-        "openhuman",
         "",
     )
 

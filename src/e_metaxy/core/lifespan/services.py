@@ -76,7 +76,6 @@ async def lifespan(app: Litestar) -> AsyncGenerator[None]:
     projects = ProjectIndex(conf.workspaces)
     bridge = Bridge(
         coders={edges.coder.kind: edges.coder},
-        notifiers=edges.callers,
         ledger=edges.store,
         profiles=profiles,
         projects=projects,

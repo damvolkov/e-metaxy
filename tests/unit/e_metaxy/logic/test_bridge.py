@@ -3,7 +3,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 import pytest
-from fakes import UUID, RecordingNotifier, ScriptedCoder, Settle, Wire
+from fakes import UUID, ScriptedCoder, Settle, Wire
 
 from e_metaxy.logic.bridge import INTERRUPTED, SILENT, Bridge
 from e_metaxy.logic.projects import ProjectIndex
@@ -26,10 +26,9 @@ if TYPE_CHECKING:
     from e_metaxy.adapters.sqlite import SQLiteAdapter
 
 
-async def test_bridge_start_done(bridge: Bridge, order: TaskOrder, notifier: RecordingNotifier, settle: Settle) -> None:
+async def test_bridge_start_done(bridge: Bridge, order: TaskOrder, settle: Settle) -> None:
     task = await settle(bridge, await bridge.start(order))
     assert (task.state, task.session, task.result, task.cost, task.turns) == (TaskState.DONE, "s-1", "pong", 0.01, 1)
-    assert [told.state for told in notifier.told] == [TaskState.DONE]
 
 
 async def test_bridge_start_spec(bridge: Bridge, coder: ScriptedCoder, order: TaskOrder, settle: Settle) -> None:
@@ -91,9 +90,7 @@ async def test_bridge_start_refused(bridge: Bridge, order: TaskOrder, error: typ
 
 
 async def test_bridge_start_unknown_coder(ledger: SQLiteAdapter, book: Mapping[str, Profile], order: TaskOrder) -> None:
-    async with Bridge(
-        coders={}, notifiers={}, ledger=ledger, profiles=book, projects=ProjectIndex(Path("/tmp")), limit=1
-    ) as bridge:
+    async with Bridge(coders={}, ledger=ledger, profiles=book, projects=ProjectIndex(Path("/tmp")), limit=1) as bridge:
         with pytest.raises(UnknownCoderError):
             await bridge.start(order)
 
@@ -103,14 +100,13 @@ async def test_bridge_start_unentered(wire: Wire, coder: ScriptedCoder, order: T
         await wire(coder).start(order)
 
 
-async def test_bridge_cancel(wire: Wire, order: TaskOrder, notifier: RecordingNotifier) -> None:
+async def test_bridge_cancel(wire: Wire, order: TaskOrder) -> None:
     coder = ScriptedCoder([StartedEvent(session="s-9")], hold=True)
     async with wire(coder) as bridge:
         task = await bridge.start(order)
         await coder.parked.wait()
         cancelled = await bridge.cancel(task.id)
     assert (cancelled.state, cancelled.session) == (TaskState.CANCELLED, "s-9")
-    assert [told.state for told in notifier.told] == [TaskState.CANCELLED]
 
 
 async def test_bridge_cancel_finished(bridge: Bridge, order: TaskOrder, settle: Settle) -> None:

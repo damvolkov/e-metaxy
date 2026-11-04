@@ -1,4 +1,4 @@
-"""Test doubles shared across the unit tree: a scripted coder, a recording notifier, their event scripts."""
+"""Test doubles shared across the unit tree: a scripted coder and its event scripts."""
 
 import asyncio
 from collections.abc import AsyncGenerator, AsyncIterator, Awaitable, Callable, Coroutine
@@ -108,16 +108,6 @@ class ScriptedCoder:
             commands=(CatalogEntry(name="research", description="survey the state of the art", hint="<topic>"),),
             agents=(CatalogEntry(name="architect", description="boundaries before code"),),
         )
-
-
-class RecordingNotifier:
-    name: ClassVar[str] = "openhuman"
-
-    def __init__(self) -> None:
-        self.told: list[Task] = []
-
-    async def notify(self, task: Task) -> None:
-        self.told.append(task)
 
 
 DONE_SCRIPT = [

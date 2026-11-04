@@ -26,7 +26,7 @@ from e_metaxy.models.auth import Policy, Scope
 INSTRUCTIONS: Final = (
     "e-metaxy drives Claude Code on this machine with the user's own setup (CLAUDE.md, skills, commands, agents, "
     "hooks). Work runs in the background: work_start returns at once with a task id and its session; work_status "
-    "watches it; caller='openhuman' calls you back when it ends. A session is a Claude Code conversation: "
+    "watches it. A session is a Claude Code conversation: "
     "session_find locates one, session_read shows where it stopped, work_start with session=<id> continues it. "
     "catalog lists the commands and skills a project offers. A project is a short name ('e-voice') or a path. "
     "A message the user starts with `eng` goes to the eng tool untouched: it parses the shared grammar itself. "

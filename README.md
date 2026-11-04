@@ -4,17 +4,18 @@
   <img src="assets/logo.svg" alt="e-metaxy" height="110" />
 </p>
 
-μεταξύ — *the in-between*. An MCP gateway that carries tasks from **polymath** harnesses (OpenHuman, Hermes) to
-**engineer** harnesses (Claude Code today, OpenCode next) and carries the results back.
+> **Becoming e-organon** (ὄργανον, *the instrument*): a hub of canonical deterministic tools — REST, streaming and
+> MCP — for Claude Code, Hermes and OpenCode. Plan and study: `docs/organon-study.md`. Until the skeleton lands,
+> this repository serves one thing: the bridge the Discord #tekton channel drives.
 
-A caller never waits on work: `work_start` returns a task id at once; `work_status` reads it (or waits a bounded
-time); a caller that names itself is called back when the task ends. Recorded sessions are found, read and
-continued; live interactive sessions are listed and messaged by name.
+The bridge carries `eng` orders from the #tekton channel (Claude Code's Discord plugin) to Claude Code and the
+results back. A caller never waits on work: `work_start` returns a task id at once; `work_status` reads it (or waits
+a bounded time). Recorded sessions are found, read and continued; live interactive sessions are listed and messaged
+by name.
 
 ```
-OpenHuman ──MCP (HTTP, loopback, OAuth)──▶ e-metaxy ──Agent SDK──▶ Claude Code (your login, your ~/.claude)
-    ▲                                         │  └──claude mcp serve──▶ live sessions (ListAgents · SendMessage)
-    └──── /rpc webhooks_trigger_agent ────────┘  when a task ends
+#tekton (Claude Code channel) ──MCP (HTTP, loopback, OAuth)──▶ bridge ──Agent SDK──▶ Claude Code (your ~/.claude)
+                                                                  └──claude mcp serve──▶ live sessions
 ```
 
 ## Tools

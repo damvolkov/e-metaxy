@@ -65,7 +65,7 @@ TOOLS: Final[Mapping[str, ToolSpec]] = MappingProxyType(
             description=(
                 "Pass the user's `eng` message exactly as typed, prefix included; the grammar is parsed here, "
                 "never by you. `project`: the project the conversation is about, for an order that names none. "
-                "`caller`: who to call back when started work ends. Grammar: `eng [project:] <order>` new session · "
+                "Grammar: `eng [project:] <order>` new session · "
                 "`eng @ref: <order>` continue · `eng @ref+: <order>` branch · `eng @ref?` where it stopped · "
                 "`eng @ref = <title>` rename · `eng ls [project]` sessions · `eng ps` tasks · `eng stop <task>`. "
                 "`ref` is a session id, its first 8 characters or its exact title. Answers {{verb, result}}."
@@ -80,7 +80,7 @@ TOOLS: Final[Mapping[str, ToolSpec]] = MappingProxyType(
                 "commands, agents, hooks). Returns at once with `id` (the task) and, once known, `session`. "
                 '`prompt`: plain words, or a command/skill such as "/research vLLM sleep mode" (see catalog). '
                 '`project`: a short name ("e-voice") or a path. `session`: continue that conversation instead of '
-                'starting one (its id, the first 8 characters of it, or its exact title); `fork`: branch it. `caller`: who to call back when it ends ("openhuman"). '
+                "starting one (its id, the first 8 characters of it, or its exact title); `fork`: branch it. "
                 "Next: work_status with `id`; keep `session` to continue later.\n\nProfiles:\n{profiles}"
             ),
         ),
@@ -240,9 +240,9 @@ class BridgeTools(BaseTools):
 
     ##### PUBLIC #####
 
-    async def eng(self, text: str, project: str = "", profile: str = "code", caller: str = "") -> dict[str, Any]:
+    async def eng(self, text: str, project: str = "", profile: str = "code") -> dict[str, Any]:
         self._common_scope(Scope.WORK)
-        verb, result = await self._common_plain(self._desk.run(text, project, profile, caller))
+        verb, result = await self._common_plain(self._desk.run(text, project, profile))
         return {"verb": verb, "result": result}
 
     async def start(
@@ -253,10 +253,9 @@ class BridgeTools(BaseTools):
         profile: str = "code",
         session: str = "",
         fork: bool = False,
-        caller: str = "",
     ) -> dict[str, Any]:
         self._common_scope(Scope.WORK)
-        order = TaskOrder(prompt=prompt, profile=profile, cwd=project, session=session, fork=fork, caller=caller)
+        order = TaskOrder(prompt=prompt, profile=profile, cwd=project, session=session, fork=fork)
         return await self._common_plain(self._bridge.start(order))
 
     async def status(self, task: str, wait: float = 0.0) -> dict[str, Any]:

@@ -38,8 +38,6 @@ PROTECTED: Final[frozenset[Path]] = frozenset(
     Path(path)
     for path in (
         "adapters/coder",
-        "adapters/openhuman.py",
-        "adapters/discord.py",
         "adapters/passphrase.py",
         "core/lifespan",
         "core/middlewares.py",
