@@ -23,7 +23,7 @@ from e_organon.api import docs
 from e_organon.api.lifespan import db, engines, mcp, providers, sealed, services
 from e_organon.api.lifespan.infra import lifespan as infra_lifespan
 from e_organon.api.middlewares import MIDDLEWARES, cors_config
-from e_organon.api.router import auth, doc, health
+from e_organon.api.router import auth, doc, health, tekton
 from e_organon.api.security import BEARER_SCHEME, SecuritySchemeName
 from e_organon.api.state import AppState
 from e_organon.infra.auth.guard import OPT, guard
@@ -34,7 +34,7 @@ from e_organon.mcp import mount
 from e_organon.mcp import registry as tools
 
 ### the API's routers, each route declaring its access (`opt=OPT[...]`).
-GUARDED: Final = (health.ROUTES, auth.ROUTES, doc.ROUTES)
+GUARDED: Final = (health.ROUTES, auth.ROUTES, doc.ROUTES, tekton.ROUTES)
 
 
 def create_app() -> Litestar:

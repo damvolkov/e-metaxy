@@ -10,6 +10,7 @@ from e_organon.api.lifespan.providers import OPTIONAL, ProvidersState
 from e_organon.infra.errors import StoreError
 from e_organon.main import create_app
 from e_organon.ports.auth import AuthPort
+from e_organon.ports.coder import CoderPort
 from e_organon.ports.database import DatabasePort
 from e_organon.ports.http import HTTPPort
 from e_organon.ports.provider import Provider
@@ -40,6 +41,7 @@ async def test_providers_section_is_typed_and_ported(client: TestClient) -> None
     assert isinstance(section.http, HTTPPort)
     assert isinstance(section.database, DatabasePort)
     assert isinstance(section.auth, AuthPort)
+    assert isinstance(section.coder, CoderPort)
     assert section.store.spec.name == "sqlite"
     assert section.redis.spec.name == "redis"
     assert section.http.spec.name == "wreq"

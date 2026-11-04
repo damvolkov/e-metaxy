@@ -45,5 +45,16 @@ async def test_health_status_lists_the_tools(connect: Connect) -> None:
         "doc_merge",
         "doc_render",
         "doc_split",
+        "tekton_cancel",
+        "tekton_catalog",
+        "tekton_eng",
+        "tekton_find",
+        "tekton_peers",
+        "tekton_read",
+        "tekton_send",
+        "tekton_start",
+        "tekton_status",
+        "tekton_tasks",
+        "tekton_update",
     ]
     assert tools["api_status"].output_schema is not None

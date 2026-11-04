@@ -1,6 +1,6 @@
 """tests/conftest: the services behind the live app, faked for every tier — env seeded before the lazy infra singletons ever
 load, redis answering from fakeredis, Postgres from the scripted pool of `tests/support/psqlpy`, the accounts and keys from
-the dicts of `tests/support/auth`.
+the dicts of `tests/support/auth`, the coder a script of `tests/support/coder` — no Claude Code is ever spawned.
 
 `os.environ` stays untouched at module import (doctrine: no side-effect between imports); the seeding
 rides `pytest_configure`, which pytest runs before collection. Collection matters: pytest probes every
@@ -21,7 +21,10 @@ from e_organon.infra.auth.models import Role
 from e_organon.providers.drivers.database import psqlpy as psqlpy_module
 from e_organon.providers.drivers.store import redis as redis_module
 from support.auth import FakeAuth
+from support.coder import ScriptedCoder
 from support.psqlpy import FakePsqlpyServer
+
+RESOURCES = Path(__file__).resolve().parent / "resources"
 
 
 def pytest_configure(config: pytest.Config) -> None:
@@ -33,6 +36,9 @@ def pytest_configure(config: pytest.Config) -> None:
     os.environ.setdefault("CRYPTO__SECRET", "unit-test-secret-0123456789")
     os.environ.setdefault("AUTH_SECRET", "unit-test-auth-secret-0123456789")
     os.environ.setdefault("DB_PATH", str(Path(tempfile.mkdtemp(prefix="e-organon-tests-")) / "test.db"))
+    ### the tekton book the tests run on: every profile's roots are /tmp, which is also the workspace.
+    os.environ.setdefault("TEKTON_PROFILES", str(RESOURCES / "profiles" / "book.yaml"))
+    os.environ.setdefault("TEKTON_WORKSPACES", "/tmp")
 
 
 @pytest.fixture(autouse=True)
@@ -61,3 +67,11 @@ def keys(monkeypatch: pytest.MonkeyPatch) -> FakeAuth:
     store.key("t-root", "root", Role.ADMIN)
     monkeypatch.setattr(providers_module, "PostgresAuthDriver", lambda _database: store)
     return store
+
+
+@pytest.fixture(autouse=True)
+def coder(monkeypatch: pytest.MonkeyPatch) -> ScriptedCoder:
+    """The coder the lifespan opens where it would open Claude Code: one script, `DONE_SCRIPT`, for every run."""
+    scripted = ScriptedCoder()
+    monkeypatch.setattr(providers_module, "ClaudeDriver", lambda _cli: scripted)
+    return scripted

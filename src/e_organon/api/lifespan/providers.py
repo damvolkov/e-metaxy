@@ -17,6 +17,7 @@ from e_organon.api.state import AppState
 from e_organon.infra.logger import logger
 from e_organon.infra.settings import settings as st
 from e_organon.ports.auth import AuthPort
+from e_organon.ports.coder import CoderPort
 from e_organon.ports.database import DatabasePort
 from e_organon.ports.documents import DocumentPort
 from e_organon.ports.http import HTTPPort
@@ -31,6 +32,7 @@ from e_organon.providers.adapters.pages.liteparse import LiteparseAdapter
 from e_organon.providers.adapters.pdf.pikepdf import PikepdfAdapter
 from e_organon.providers.adapters.render.pdfium import PdfiumAdapter
 from e_organon.providers.drivers.auth.postgres import PostgresAuthDriver
+from e_organon.providers.drivers.coder.claude import ClaudeDriver
 from e_organon.providers.drivers.database.psqlpy import PsqlpyDriver
 from e_organon.providers.drivers.documents.docling import DoclingDriver
 from e_organon.providers.drivers.http.wreq import WreqDriver
@@ -47,7 +49,8 @@ class ProvidersState:
     """The typed providers section: fields named by role, typed by the port the role speaks.
 
     `store` is the KV edge the app's records live on; `auth` is where accounts and keys live, over `database`, the
-    service's one SQL pool; any further field is an optional provider the export may drop. The providers are
+    service's one SQL pool; `coder` is the engineer harness the tekton tools drive; any further field is an optional
+    provider the export may drop. The providers are
     singletons — factory machinery comes later."""
 
     store: StorePort
@@ -59,6 +62,7 @@ class ProvidersState:
     pages: PagesPort
     pdf: PdfPort
     render: RenderPort
+    coder: CoderPort
     ### docling-serve is optional: present only when DOCLING_URL is set — the doc tools read without it.
     docling: DocumentPort | None
 
@@ -83,6 +87,7 @@ async def lifespan(app: Litestar) -> AsyncGenerator[None]:
         pages = await enter(LiteparseAdapter())
         pdf = await enter(PikepdfAdapter())
         render = await enter(PdfiumAdapter())
+        coder = await enter(ClaudeDriver(st.services.TEKTON_CLAUDE))
         docling = await enter(DoclingDriver(http)) if st.providers.drivers.documents.docling.url else None
         providers = ProvidersState(
             store=store,
@@ -94,6 +99,7 @@ async def lifespan(app: Litestar) -> AsyncGenerator[None]:
             pages=pages,
             pdf=pdf,
             render=render,
+            coder=coder,
             docling=docling,
         )
         system.providers = providers

@@ -133,5 +133,198 @@
     "required": [
       "path"
     ]
+  },
+  {
+    "name": "tekton_eng",
+    "title": "Run an eng order",
+    "description": "Pass the user's `eng` message exactly as typed, prefix included; the grammar is parsed here, never by you. `project`: the project the conversation is about, for an order that names none; `profile`: what a new run may do. Grammar: `eng [project:] <order>` new session · `eng @ref: <order>` continue · `eng @ref+: <order>` branch · `eng @ref?` where it stopped · `eng @ref = <title>` rename · `eng ls [project]` sessions · `eng ps` tasks · `eng stop <task>`. `ref` is a session id, its first 8 characters or its exact title. Answers `verb` and `result`.",
+    "access": "user",
+    "annotations": {
+      "destructive_hint": false,
+      "open_world_hint": false,
+      "read_only_hint": false
+    },
+    "arguments": [
+      "profile",
+      "project",
+      "text"
+    ],
+    "required": [
+      "text"
+    ]
+  },
+  {
+    "name": "tekton_start",
+    "title": "Start work in Claude Code",
+    "description": "Run a prompt in Claude Code on this machine, with the user's whole setup (CLAUDE.md, skills, commands, agents, hooks). Returns at once with `id` (the task) and, once known, `session`. `prompt`: plain words, or a command/skill such as \"/research vLLM sleep mode\" (see tekton_catalog). `project`: a short name (\"e-voice\") or a path. `profile`: what the run may do — the profiles are the service's book (profiles.yaml): `code` by default, a refusal lists the declared ones. `session`: continue that conversation instead of starting one (its id, the first 8 characters of it, or its exact title); `fork`: branch it. Next: tekton_status with `id`; keep `session` to continue later.",
+    "access": "user",
+    "annotations": {
+      "destructive_hint": false,
+      "open_world_hint": false,
+      "read_only_hint": false
+    },
+    "arguments": [
+      "fork",
+      "profile",
+      "project",
+      "prompt",
+      "session"
+    ],
+    "required": [
+      "project",
+      "prompt"
+    ]
+  },
+  {
+    "name": "tekton_status",
+    "title": "Check a task",
+    "description": "A task's state (running, done, failed, cancelled), its session, final `result`, `error`, cost and turns. `wait` (seconds, at most 25) returns as soon as it ends instead of right away.",
+    "access": "user",
+    "annotations": {
+      "destructive_hint": false,
+      "open_world_hint": false,
+      "read_only_hint": true
+    },
+    "arguments": [
+      "task",
+      "wait"
+    ],
+    "required": [
+      "task"
+    ]
+  },
+  {
+    "name": "tekton_tasks",
+    "title": "List tasks",
+    "description": "The newest tasks first — what is running, what finished; `state` narrows to one state.",
+    "access": "user",
+    "annotations": {
+      "destructive_hint": false,
+      "open_world_hint": false,
+      "read_only_hint": true
+    },
+    "arguments": [
+      "limit",
+      "state"
+    ],
+    "required": []
+  },
+  {
+    "name": "tekton_cancel",
+    "title": "Cancel a task",
+    "description": "Interrupt a running task; a finished one comes back unchanged. Its session can be continued.",
+    "access": "user",
+    "annotations": {
+      "destructive_hint": true,
+      "open_world_hint": false,
+      "read_only_hint": false
+    },
+    "arguments": [
+      "task"
+    ],
+    "required": [
+      "task"
+    ]
+  },
+  {
+    "name": "tekton_catalog",
+    "title": "What Claude Code offers in a project",
+    "description": "The slash commands, skills and agents Claude Code has in `project` (short name or path; empty means the workspace root). Use a command or skill as a tekton_start prompt: \"/<name> <arguments>\".",
+    "access": "user",
+    "annotations": {
+      "destructive_hint": false,
+      "open_world_hint": false,
+      "read_only_hint": true
+    },
+    "arguments": [
+      "project"
+    ],
+    "required": []
+  },
+  {
+    "name": "tekton_find",
+    "title": "Find Claude Code sessions",
+    "description": "Recorded sessions, newest first: id, title, project, branch, tag, last change. `project` narrows to one project (short name or path), `text` to titles, branches or tags that contain it. Next: tekton_read to see where one stopped, tekton_start with `session` to continue it.",
+    "access": "user",
+    "annotations": {
+      "destructive_hint": false,
+      "open_world_hint": false,
+      "read_only_hint": true
+    },
+    "arguments": [
+      "limit",
+      "project",
+      "text"
+    ],
+    "required": []
+  },
+  {
+    "name": "tekton_read",
+    "title": "Read where a session stopped",
+    "description": "A session and its last `last` turns, oldest first: what the user asked, what Claude Code answered, which tools it called. `session`: its id, the first 8 characters of it, or its exact title. Read it before continuing a session with tekton_start.",
+    "access": "user",
+    "annotations": {
+      "destructive_hint": false,
+      "open_world_hint": false,
+      "read_only_hint": true
+    },
+    "arguments": [
+      "last",
+      "session"
+    ],
+    "required": [
+      "session"
+    ]
+  },
+  {
+    "name": "tekton_update",
+    "title": "Rename or tag a session",
+    "description": "Give a session a `title` and/or a `tag` (an empty tag clears it); returns the session.",
+    "access": "user",
+    "annotations": {
+      "destructive_hint": false,
+      "open_world_hint": false,
+      "read_only_hint": false
+    },
+    "arguments": [
+      "session",
+      "tag",
+      "title"
+    ],
+    "required": [
+      "session"
+    ]
+  },
+  {
+    "name": "tekton_peers",
+    "title": "List open Claude Code sessions",
+    "description": "The sessions open in a terminal right now: name, kind, idle or busy. tekton_send reaches one.",
+    "access": "user",
+    "annotations": {
+      "destructive_hint": false,
+      "open_world_hint": false,
+      "read_only_hint": true
+    },
+    "arguments": [],
+    "required": []
+  },
+  {
+    "name": "tekton_send",
+    "title": "Message an open session",
+    "description": "Deliver `text` to an open session by its name (see tekton_peers); it reads it at its next step. Returns whether it was delivered, not what the session answers.",
+    "access": "user",
+    "annotations": {
+      "destructive_hint": false,
+      "open_world_hint": false,
+      "read_only_hint": false
+    },
+    "arguments": [
+      "peer",
+      "text"
+    ],
+    "required": [
+      "peer",
+      "text"
+    ]
   }
 ]

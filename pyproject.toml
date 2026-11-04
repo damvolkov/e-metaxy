@@ -72,6 +72,8 @@ dependencies = [
     "pikepdf>=10.17.0",
     "pypdfium2>=5.14.0",
     "pillow>=13.0.0",
+    ##### tekton — Claude Code as a coder: the Agent SDK runs a spec, a `claude mcp serve` child reaches live sessions #####
+    "claude-agent-sdk>=0.2.164",
 ]
 
 [project.urls]
@@ -153,7 +155,8 @@ ignore = ["E501", "ISC001", "PLR0913"]
 
 [tool.ruff.lint.per-file-ignores]
 ### tests inject fixtures by parameter: a test takes as many as it needs.
-"tests/**" = ["S101", "S106", "PLR2004", "ARG", "FBT", "PLR0917"]
+### S108: the tekton profiles admit `/tmp`, so tests name it.
+"tests/**" = ["S101", "S106", "S108", "PLR2004", "ARG", "FBT", "PLR0917"]
 "scripts/**" = ["T20", "S603", "S607", "PTH"]
 ### litestar and msgspec resolve annotations at runtime — type-checking imports would break them.
 "src/e_organon/api/**" = ["TC001", "TC002", "TC003"]
@@ -166,6 +169,8 @@ ignore = ["E501", "ISC001", "PLR0913"]
 ### NON_SERVICE is an exclusion vocabulary for host tokens, not a socket bind.
 "src/e_organon/ops/compose.py" = ["S104"]
 "src/e_organon/providers/adapters/language/lingua.py" = ["TID251"]
+### the stand-in `claude mcp serve` the coder driver's tests spawn: an MCP server by nature.
+"tests/resources/bin/claude.py" = ["TID251"]
 "src/e_organon/providers/adapters/watch/watchfiles.py" = ["TID251"]
 
 [tool.ruff.lint.isort]

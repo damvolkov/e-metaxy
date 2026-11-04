@@ -6,6 +6,6 @@ from typing import Final
 
 from litestar.handlers import HTTPRouteHandler
 
-from e_organon.mcp.tools import doc, health
+from e_organon.mcp.tools import doc, health, tekton
 
-ROUTES: Final[tuple[HTTPRouteHandler, ...]] = (*health.ROUTES, *doc.ROUTES)
+ROUTES: Final[tuple[HTTPRouteHandler, ...]] = (*health.ROUTES, *doc.ROUTES, *tekton.ROUTES)

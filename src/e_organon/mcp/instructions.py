@@ -9,5 +9,10 @@ INSTRUCTIONS: Final[str] = (
     "workspaces, with no model in the loop: doc_convert reads any document into Markdown; doc_inspect lists a PDF's "
     "pages, metadata and form fields; doc_fill writes those fields; doc_merge joins PDFs, doc_split cuts one into page "
     "ranges, doc_render draws pages as PNG — each written file lands in the outbox and its path is the next tool's "
-    "input. A refusal is the API's own words: no key, or a key short of the tool's access."
+    "input. The tekton tools are the bridge to Claude Code on this machine: tekton_start runs a prompt in a project "
+    "under a profile and answers at once with the task, tekton_status watches it (wait up to 25 s), tekton_tasks lists "
+    "them, tekton_cancel stops one; tekton_find, tekton_read and tekton_update locate, read and name its recorded "
+    "sessions, and tekton_start with a session continues one; tekton_catalog lists a project's commands, skills and "
+    "agents; tekton_peers and tekton_send reach the sessions open in a terminal; tekton_eng runs the user's `eng` "
+    "message through its grammar. A refusal is the API's own words: no key, or a key short of the tool's access."
 )

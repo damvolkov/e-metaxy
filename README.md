@@ -19,8 +19,16 @@ answer; its MCP twin (`<section>_<word>`, same handler) answers in batch. Files 
 | `doc/merge` | PDFs joined in order, forms kept | pikepdf |
 | `doc/split` | a PDF cut into page ranges | pikepdf |
 | `doc/render` | PDF pages as PNG at a DPI | pypdfium2 (PDFium) |
+| `tekton/start` · `status` · `tasks` · `cancel` | a prompt run in Claude Code under a profile, in the background; watched (`status` streams a step per tick while it waits), listed, cancelled | Claude Agent SDK, the bridge engine |
+| `tekton/find` · `read` · `update` · `catalog` | Claude Code's recorded sessions found, read, renamed and tagged; a project's commands, skills and agents | Claude Agent SDK |
+| `tekton/peers` · `send` | the sessions open in a terminal, and a message to one | `claude mcp serve` |
+| `tekton/eng` | the user's `eng` message through its grammar, no model | the bridge engine |
 
 Written files land in `ORGANON_OUTBOX` (inside the vault), named by content: one tool's output is the next one's input.
+
+The tekton tools take a project by short name (looked up under `TEKTON_WORKSPACES`) or by path, and a profile by name:
+`profiles.yaml` (`TEKTON_PROFILES`) is what a caller may make a coder do — mode, tools, roots, limits — read once at
+startup. `TEKTON_LIMIT` bounds the runs in flight, `TEKTON_CLAUDE` names the Claude Code CLI.
 
 Plan and study: `docs/organon-study.md`; the tree it grows into: `docs/tree.md`.
 
