@@ -10,6 +10,9 @@ from e_organon.main import create_app
 if TYPE_CHECKING:
     from litestar.testing import TestClient
 
+### the tekton tools, each a `POST /tekton/<tool>`.
+TEKTON = ("eng", "start", "status", "tasks", "cancel", "catalog", "find", "read", "update", "peers", "send")
+
 
 async def test_import_has_no_side_effects() -> None:
     assert callable(entrypoint.create_app)
@@ -36,6 +39,7 @@ def test_create_app_registers_every_router(client: TestClient) -> None:
         "/docs",
         "/schema",
         "/doc/convert",
+        *(f"/tekton/{tool}" for tool in TEKTON),
     } <= paths
 
 

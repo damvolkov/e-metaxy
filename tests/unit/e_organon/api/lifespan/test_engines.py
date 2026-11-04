@@ -10,6 +10,7 @@ from e_organon.api.lifespan import engines
 from e_organon.api.lifespan.engines import EnginesState
 from e_organon.api.lifespan.providers import OPTIONAL, ProvidersState
 from e_organon.engines.auth import AuthEngine
+from e_organon.engines.bridge import BridgeEngine
 from e_organon.infra.auth.models import Role
 from e_organon.infra.settings import Settings
 from e_organon.infra.settings import settings as st
@@ -21,6 +22,7 @@ if TYPE_CHECKING:
     import pytest
 
     from support.auth import FakeAuth
+    from support.coder import ScriptedCoder
 
 ### the roles are the section's fields: a provider the export drops leaves this list with it.
 ### an optional role is empty here (no DOCLING_URL in tests): the roles are the section's other fields.
@@ -31,6 +33,7 @@ async def test_engines_section_is_typed(client: TestClient) -> None:
     section = client.app.state.system.engines
     assert isinstance(section, EnginesState)
     assert isinstance(section.auth, AuthEngine)
+    assert isinstance(section.bridge, BridgeEngine)
 
 
 async def test_engines_health_surveys_every_provider(client: TestClient) -> None:
@@ -78,3 +81,18 @@ def test_engines_startup_without_a_secret_makes_no_account(monkeypatch: pytest.M
     before = dict(keys.owners)
     with TestClient(create_app()):
         assert keys.owners == before
+
+
+def test_engines_bridge_cancels_what_runs_when_the_app_stops(ana_key: dict[str, str], coder: ScriptedCoder) -> None:
+    """A run parked on the coder is cancelled by the stop, and the ledger — the app's store — says so to the next one."""
+    coder.hold = True
+    body = {"prompt": "ping", "project": "/tmp", "profile": "research"}
+    with TestClient(create_app()) as first:
+        task = first.post("/tekton/start", json=body, headers=ana_key).json()
+        assert (
+            first.post("/tekton/status", json={"task": task["id"], "wait": 0.5}, headers=ana_key).json()["state"]
+            == "running"
+        )
+    with TestClient(create_app()) as second:
+        after = second.post("/tekton/status", json={"task": task["id"]}, headers=ana_key).json()
+    assert after["state"] == "cancelled"
