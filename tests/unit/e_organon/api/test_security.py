@@ -18,8 +18,8 @@ async def test_security_requirement_names_the_scheme_by_its_enum_value() -> None
     assert SecuritySchemeName.BEARER.value == "bearerAuth"
 
 
-def test_security_schema_publishes_the_scheme_and_guards_the_user_routes(client: TestClient) -> None:
+def test_security_schema_publishes_the_scheme_and_guards_the_tool_routes(client: TestClient) -> None:
     schema = client.get("/schema/openapi.json").json()
     assert schema["components"]["securitySchemes"]["bearerAuth"]["scheme"] == "bearer"
-    assert schema["paths"]["/users"]["get"]["security"] == [{"bearerAuth": []}]
+    assert schema["paths"]["/doc/convert"]["post"]["security"] == [{"bearerAuth": []}]
     assert "security" not in schema["paths"]["/health"]["get"]

@@ -28,6 +28,9 @@ INIT: Final = {
     "params": {"protocolVersion": "2025-06-18", "capabilities": {}, "clientInfo": {"name": "t", "version": "0"}},
 }
 
+### a path no root holds: the tool answers, and refuses it.
+OUTSIDE: dict[str, str] = {"path": "/etc/hostname"}
+
 
 def rpc(ident: int, method: str, params: dict[str, Any]) -> dict[str, Any]:
     return {"jsonrpc": "2.0", "id": ident, "method": method, "params": params}
@@ -69,15 +72,17 @@ async def test_mount_tool_reads_the_middlewares_caller(
 ) -> None:
     session = await opened(client, ana_key)
     called = await client.post(
-        "/mcp", json=rpc(2, "tools/call", {"name": "api_user_list", "arguments": {}}), headers=session
+        "/mcp", json=rpc(2, "tools/call", {"name": "doc_convert", "arguments": OUTSIDE}), headers=session
     )
-    assert called.json()["result"].get("isError", False) is False
+    ### the key passed the guard: what refuses now is the tool itself, on the path — never the access.
+    result = called.json()["result"]
+    assert (result["isError"], "/etc/hostname" in result["content"][0]["text"]) == (True, True)
 
 
 async def test_mount_nobody_refused_in_the_apis_words(client: AsyncTestClient[Litestar]) -> None:
     session = await opened(client, {})
     called = await client.post(
-        "/mcp", json=rpc(2, "tools/call", {"name": "api_user_list", "arguments": {}}), headers=session
+        "/mcp", json=rpc(2, "tools/call", {"name": "doc_convert", "arguments": OUTSIDE}), headers=session
     )
     result = called.json()["result"]
     ### the refusal is the API's own message, word for word.
@@ -110,7 +115,7 @@ async def test_mount_a_tool_route_answers_the_engine_only(
     client: AsyncTestClient[Litestar], key: dict[str, str]
 ) -> None:
     """A tool's route reached straight over HTTP, with or without a key, is refused: only the MCP engine calls it."""
-    answered = await client.post("/mcp/tools/api_user_list", json={}, headers=key)
+    answered = await client.post("/mcp/tools/doc_convert", json=OUTSIDE, headers=key)
     assert (answered.status_code, answered.json()["detail"]) == (
         403,
         "an MCP tool: called through the MCP endpoint only",

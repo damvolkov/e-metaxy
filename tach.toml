@@ -17,7 +17,7 @@ unused_ignore_directives = "error"
 ### the service stands on the materialized sections and on its own models; nothing materialized imports it back.
 [[modules]]
 path = "e_organon"
-depends_on = ["e_organon.api", "e_organon.api.lifespan", "e_organon.mcp", "e_organon.websockets", "e_organon.infra", "e_organon.infra.auth", "e_organon.infra.mcp"]
+depends_on = ["e_organon.api", "e_organon.api.lifespan", "e_organon.mcp", "e_organon.infra", "e_organon.infra.auth", "e_organon.infra.mcp"]
 
 [[modules]]
 path = "e_organon.api"
@@ -57,10 +57,6 @@ depends_on = [
 [[modules]]
 path = "e_organon.mcp"
 depends_on = ["e_organon.api", "e_organon.models", "e_organon.engines", "e_organon.ports", "e_organon.infra", "e_organon.infra.auth", "e_organon.infra.mcp", "e_organon.infra.errors"]
-
-[[modules]]
-path = "e_organon.websockets"
-depends_on = ["e_organon.api", "e_organon.models", "e_organon.infra", "e_organon.infra.errors"]
 
 [[modules]]
 path = "e_organon.models"

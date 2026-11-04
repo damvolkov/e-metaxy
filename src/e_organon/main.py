@@ -23,7 +23,7 @@ from e_organon.api import docs
 from e_organon.api.lifespan import db, engines, mcp, providers, sealed, services
 from e_organon.api.lifespan.infra import lifespan as infra_lifespan
 from e_organon.api.middlewares import MIDDLEWARES, cors_config
-from e_organon.api.router import auth, doc, health, user
+from e_organon.api.router import auth, doc, health
 from e_organon.api.security import BEARER_SCHEME, SecuritySchemeName
 from e_organon.api.state import AppState
 from e_organon.infra.auth.guard import OPT, guard
@@ -32,10 +32,9 @@ from e_organon.infra.mcp.guard import internal
 from e_organon.infra.state import State
 from e_organon.mcp import mount
 from e_organon.mcp import registry as tools
-from e_organon.websockets import telemetry
 
 ### the API's routers, each route declaring its access (`opt=OPT[...]`).
-GUARDED: Final = (health.ROUTES, user.ROUTES, auth.ROUTES, doc.ROUTES)
+GUARDED: Final = (health.ROUTES, auth.ROUTES, doc.ROUTES)
 
 
 def create_app() -> Litestar:
@@ -71,9 +70,6 @@ def create_app() -> Litestar:
     ### every route passes the one guard, at the access it declares: each API route its own, the docs public (never
     ### authenticated).
     _ = [app.register(Router(path="/", route_handlers=list(routes), guards=[guard])) for routes in GUARDED]
-    app.register(
-        Router(path="/", route_handlers=list(telemetry.ws_routes()), opt=OPT[Access.ANONYMOUS], guards=[guard])
-    )
     app.register(Router(path="/", route_handlers=list(docs.routes()), opt=OPT[Access.PUBLIC], guards=[guard]))
     ### the MCP door: the tools, routes the engine alone may reach, each at the access its tool declares; the endpoint, any
     ### caller's — the token middleware has resolved who, each tool admits it at its own.

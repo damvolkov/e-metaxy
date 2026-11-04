@@ -1,10 +1,14 @@
 """tests/unit/e_organon/api/middlewares: the CORS translation resolves settings at call time, never at import; the edge
 transports live — preflight answered, correlation id propagated; the access log, per request."""
 
+from typing import TYPE_CHECKING, cast
 from uuid import uuid4
 
-from e_organon.api.middlewares import cors_config
+from e_organon.api.middlewares import AccessLogMiddleware, cors_config
 from e_organon.infra.config.api import APISettings, HTTPMethod
+
+if TYPE_CHECKING:
+    from litestar.types import Scope, WebSocketConnectEvent
 
 
 def test_cors_config_reads_the_singleton_when_no_settings_given() -> None:
@@ -25,16 +29,16 @@ def test_access_log_records_a_request_at_its_status(client, request_logs) -> Non
 
 def test_access_log_records_a_refused_key_at_its_status(client, request_logs) -> None:
     """The key is refused by a middleware below the log: litestar answers it above, and the line says 401."""
-    answered = client.get("/users", headers={"Authorization": "Bearer stolen"})
+    answered = client.post("/doc/convert", json={"path": "/x"}, headers={"Authorization": "Bearer stolen"})
     assert (answered.status_code, [(each["path"], each["status"]) for each in request_logs.requests]) == (
         401,
-        [("/users", 401)],
+        [("/doc/convert", 401)],
     )
 
 
 def test_cors_preflight_is_answered(client) -> None:
     response = client.options(
-        "/users",
+        "/doc/convert",
         headers={"origin": "http://elsewhere.test", "access-control-request-method": "POST"},
     )
     assert response.status_code in (200, 204)
@@ -56,3 +60,20 @@ def test_correlation_id_echoes_a_valid_incoming_one(client) -> None:
 def test_correlation_id_replaces_garbage(client) -> None:
     """Garbage in is rejected by the middleware validator: a fresh id comes out instead."""
     assert client.get("/health", headers={"x-request-id": "not-a-uuid"}).headers["x-request-id"] != "not-a-uuid"
+
+
+async def test_access_log_passes_a_non_http_scope_through_untouched(request_logs) -> None:
+    """A websocket (or any non-http scope) is handed down as it came, and logs nothing."""
+    seen: list[str] = []
+
+    async def app(scope, receive, send) -> None:
+        seen.append(scope["type"])
+
+    async def receive() -> WebSocketConnectEvent:
+        return {"type": "websocket.connect"}
+
+    async def send(message) -> None:
+        return None
+
+    await AccessLogMiddleware(app)(cast("Scope", {"type": "websocket", "path": "/ws"}), receive, send)
+    assert (seen, request_logs.requests) == (["websocket"], [])

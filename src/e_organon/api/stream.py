@@ -1,7 +1,7 @@
 """api.stream: one route, two readings — the workflow's events as they happen, or its answer at the end.
 
 `answer` reads the request's `Accept`: `text/event-stream` gets every event as a server-sent event, named by its kind
-(`step`, `done`, `failed`); anything else gets the batch answer — the result as JSON, or the `Failed` with 422. A tool
+(`step`, `done`, `failed`); anything else gets the batch answer — the result as JSON, or the `Failed` as 422 `kind: reason`. A tool
 route is `POST` either way, so a client batches with the same call it would stream."""
 
 from collections.abc import AsyncIterator
@@ -32,7 +32,8 @@ async def _answer_batch[I](tool: ToolFlow[I, Any], data: I) -> Any:
     try:
         return await tool.run(data)
     except FlowError as exc:
-        raise HTTPException(status_code=REFUSED, detail=exc.failed.reason, extra={"kind": exc.failed.kind}) from exc
+        ### `kind: reason` in the detail: `extra` is the shape of validation errors, which the MCP bridge reads as such.
+        raise HTTPException(status_code=REFUSED, detail=f"{exc.failed.kind}: {exc.failed.reason}") from exc
 
 
 async def answer[I](request: Request[Any, Any, Any], tool: ToolFlow[I, Any], data: I) -> Any:

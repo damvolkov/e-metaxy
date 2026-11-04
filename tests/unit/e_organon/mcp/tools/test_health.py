@@ -39,11 +39,6 @@ async def test_health_status_lists_the_tools(connect: Connect) -> None:
     assert sorted(tools) == [
         "api_health",
         "api_status",
-        "api_user_create",
-        "api_user_delete",
-        "api_user_list",
-        "api_user_read",
-        "api_user_update",
         "doc_convert",
     ]
     assert tools["api_status"].output_schema is not None
