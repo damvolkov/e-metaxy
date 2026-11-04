@@ -1,78 +1,115 @@
 ##### ROOTS #####
 source_roots = ["src"]
+exclude = ["tests", "docs"]
 
 ##### RULES #####
 forbid_circular_dependencies = true
-exact = true
+### the table below is the import table of the taxonomy, spelled edge by edge: an import that is not an edge fails. `exact`
+### stays off because the table declares what a layer MAY import (every execution module may reach `ops`, none does yet);
+### the graph itself — no edge between engines, processors, drivers and adapters, none upward — is what the gate holds.
+exact = false
 root_module = "forbid"
-
-##### LAYERS #####
-# High → low: a layer imports strictly-lower layers only. The common set (core/ops/adapters/processors)
-# is materialized from systems/core but, being namespaced inside the package, is declared here at its true
-# place in the graph — core/ops at the bottom, the copied adapters above them. main (e_metaxy) is the root;
-# the lifespan chain composes every layer, so it sits right under it — its typed `AppState` stays in the base.
-layers = ["root", "composition", "edge", "logic", "processors", "models", "common", "base", "infra"]
 
 [rules]
 unused_ignore_directives = "error"
 
-##### MODULES #####
+##### SERVICE #####
+### the service stands on the materialized sections and on its own models; nothing materialized imports it back.
 [[modules]]
-path = "e_metaxy"
-layer = "root"
+path = "e_organon"
+depends_on = ["e_organon.api", "e_organon.api.lifespan", "e_organon.mcp", "e_organon.infra", "e_organon.infra.auth", "e_organon.infra.mcp"]
+
+[[modules]]
+path = "e_organon.api"
+depends_on = [
+    "e_organon.models",
+    "e_organon.services",
+    "e_organon.engines",
+    "e_organon.providers.drivers",
+    "e_organon.providers.adapters",
+    "e_organon.ports",
+    "e_organon.infra",
+    "e_organon.infra.auth",
+    "e_organon.infra.errors",
+    "e_organon.ops",
+]
+
+### the composition root's lifespans stand on every section and on the MCP door they build the server of; the door reads
+### the graph's typed state back from `e_organon.api`, which is why the lifespans are a module of their own.
+[[modules]]
+path = "e_organon.api.lifespan"
+depends_on = [
+    "e_organon.api",
+    "e_organon.mcp",
+    "e_organon.services",
+    "e_organon.engines",
+    "e_organon.processors",
+    "e_organon.providers.drivers",
+    "e_organon.providers.adapters",
+    "e_organon.ports",
+    "e_organon.infra",
+    "e_organon.infra.auth",
+    "e_organon.infra.mcp",
+    "e_organon.infra.errors",
+    "e_organon.ops",
+]
+
+[[modules]]
+path = "e_organon.mcp"
+depends_on = ["e_organon.api", "e_organon.models", "e_organon.engines", "e_organon.ports", "e_organon.infra", "e_organon.infra.auth", "e_organon.infra.mcp", "e_organon.infra.errors"]
+
+[[modules]]
+path = "e_organon.models"
+depends_on = ["e_organon.ports", "e_organon.infra", "e_organon.infra.errors"]
+
+### the canonical tools: each a workflow over ports, the engines and processors it composes, and its section's models.
+### Services name no concretion — the lifespans hand them what meets each port.
+[[modules]]
+path = "e_organon.services"
+depends_on = ["e_organon.models", "e_organon.engines", "e_organon.processors", "e_organon.ports", "e_organon.infra", "e_organon.infra.errors", "e_organon.ops"]
+
+##### MATERIALIZED #####
+### engines, processors, drivers and adapters are the execution level: each stands on ports, infra and ops, and none
+### lists another — the horizontal ban is the absence of an edge.
+[[modules]]
+path = "e_organon.engines"
+depends_on = ["e_organon.ports", "e_organon.infra", "e_organon.infra.auth", "e_organon.infra.errors", "e_organon.ops"]
+
+[[modules]]
+path = "e_organon.processors"
+depends_on = ["e_organon.ports", "e_organon.infra", "e_organon.infra.errors", "e_organon.ops"]
+
+[[modules]]
+path = "e_organon.providers.drivers"
+depends_on = ["e_organon.ports", "e_organon.infra", "e_organon.infra.auth", "e_organon.infra.errors", "e_organon.ops"]
+
+[[modules]]
+path = "e_organon.providers.adapters"
+depends_on = ["e_organon.ports", "e_organon.infra", "e_organon.infra.errors", "e_organon.ops"]
+
+### ports are the bottleneck of the import graph: they see infra and nothing else.
+[[modules]]
+path = "e_organon.ports"
+depends_on = ["e_organon.infra", "e_organon.infra.auth", "e_organon.infra.errors"]
+
+[[modules]]
+path = "e_organon.infra"
+depends_on = ["e_organon.ops", "e_organon.infra.errors"]
+
+### the opt-in infra packages look only down: nothing in `infra` proper imports them, and the MCP engine rides the auth package.
+[[modules]]
+path = "e_organon.infra.auth"
+depends_on = ["e_organon.infra", "e_organon.infra.errors"]
+
+[[modules]]
+path = "e_organon.infra.mcp"
+depends_on = ["e_organon.infra", "e_organon.infra.auth", "e_organon.infra.errors"]
+
+### the error tree is the floor of the package: every module, `ops` included, raises from it and it imports nothing.
+[[modules]]
+path = "e_organon.infra.errors"
 depends_on = []
 
 [[modules]]
-path = "e_metaxy.core.lifespan"
-layer = "composition"
-depends_on = []
-
-[[modules]]
-path = "e_metaxy.core.lifespan.state"
-layer = "base"
-depends_on = ["e_metaxy.core"]
-
-[[modules]]
-path = "e_metaxy.mcp"
-layer = "edge"
-depends_on = []
-
-[[modules]]
-path = "e_metaxy.api"
-layer = "edge"
-depends_on = []
-
-[[modules]]
-path = "e_metaxy.adapters.coder"
-layer = "edge"
-depends_on = []
-
-[[modules]]
-path = "e_metaxy.logic"
-layer = "logic"
-depends_on = []
-
-[[modules]]
-path = "e_metaxy.models"
-layer = "models"
-depends_on = []
-
-[[modules]]
-path = "e_metaxy.adapters"
-layer = "common"
-depends_on = []
-
-[[modules]]
-path = "e_metaxy.processors"
-layer = "processors"
-depends_on = []
-
-[[modules]]
-path = "e_metaxy.core"
-layer = "base"
-depends_on = []
-
-[[modules]]
-path = "e_metaxy.ops"
-layer = "infra"
-depends_on = []
+path = "e_organon.ops"
+depends_on = ["e_organon.infra.errors"]

@@ -1,0 +1,77 @@
+"""tests/conftest: the services behind the live app, faked for every tier — env seeded before the lazy infra singletons ever
+load, redis answering from fakeredis, Postgres from the scripted pool of `tests/support/psqlpy`, the accounts and keys from
+the dicts of `tests/support/auth`, the coder a script of `tests/support/coder` — no Claude Code is ever spawned.
+
+`os.environ` stays untouched at module import (doctrine: no side-effect between imports); the seeding
+rides `pytest_configure`, which pytest runs before collection. Collection matters: pytest probes every
+test-module global for `__test__` (anyio's hook calls `getattr(obj, "__test__", False)`), so a test
+module holding `settings as st` at module level touches the LazyProxy during collection — the earliest
+point any settings access can happen, and the reason a session fixture is already too late."""
+
+import os
+import tempfile
+from pathlib import Path
+
+import fakeredis
+import fakeredis.aioredis
+import pytest
+
+from e_organon.api.lifespan import providers as providers_module
+from e_organon.infra.auth.models import Role
+from e_organon.providers.drivers.database import psqlpy as psqlpy_module
+from e_organon.providers.drivers.store import redis as redis_module
+from support.auth import FakeAuth
+from support.coder import ScriptedCoder
+from support.psqlpy import FakePsqlpyServer
+
+RESOURCES = Path(__file__).resolve().parent / "resources"
+
+
+def pytest_configure(config: pytest.Config) -> None:
+    """Seed the secrets and a private DB_PATH before any collection-time settings touch; external env wins."""
+    ### the xdist controller collects nothing, and what it exports its workers would all share: only a process that runs
+    ### tests seeds its own file.
+    if config.getoption("dist", "no") != "no" and not hasattr(config, "workerinput"):
+        return
+    os.environ.setdefault("CRYPTO__SECRET", "unit-test-secret-0123456789")
+    os.environ.setdefault("AUTH_SECRET", "unit-test-auth-secret-0123456789")
+    os.environ.setdefault("DB_PATH", str(Path(tempfile.mkdtemp(prefix="e-organon-tests-")) / "test.db"))
+    ### the tekton book the tests run on: every profile's roots are /tmp, which is also the workspace.
+    os.environ.setdefault("TEKTON_PROFILES", str(RESOURCES / "profiles" / "book.yaml"))
+    os.environ.setdefault("TEKTON_WORKSPACES", "/tmp")
+
+
+@pytest.fixture(autouse=True)
+def redis_server(monkeypatch: pytest.MonkeyPatch) -> fakeredis.FakeServer:
+    """The redis every driver of the test talks to: an in-memory server, `connected = False` takes it down."""
+    server = fakeredis.FakeServer()
+    monkeypatch.setattr(
+        redis_module.redis, "from_url", lambda _url, **_kwargs: fakeredis.aioredis.FakeRedis(server=server)
+    )
+    return server
+
+
+@pytest.fixture(autouse=True)
+def psqlpy(monkeypatch: pytest.MonkeyPatch) -> FakePsqlpyServer:
+    """The Postgres the db lifespan provisions on: scripted rows and recorded SQL, no database."""
+    server = FakePsqlpyServer()
+    monkeypatch.setattr(psqlpy_module, "ConnectionPool", server.pool)
+    return server
+
+
+@pytest.fixture(autouse=True)
+def keys(monkeypatch: pytest.MonkeyPatch) -> FakeAuth:
+    """The accounts and keys of the test: the lifespan opens this store where it would open Postgres."""
+    store = FakeAuth()
+    store.key("t-ana", "ana")
+    store.key("t-root", "root", Role.ADMIN)
+    monkeypatch.setattr(providers_module, "PostgresAuthDriver", lambda _database: store)
+    return store
+
+
+@pytest.fixture(autouse=True)
+def coder(monkeypatch: pytest.MonkeyPatch) -> ScriptedCoder:
+    """The coder the lifespan opens where it would open Claude Code: one script, `DONE_SCRIPT`, for every run."""
+    scripted = ScriptedCoder()
+    monkeypatch.setattr(providers_module, "ClaudeDriver", lambda _cli: scripted)
+    return scripted
