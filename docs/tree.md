@@ -15,7 +15,7 @@ e-organon/
 │   │   │   ├── lifespan/              ● infra · db · providers · engines · services · mcp · sealed
 │   │   │   └── router/
 │   │   │       ├── health.py · auth.py · user.py          ● (template)
-│   │   │       ├── doc.py             ● /doc/convert           ○ inspect fill stamp signature sign merge split
+│   │   │       ├── doc.py             ● convert inspect fill merge split render   ○ stamp signature sign
 │   │   │       │                                                 compress protect redact render compose ocr extract diff
 │   │   │       ├── image.py           ○ convert cutout upscale detect depth redact ocr barcode meta hash diff trace render scan optimize signature
 │   │   │       ├── audio.py           ○ convert clean normalize diarize separate fingerprint transcribe speak
@@ -31,7 +31,7 @@ e-organon/
 │   │   ├── services/                  the tools: one ToolFlow per word
 │   │   │   ├── flow.py                ● ToolFlow — events, run, failures as the last event
 │   │   │   ├── files.py               ● AllowedFiles — paths resolved and kept under the roots
-│   │   │   ├── doc/convert.py         ● ConvertDocService   ○ inspect.py fill.py stamp.py signature.py …
+│   │   │   ├── doc/                   ● convert inspect fill merge split render   ○ stamp signature sign redact compose…
 │   │   │   ├── image/                 ○ cutout.py (signature's step) convert.py upscale.py …
 │   │   │   ├── audio/ video/ text/ data/ web/   ○
 │   │   │   ├── organon/               ○ find.py job.py artifact.py
@@ -39,19 +39,19 @@ e-organon/
 │   │   ├── models/                    ● flow.py error.py doc.py   ○ image.py audio.py … artifact.py job.py tekton.py
 │   │   │
 │   │   │   ── e-arkhetypo's common, materialized whole INSIDE the package (c) ──
-│   │   ├── engines/                   ● (c) auth cache dispatch health telemetry
-│   │   │                              ○ artifact.py (content-addressed store) · gpu.py (the slot) · coder.py (Claude Agent SDK)
+│   │   ├── engines/                   ● (c) auth cache dispatch health telemetry  ● artifact.py (the outbox)
+│   │   │                              ○ gpu.py (the slot) · coder.py (Claude Agent SDK)
 │   │   ├── processors/                ● (c) doc.py (DocProcessor)
 │   │   │                              ○ pdf.py · image.py · signature.py · scan.py · media.py · table.py · text.py
 │   │   ├── ports/                     ● (c) 18: documents markdown pages ner embed rerank queue store llm …
-│   │   │                              ○ pdf raster matting detect ocr speech office grammar translate pii media table browser search coder
+│   │   │                              ● pdf render   ○ raster matting detect ocr speech office grammar translate pii media table…
 │   │   ├── providers/
 │   │   │   ├── drivers/               ● (c) documents/docling ner/gliner embed/tei rerank/tei queue/{pgqueuer,awa}
 │   │   │   │                                database/psqlpy store/{redis,sqlite} http/wreq auth/postgres llm …
 │   │   │   │                          ○ speech/evoice office/gotenberg grammar/languagetool browser/playwright
 │   │   │   │                            search/searxng meta/exiftool coder/claude pii/presidio
 │   │   │   └── adapters/              ● (c) markdown/anytomd pages/liteparse extract language/lingua cache watch telemetry
-│   │   │                              ○ pdf/{pikepdf,pdfium,pyhanko} raster/vips vision/opencv inference/onnx
+│   │   │                              ● pdf/pikepdf render/pdfium   ○ pdf/pyhanko raster/vips vision/opencv inference/onnx
 │   │   │                                table/duckdb media/ffmpeg render/{typst,pandoc,resvg} code/{zxing,vtracer}
 │   │   ├── infra/                     ● (c) auth config mcp errors logger settings state …
 │   │   │   └── config/services.py     ● ServiceSettings — organon's own cluster: ORGANON_ROOTS   ○ artifacts, gpu

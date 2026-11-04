@@ -20,6 +20,11 @@ def root(tmp_path: Path) -> Path:
     return inside
 
 
+async def test_files_read_answers_the_bytes(root: Path) -> None:
+    path, data = await AllowedFiles((root,)).read(str(root / "note.md"))
+    assert (path.name, data) == ("note.md", b"# note")
+
+
 async def test_files_resolve_inside(root: Path) -> None:
     assert await AllowedFiles((root,)).resolve(str(root / "note.md")) == (root / "note.md").resolve()
 

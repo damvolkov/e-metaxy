@@ -1,5 +1,7 @@
 """tests/unit/e_organon/api/router/doc: one route, two readings — JSON in batch, server-sent events when asked for."""
 
+import pytest
+
 PATH = {"path": "/etc/hostname"}
 SSE = {"accept": "text/event-stream"}
 
@@ -28,3 +30,18 @@ def test_a_key_nobody_holds_is_refused_where_keys_are_read(client) -> None:
         client.get("/health", headers=forged).status_code,
     ]
     assert answered == [401, 401, 200]
+
+
+@pytest.mark.parametrize(
+    ("tool", "body"),
+    [
+        ("inspect", {"path": "/etc/hostname"}),
+        ("merge", {"paths": ["/etc/hostname", "/etc/hosts"]}),
+        ("split", {"path": "/etc/hostname", "ranges": [[0, 0]]}),
+        ("fill", {"path": "/etc/hostname", "values": {"a": "b"}}),
+        ("render", {"path": "/etc/hostname"}),
+    ],
+)
+def test_doc_tools_refuse_a_path_outside_the_roots(client, root_key, tool: str, body: dict) -> None:
+    response = client.post(f"/doc/{tool}", json=body, headers=root_key)
+    assert (response.status_code, response.json()["detail"].startswith("OutsideRootsError")) == (422, True)

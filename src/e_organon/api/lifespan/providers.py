@@ -22,10 +22,14 @@ from e_organon.ports.documents import DocumentPort
 from e_organon.ports.http import HTTPPort
 from e_organon.ports.markdown import MarkdownPort
 from e_organon.ports.pages import PagesPort
+from e_organon.ports.pdf import PdfPort
 from e_organon.ports.provider import Provider
+from e_organon.ports.render import RenderPort
 from e_organon.ports.store import StorePort
 from e_organon.providers.adapters.markdown.anytomd import AnytomdAdapter
 from e_organon.providers.adapters.pages.liteparse import LiteparseAdapter
+from e_organon.providers.adapters.pdf.pikepdf import PikepdfAdapter
+from e_organon.providers.adapters.render.pdfium import PdfiumAdapter
 from e_organon.providers.drivers.auth.postgres import PostgresAuthDriver
 from e_organon.providers.drivers.database.psqlpy import PsqlpyDriver
 from e_organon.providers.drivers.documents.docling import DoclingDriver
@@ -53,6 +57,8 @@ class ProvidersState:
     auth: AuthPort
     markdown: MarkdownPort
     pages: PagesPort
+    pdf: PdfPort
+    render: RenderPort
     ### docling-serve is optional: present only when DOCLING_URL is set — the doc tools read without it.
     docling: DocumentPort | None
 
@@ -75,6 +81,8 @@ async def lifespan(app: Litestar) -> AsyncGenerator[None]:
         auth = await enter(PostgresAuthDriver(database))
         markdown = await enter(AnytomdAdapter())
         pages = await enter(LiteparseAdapter())
+        pdf = await enter(PikepdfAdapter())
+        render = await enter(PdfiumAdapter())
         docling = await enter(DoclingDriver(http)) if st.providers.drivers.documents.docling.url else None
         providers = ProvidersState(
             store=store,
@@ -84,6 +92,8 @@ async def lifespan(app: Litestar) -> AsyncGenerator[None]:
             auth=auth,
             markdown=markdown,
             pages=pages,
+            pdf=pdf,
+            render=render,
             docling=docling,
         )
         system.providers = providers

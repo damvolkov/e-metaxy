@@ -14,6 +14,13 @@ answer; its MCP twin (`<section>_<word>`, same handler) answers in batch. Files 
 | Tool | Does | Engines |
 |---|---|---|
 | `doc/convert` | any document → Markdown | liteparse, docling-serve (when `DOCLING_URL`), anytomd |
+| `doc/inspect` | a PDF's pages, metadata and form fields (name, kind, page, rect, value) | pikepdf |
+| `doc/fill` | a PDF form's fields written by name, appearances drawn | pikepdf (qpdf) |
+| `doc/merge` | PDFs joined in order, forms kept | pikepdf |
+| `doc/split` | a PDF cut into page ranges | pikepdf |
+| `doc/render` | PDF pages as PNG at a DPI | pypdfium2 (PDFium) |
+
+Written files land in `ORGANON_OUTBOX` (inside the vault), named by content: one tool's output is the next one's input.
 
 Plan and study: `docs/organon-study.md`; the tree it grows into: `docs/tree.md`.
 

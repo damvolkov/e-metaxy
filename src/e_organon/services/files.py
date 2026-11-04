@@ -32,3 +32,8 @@ class AllowedFiles:
         real = Path(await (await anyio.Path(path).expanduser()).resolve())
         allowed = any(real.is_relative_to(root) for root in self._roots) and await anyio.Path(real).is_file()
         return real if allowed else self._resolve_refuse(path)
+
+    async def read(self, path: str) -> tuple[Path, bytes]:
+        """The real file `path` names, under an allowed root, and its bytes."""
+        real = await self.resolve(path)
+        return real, await anyio.Path(real).read_bytes()

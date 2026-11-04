@@ -18,3 +18,5 @@ class ServiceSettings(BaseSettings):
     ### ROOTS — where a tool's path argument may point: the vault (mounted at its own path in every harness, Hermes'
     ### upload cache included) and the workspaces.
     ORGANON_ROOTS: tuple[Path, ...] = (Path("~/.config/memory"), Path("~/workspaces"))
+    ### OUTBOX — where a tool's output files land, content-addressed: inside a root, so an output is the next input.
+    ORGANON_OUTBOX: Path = Path("~/.config/memory/workflow/organon")

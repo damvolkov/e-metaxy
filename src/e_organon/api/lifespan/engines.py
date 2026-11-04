@@ -17,6 +17,7 @@ from litestar import Litestar
 
 from e_organon.api.lifespan.providers import ProvidersState
 from e_organon.api.state import AppState
+from e_organon.engines.artifact import ArtifactEngine
 from e_organon.engines.auth import AuthEngine
 from e_organon.engines.health import HealthEngine
 from e_organon.infra.logger import logger
@@ -34,6 +35,7 @@ class EnginesState:
 
     auth: AuthEngine
     health: HealthEngine
+    artifact: ArtifactEngine
 
 
 @asynccontextmanager
@@ -42,7 +44,11 @@ async def lifespan(app: Litestar) -> AsyncGenerator[None]:
     system = AppState.of(app).system
     providers: ProvidersState = system.providers
     conf = st.engines.auth
-    engines = EnginesState(auth=AuthEngine(providers.auth, conf), health=HealthEngine(providers.named, REQUIRED))
+    engines = EnginesState(
+        auth=AuthEngine(providers.auth, conf),
+        health=HealthEngine(providers.named, REQUIRED),
+        artifact=ArtifactEngine(st.services.ORGANON_OUTBOX),
+    )
     system.engines = engines
     admin = (await engines.auth.ensure()).owner if conf.secret else "closed"
     logger.info("auth ready", admin=admin, ttl=str(conf.ttl or "never"), step="START")

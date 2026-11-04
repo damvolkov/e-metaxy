@@ -16,6 +16,11 @@ from e_organon.infra.settings import settings as st
 from e_organon.ops.crypto import Crypto
 from e_organon.processors.doc import DocProcessor
 from e_organon.services.doc.convert import ConvertDocService
+from e_organon.services.doc.fill import FillDocService
+from e_organon.services.doc.inspect import InspectDocService
+from e_organon.services.doc.merge import MergeDocService
+from e_organon.services.doc.render import RenderDocService
+from e_organon.services.doc.split import SplitDocService
 from e_organon.services.files import AllowedFiles
 
 
@@ -25,6 +30,13 @@ async def lifespan(app: Litestar) -> AsyncGenerator[None]:
     system = AppState.of(app).system
     system.crypto = Crypto(st.crypto)
     found, files = system.providers, AllowedFiles(st.services.ORGANON_ROOTS)
-    system.services.doc.convert = ConvertDocService(DocProcessor(found.markdown, found.pages, found.docling), files)
+    artifacts = system.engines.artifact
+    doc = system.services.doc
+    doc.convert = ConvertDocService(DocProcessor(found.markdown, found.pages, found.docling), files)
+    doc.inspect = InspectDocService(found.pdf, files)
+    doc.merge = MergeDocService(found.pdf, files, artifacts)
+    doc.split = SplitDocService(found.pdf, files, artifacts)
+    doc.fill = FillDocService(found.pdf, files, artifacts)
+    doc.render = RenderDocService(found.render, files, artifacts)
     logger.info("services ready", step="START")
     yield

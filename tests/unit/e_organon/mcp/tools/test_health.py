@@ -40,5 +40,10 @@ async def test_health_status_lists_the_tools(connect: Connect) -> None:
         "api_health",
         "api_status",
         "doc_convert",
+        "doc_fill",
+        "doc_inspect",
+        "doc_merge",
+        "doc_render",
+        "doc_split",
     ]
     assert tools["api_status"].output_schema is not None

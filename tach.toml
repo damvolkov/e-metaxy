@@ -60,7 +60,7 @@ depends_on = ["e_organon.api", "e_organon.models", "e_organon.engines", "e_organ
 
 [[modules]]
 path = "e_organon.models"
-depends_on = ["e_organon.infra", "e_organon.infra.errors"]
+depends_on = ["e_organon.ports", "e_organon.infra", "e_organon.infra.errors"]
 
 ### the canonical tools: each a workflow over ports, the engines and processors it composes, and its section's models.
 ### Services name no concretion — the lifespans hand them what meets each port.
