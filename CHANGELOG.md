@@ -10,6 +10,9 @@
 - The #tekton bridge (`TODO_organon` step 5), ported from e_metaxy: coder port, Claude driver (Agent SDK +
   `claude mcp serve`), bridge engine, eleven `tekton/<word>` tools. Off unless `TEKTON_PROFILES` is set, so the public
   image starts without the Claude CLI. Organon keys by bearer header replace e_metaxy's OAuth authority.
+- Data volume (`TODO_organon` step 6): `ORGANON_DATA` (`/data` in the image) holds a subtree per section and the
+  store (`store/app.db`). doc/'s OCR models land in `doc/models/tessdata`, fetched at open when `DOC_OCR` is on and
+  reused after: first start 2.5 s (eng+spa, 29 MB), second 0.25 s.
 
 ### Removed
 - The OpenHuman legacy (PR #33).

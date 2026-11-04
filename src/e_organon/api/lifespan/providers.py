@@ -85,7 +85,10 @@ async def lifespan(app: Litestar) -> AsyncGenerator[None]:
         database = await enter(PsqlpyDriver())
         auth = await enter(PostgresAuthDriver(database))
         markdown = await enter(AnytomdAdapter())
-        pages = await enter(LiteparseAdapter())
+        ### doc/'s OCR models live in its subtree of ORGANON_DATA unless DOC_TESSDATA names another place.
+        pages_conf = st.providers.adapters.pages.liteparse
+        tessdata = pages_conf.tessdata or st.services.ORGANON_DATA / "doc" / "models" / "tessdata"
+        pages = await enter(LiteparseAdapter(pages_conf.model_copy(update={"tessdata": tessdata.expanduser()})))
         pdf = await enter(PikepdfAdapter())
         render = await enter(PdfiumAdapter())
         coder = await enter(ClaudeDriver(st.services.TEKTON_CLAUDE)) if st.services.TEKTON_PROFILES else None

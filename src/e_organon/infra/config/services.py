@@ -15,6 +15,12 @@ from e_organon.infra.config.base import BaseSettings
 class ServiceSettings(BaseSettings):
     """The canonical tools' configuration."""
 
+    ##### DATA #####
+
+    ### DATA — organon's own state, one subtree per section (`doc/models/tessdata`…): what a section downloads lands
+    ### here once and is reused by every later start. The image sets `/data`, a volume.
+    ORGANON_DATA: Path = Path("data")
+
     ##### FILES #####
 
     ### ROOTS — where a tool's path argument may point: the vault (mounted at its own path in every harness, Hermes'

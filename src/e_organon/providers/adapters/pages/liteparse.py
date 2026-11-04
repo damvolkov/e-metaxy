@@ -5,11 +5,14 @@ heading's level, a table's header and rows — and its signals: what liteparse's
 reads better (a table block or a table-like layout, figures or dense graphics, no usable text layer over an image,
 embedded images, more than one column). OCR, its tessdata and language, and the workers come from DOC_*."""
 
+import io
 from contextlib import contextmanager
 from typing import TYPE_CHECKING, ClassVar, Final, Self
 
+import anyio
 from liteparse import LiteParse
 from liteparse import ParseError as LiteparseError
+from PIL import Image
 
 from e_organon.infra.config.processors.doc import DocSignal
 from e_organon.infra.errors import ParseError, ProviderError
@@ -77,6 +80,14 @@ class LiteparseAdapter:
             quiet=True,
         )
 
+    async def _enter_warm(self, parser: LiteParse) -> None:
+        """With OCR on, one blank page read: tesseract fetches every missing language into tessdata, once, now."""
+        buffer = io.BytesIO()
+        Image.new("L", (64, 64), 255).save(buffer, "PNG")
+        with self._common_guard():
+            await anyio.to_thread.run_sync(parser.parse, buffer.getvalue())
+        logger.info("liteparse warm", tessdata=str(self._conf.tessdata), language=self._conf.ocr_language)
+
     @staticmethod
     def _parse_signals(page: ParsedPage) -> tuple[DocSignal, ...]:
         """What liteparse's fast pass saw on the page that a deep reader reads better, in DocSignal order."""
@@ -117,6 +128,7 @@ class LiteparseAdapter:
 
     async def __aenter__(self) -> Self:
         self._parser = self._enter_parser()
+        _ = await self._enter_warm(self._parser) if self._conf.ocr else None
         logger.info("liteparse opened", ocr=self._conf.ocr, workers=self._conf.workers)
         return self
 

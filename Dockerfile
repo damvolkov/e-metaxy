@@ -10,9 +10,11 @@ RUN uv sync --frozen --no-dev --no-editable
 ##### DEPLOY #####
 FROM python:3.14-slim-trixie AS deploy
 WORKDIR /app
-ENV PATH="/app/.venv/bin:$PATH" PYTHONUNBUFFERED=1
+### ORGANON_DATA: one volume, a subtree per section; the store beside them.
+ENV PATH="/app/.venv/bin:$PATH" PYTHONUNBUFFERED=1 ORGANON_DATA=/data DB_PATH=/data/store/app.db
 COPY --from=builder /app/.venv .venv
-RUN mkdir -p /app/data && chown -R nobody /app/data
+RUN mkdir -p /data && chown -R nobody /data
+VOLUME /data
 USER nobody
 EXPOSE 45190
 ### APP_PORT / APP_HOST pick the bind: the house runs it on the host network, at 45190.
