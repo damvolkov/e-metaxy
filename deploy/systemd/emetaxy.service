@@ -4,14 +4,14 @@ After=network-online.target docker.service
 Wants=network-online.target
 
 [Service]
-Type=simple
+Type=oneshot
+RemainAfterExit=yes
 WorkingDirectory=/home/damien/.config/compose/emetaxy
-ExecStartPre=/bin/sh -c '/usr/bin/docker compose pull --quiet 2>/dev/null || true'
-ExecStart=/usr/bin/docker compose up --remove-orphans
-ExecStop=/usr/bin/docker compose down
-ExecReload=/usr/bin/docker compose up -d --remove-orphans
+ExecStart=/usr/bin/docker compose up -d --wait --remove-orphans
+ExecStop=/usr/bin/docker compose stop
+ExecReload=/usr/bin/docker compose up -d --wait --remove-orphans
 Restart=on-failure
-RestartSec=10s
+RestartSec=30s
 TimeoutStartSec=180
 TimeoutStopSec=40
 

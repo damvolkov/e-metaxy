@@ -73,7 +73,9 @@ make probe TOOL=session_find INPUT='{"text":"voice"}'   # …or call one
 The container runs Claude Code as you would at a terminal, with your setup mounted at the same paths: `~/.claude`
 and `~/.claude.json`, `~/workspaces`, the toolchains (`~/.local/bin`, uv, the native claude, rust) and the ledger.
 No ssh keys: git reaches GitHub over https with `GH_TOKEN`. `deploy/systemd/emetaxy.service` keeps it up through
-boot and logout; images publish to `ghcr.io/damvolkov/e-metaxy` from the `release` workflow (manual dispatch).
+boot and logout (oneshot `compose up -d --wait`; Docker keeps the container, the unit never pulls: a new image is
+`docker compose pull` then `systemctl --user reload emetaxy`); images publish to `ghcr.io/damvolkov/e-metaxy` from
+the `release` workflow (manual dispatch).
 
 Configuration is `METAXY_*`, `CRYPTO__SECRET` and `GH_TOKEN`, read from `~/.config/e-metaxy/env`. `make probe`
 signs in with the passphrase in `~/.config/e-metaxy/passphrase` (`METAXY_PROBE_PASSPHRASE`). The service runs as
