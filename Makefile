@@ -2,7 +2,7 @@
 PROJECT  ?= e-organon
 PACKAGE  ?= src/e_organon
 MODULE   ?= e_organon
-PORT     ?= 8000
+PORT     ?= 45190
 COMPOSE  ?= compose.yml
 TESTARGS  ?= -m "not slow and not integration"   ## real-service tests leave the gate: make test TESTARGS="-m slow", make integration
 ARGS      = $(filter-out $@,$(MAKECMDGOALS))

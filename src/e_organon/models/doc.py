@@ -5,7 +5,7 @@ import msgspec
 
 ##### CONVERT #####
 class ConvertIn(msgspec.Struct, frozen=True, kw_only=True):
-    """`path`: the document, under one of ORGANON_FILES__ROOTS (`~` expands)."""
+    """`path`: the document, under one of ORGANON_ROOTS (`~` expands)."""
 
     path: str
 

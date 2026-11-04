@@ -4,6 +4,7 @@ from typing import TYPE_CHECKING
 
 import pytest
 
+from e_organon.infra.settings import settings as st
 from e_organon.models.error import OutsideRootsError
 from e_organon.services.files import AllowedFiles
 
@@ -37,5 +38,5 @@ async def test_files_refuse_a_link_out(root: Path) -> None:
         await AllowedFiles((root,)).resolve(str(root / "link.md"))
 
 
-async def test_files_default_roots_are_the_settings() -> None:
-    assert AllowedFiles()._roots
+async def test_files_roots_come_from_the_settings() -> None:
+    assert st.services.ORGANON_ROOTS

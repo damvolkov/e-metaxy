@@ -10,10 +10,6 @@ e-organon/
 │   └── e_organon/                     the ONE package: everything the project runs hangs here
 │   │   ├── main.py                    ● composition root: routers, MCP door, lifespan chain
 │   │   ├── __main__.py                ● serve · admin
-│   │   ├── settings/
-│   │   │   ├── files.py               ● ORGANON_FILES__ROOTS — where a path may point
-│   │   │   ├── artifacts.py           ○ store root, TTL, quota
-│   │   │   └── gpu.py                 ○ the one GPU slot: allowed, memory ceiling
 │   │   ├── api/
 │   │   │   ├── stream.py              ● one route, two readings: SSE events or the batch answer
 │   │   │   ├── lifespan/              ● infra · db · providers · engines · services · mcp · sealed
@@ -58,6 +54,7 @@ e-organon/
 │   │   │                              ○ pdf/{pikepdf,pdfium,pyhanko} raster/vips vision/opencv inference/onnx
 │   │   │                                table/duckdb media/ffmpeg render/{typst,pandoc,resvg} code/{zxing,vtracer}
 │   │   ├── infra/                     ● (c) auth config mcp errors logger settings state …
+│   │   │   └── config/services.py     ● ServiceSettings — organon's own cluster: ORGANON_ROOTS   ○ artifacts, gpu
 │   │   └── ops/                       ● (c) compose crypto file hash image registry wrappers
 ├── tests/
 │   ├── unit/                          ● mirror of src (185 tests, 100 % coverage)

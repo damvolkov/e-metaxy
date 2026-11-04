@@ -9,7 +9,7 @@ class OrganonError(Exception):
 
 
 class OutsideRootsError(OrganonError):
-    """The path sits under none of ORGANON_FILES__ROOTS, or does not exist."""
+    """The path sits under none of ORGANON_ROOTS, or does not exist."""
 
 
 class FlowError(Exception):

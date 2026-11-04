@@ -9,7 +9,7 @@ A tool is `section/word` — `doc/convert`, `doc/signature`, `image/cutout` — 
 `services/<section>/<word>.py`, a `ToolFlow` whose events (`step` … `done` | `failed`) are the tool's whole life.
 Every tool is one `POST /<section>/<word>`: `Accept: text/event-stream` streams the events, anything else gets the
 answer; its MCP twin (`<section>_<word>`, same handler) answers in batch. Files travel by path under the allowed roots
-(`ORGANON_FILES__ROOTS`: the vault, the workspaces), never as bytes in the arguments.
+(`ORGANON_ROOTS`: the vault, the workspaces), never as bytes in the arguments.
 
 | Tool | Does | Engines |
 |---|---|---|
@@ -26,7 +26,7 @@ tests/unit/      # mirrors src, import-mode=importlib; no service in the default
 tests/benchmark/  # the load no single module owns: the whole app under concurrent traffic (`make stress`)
 tests/support/   # the fakes the mirror shares (a scripted psqlpy pool, the accounts' store, the MCP client) — redis rides fakeredis
 Dockerfile       # two-stage: builder (uv) + deploy (python-slim, non-root)
-compose.yml      # single e-organon service, :8000
+compose.yml      # single e-organon service, host network, :45190
 ```
 
 ##### TAXONOMY #####

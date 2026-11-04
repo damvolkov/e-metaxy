@@ -7,13 +7,13 @@ services:
     container_name: eorganon
     hostname: eorganon
     restart: unless-stopped
-    ports:
-      - "${PORT:-8000}:8000"
+    ### the house's services answer on the host's loopback (paradedb, redis, docling, TEI, gliner): host network.
+    network_mode: host
     env_file:
       - path: .env
         required: false
     healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:45190/health')"]
       interval: 30s
       timeout: 5s
       retries: 3

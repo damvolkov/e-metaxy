@@ -24,7 +24,7 @@ async def lifespan(app: Litestar) -> AsyncGenerator[None]:
     """Assemble what travels with the app: crypto, then each section's tools over the open providers."""
     system = AppState.of(app).system
     system.crypto = Crypto(st.crypto)
-    found, files = system.providers, AllowedFiles()
+    found, files = system.providers, AllowedFiles(st.services.ORGANON_ROOTS)
     system.services.doc.convert = ConvertDocService(DocProcessor(found.markdown, found.pages, found.docling), files)
     logger.info("services ready", step="START")
     yield

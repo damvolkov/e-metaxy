@@ -1,11 +1,10 @@
-"""e_organon.services.files: a path argument made safe — resolved, and refused outside ORGANON_FILES__ROOTS."""
+"""e_organon.services.files: a path argument made safe — resolved, and refused outside the allowed roots."""
 
 from pathlib import Path
 from typing import Never
 
 import anyio
 
-from e_organon.infra.settings import settings as st
 from e_organon.models.error import OutsideRootsError
 
 
@@ -15,10 +14,8 @@ class AllowedFiles:
 
     __slots__ = ("_roots",)
 
-    def __init__(self, roots: tuple[Path, ...] | None = None) -> None:
-        ### the default is read on call, not at import: the settings singleton stays lazy.
-        chosen = st.e_organon.files.roots if roots is None else roots
-        self._roots = tuple(root.expanduser().resolve() for root in chosen)
+    def __init__(self, roots: tuple[Path, ...]) -> None:
+        self._roots = tuple(root.expanduser().resolve() for root in roots)
 
     ##### PRIVATE #####
 

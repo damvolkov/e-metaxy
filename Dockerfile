@@ -14,5 +14,6 @@ ENV PATH="/app/.venv/bin:$PATH" PYTHONUNBUFFERED=1
 COPY --from=builder /app/.venv .venv
 RUN mkdir -p /app/data && chown -R nobody /app/data
 USER nobody
-EXPOSE 8000
-CMD ["granian", "--interface", "asgi", "--factory", "--host", "0.0.0.0", "--port", "8000", "e_organon.main:create_app"]
+EXPOSE 45190
+### APP_PORT / APP_HOST pick the bind: the house runs it on the host network, at 45190.
+CMD ["sh", "-c", "exec granian --interface asgi --factory --host ${APP_HOST:-0.0.0.0} --port ${APP_PORT:-45190} e_organon.main:create_app"]
