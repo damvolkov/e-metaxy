@@ -2,9 +2,9 @@
 
 `AdaptersState` names each edge by the port its consumers ask of it — the graph carries contracts, not
 classes. Every adapter is a singleton built here; iterating the section yields the edges in the order they
-open, and the stack closes them in reverse. OpenHuman is called back only when its core token is set."""
+open, and the stack closes them in reverse."""
 
-from collections.abc import AsyncGenerator, Iterator, Mapping
+from collections.abc import AsyncGenerator, Iterator
 from contextlib import AbstractAsyncContextManager, AsyncExitStack, asynccontextmanager
 from dataclasses import dataclass
 from typing import cast
@@ -13,46 +13,31 @@ from litestar import Litestar
 
 from e_metaxy.adapters.anytomd import AnytomdAdapter
 from e_metaxy.adapters.coder.claude import ClaudeCoder
-from e_metaxy.adapters.discord import DiscordAdapter
 from e_metaxy.adapters.docling import DoclingAdapter
-from e_metaxy.adapters.openhuman import OpenHumanAdapter
 from e_metaxy.adapters.ports import DocumentPort, MdConvertPort, StorePort
 from e_metaxy.adapters.sqlite import SQLiteAdapter
 from e_metaxy.core.lifespan.state import AppState
 from e_metaxy.core.logger import logger
 from e_metaxy.core.settings import settings as st
 from e_metaxy.core.settings.db import DbSettings
-from e_metaxy.core.settings.metaxy import MetaxySettings
-from e_metaxy.logic.ports import CoderPort, NotifierPort
+from e_metaxy.logic.ports import CoderPort
 
 
 ##### SECTION #####
 @dataclass(frozen=True, slots=True)
 class AdaptersState:
     """The typed adapters section: `store` is the ledger, `coder` the engineer harness, `md`/`doc` the
-    converters' engines, `callers` the polymath harnesses a finished task calls back."""
+    converters' engines."""
 
     store: StorePort
     coder: CoderPort
     md: MdConvertPort
     doc: DocumentPort
-    callers: Mapping[str, NotifierPort]
 
     def __iter__(self) -> Iterator[AbstractAsyncContextManager[object]]:
         ### every port here is served by an adapter that is its own async context manager.
-        edges = (self.store, self.coder, self.md, self.doc, *self.callers.values())
+        edges = (self.store, self.coder, self.md, self.doc)
         return iter(cast("tuple[AbstractAsyncContextManager[object], ...]", edges))
-
-
-def callers(conf: MetaxySettings) -> Mapping[str, NotifierPort]:
-    """The callers the bridge can call back — each one only when its credential is configured."""
-    built: tuple[NotifierPort | None, ...] = (
-        OpenHumanAdapter(conf.openhuman_url, conf.openhuman_token.get_secret_value(), timeout=conf.openhuman_timeout)
-        if conf.openhuman_token
-        else None,
-        DiscordAdapter(conf.discord_webhook.get_secret_value()) if conf.discord_webhook else None,
-    )
-    return {notifier.name: notifier for notifier in built if notifier is not None}
 
 
 @asynccontextmanager
@@ -64,11 +49,10 @@ async def lifespan(app: Litestar) -> AsyncGenerator[None]:
         coder=ClaudeCoder(conf.claude),
         md=AnytomdAdapter(),
         doc=DoclingAdapter(),
-        callers=callers(conf),
     )
     async with AsyncExitStack() as stack:
         _ = [await stack.enter_async_context(edge) for edge in edges]
         system.adapters = edges
-        logger.info("adapters ready", callers=sorted(edges.callers), step="START")
+        logger.info("adapters ready", step="START")
         yield
     logger.info("adapters closed", step="STOP")

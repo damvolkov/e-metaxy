@@ -1,4 +1,4 @@
-"""Package-wide fixtures: the bridge wired to a scripted coder and a recording notifier over a real ledger, and
+"""Package-wide fixtures: the bridge wired to a scripted coder over a real ledger, and
 the live app on the real graph — env seeded before the lazy core singletons ever load.
 
 `os.environ` stays untouched at module import; the seeding rides `pytest_configure`, which pytest runs before
@@ -14,7 +14,7 @@ from typing import TYPE_CHECKING, Any, cast
 
 import httpx2
 import pytest
-from fakes import BASE, DONE_SCRIPT, PASSPHRASE, SECRET, RecordingNotifier, ScriptedCoder, Settle, Wire, lifespan
+from fakes import BASE, DONE_SCRIPT, PASSPHRASE, SECRET, ScriptedCoder, Settle, Wire, lifespan
 
 from e_metaxy.core.crypto import Crypto
 from e_metaxy.core.settings.base import Secret
@@ -60,21 +60,15 @@ def coder() -> ScriptedCoder:
 
 
 @pytest.fixture
-def notifier() -> RecordingNotifier:
-    return RecordingNotifier()
-
-
-@pytest.fixture
 def order() -> TaskOrder:
-    return TaskOrder(prompt="ping", profile="research", cwd="/tmp", caller="openhuman")
+    return TaskOrder(prompt="ping", profile="research", cwd="/tmp")
 
 
 @pytest.fixture
-def wire(ledger: SQLiteAdapter, book: Mapping[str, Profile], notifier: RecordingNotifier) -> Wire:
+def wire(ledger: SQLiteAdapter, book: Mapping[str, Profile]) -> Wire:
     def build(coder: ScriptedCoder, limit: int = 2) -> Bridge:
         return Bridge(
             coders={coder.kind: coder},
-            notifiers={notifier.name: notifier},
             ledger=ledger,
             profiles=book,
             projects=ProjectIndex(Path("/tmp")),

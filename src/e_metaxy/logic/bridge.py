@@ -1,8 +1,7 @@
 """e_metaxy.logic.bridge: the in-between — orders in, runs supervised, results recorded and called back.
 
 Every run lives in one TaskGroup, bounded by a semaphore; every transition is written to the ledger before
-anyone can read it; a run that ends tells its caller. The bridge knows ports only: which coder, which
-notifier and which store sit behind them is the composition root's business."""
+anyone can read it. The bridge knows ports only: which coder and which store sit behind them is the composition root's business."""
 
 import asyncio
 from collections.abc import AsyncIterator, Mapping
@@ -17,7 +16,7 @@ import structlog
 from beartype import beartype
 
 from e_metaxy.adapters.ports import StorePort
-from e_metaxy.logic.ports import CoderPort, NotifierPort
+from e_metaxy.logic.ports import CoderPort
 from e_metaxy.logic.projects import ProjectIndex
 from e_metaxy.models.coder import (
     CoderCatalog,
@@ -55,13 +54,12 @@ PREFIX: Final = 6
 class Bridge:
     """Starts, supervises, cancels and lists tasks across coders; recovers what a restart cut short."""
 
-    __slots__ = ("_coders", "_gate", "_group", "_ledger", "_notifiers", "_profiles", "_projects", "_runs", "_stack")
+    __slots__ = ("_coders", "_gate", "_group", "_ledger", "_profiles", "_projects", "_runs", "_stack")
 
     def __init__(
         self,
         *,
         coders: Mapping[CoderKind, CoderPort],
-        notifiers: Mapping[str, NotifierPort],
         ledger: StorePort,
         profiles: Mapping[str, Profile],
         projects: ProjectIndex,
@@ -69,7 +67,6 @@ class Bridge:
     ) -> None:
         self._coders = coders
         self._projects = projects
-        self._notifiers = notifiers
         self._ledger = ledger
         self._profiles = profiles
         self._gate = asyncio.Semaphore(limit)
@@ -177,13 +174,11 @@ class Bridge:
                 task = await self._start_drive(task, coder, spec)
         except asyncio.CancelledError:
             ### the ledger holds what the drive learnt (its session): the local value is the one it started with.
-            task = await self._common_save((await self._common_load(task.id)).move(TaskState.CANCELLED))
-            await self._start_notify(task)
+            await self._common_save((await self._common_load(task.id)).move(TaskState.CANCELLED))
             raise
         except Exception as exc:  # noqa: BLE001 — the run boundary: a coder failure is the task's, not the bridge's
             log.warning("TASK_FAILED", task=task.id, error=repr(exc))
-            task = await self._common_save((await self._common_load(task.id)).move(TaskState.FAILED, error=repr(exc)))
-        await self._start_notify(task)
+            await self._common_save((await self._common_load(task.id)).move(TaskState.FAILED, error=repr(exc)))
 
     async def _start_drive(self, task: Task, coder: CoderPort, spec: CoderSpec) -> Task:
         async for event in coder.run(spec):
@@ -193,13 +188,6 @@ class Bridge:
                 case finished:
                     return await self._start_finish(task, finished)
         return await self._common_save(task.move(TaskState.FAILED, error=SILENT))
-
-    async def _start_notify(self, task: Task) -> None:
-        match self._notifiers.get(task.caller):
-            case None:
-                return
-            case notifier:
-                await notifier.notify(task)
 
     async def _common_recover(self) -> int:
         """Tasks a restart cut short become failed with their session kept; returns how many."""

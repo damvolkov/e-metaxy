@@ -49,12 +49,11 @@ def desk(bridge: Bridge) -> EngDesk:
 
 
 async def test_eng_resume_runs_in_the_session_directory(desk: EngDesk, coder, settle) -> None:
-    verb, task = await desk.run("eng @7b4fb561: sigue", profile="code", caller="openhuman")
+    verb, task = await desk.run("eng @7b4fb561: sigue", profile="code")
     await settle(desk._bridge, task)
-    assert (verb, [(s.session, s.prompt) for s in coder.specs], task.caller) == (
+    assert (verb, [(s.session, s.prompt) for s in coder.specs]) == (
         "resume",
         [(UUID, "sigue")],
-        "openhuman",
     )
 
 

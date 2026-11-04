@@ -7,7 +7,7 @@ build-backend = "hatchling.build"
 [project]
 name = "e-metaxy"
 dynamic = ["version"]
-description = "The in-between: an MCP gateway that carries tasks from polymath harnesses (OpenHuman) to engineer harnesses (Claude Code, OpenCode) and their results back"
+description = "e-organon: a hub of canonical deterministic tools (REST, streaming, MCP) for agents; today, the #tekton bridge to Claude Code"
 readme = "README.md"
 requires-python = ">=3.14"
 license = "MIT"

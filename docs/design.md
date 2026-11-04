@@ -1,8 +1,9 @@
 # e-metaxy — design
 
 μεταξύ, *the in-between*: the daimonic carries the word between those who rule and those who make (Symposium 202e).
-e-metaxy carries a task from a **polymath** harness (OpenHuman, Hermes — broad, nomos) to an **engineer** harness
-(Claude Code today, OpenCode next — narrow, techne) and carries the result back.
+e-metaxy carries a task from a front (the #tekton Discord channel; Hermes, if it is granted the bridge) to an
+**engineer** harness (Claude Code today, OpenCode next — narrow, techne) and carries the result back. This bridge
+becomes the `tekton/` section of e-organon (`organon-study.md`).
 
 ## Contract
 
@@ -43,7 +44,6 @@ workspace root (`root/name`, `root/*/name`; ambiguous or unknown names are refus
 | port | does | adapter v1 | next |
 |---|---|---|---|
 | `Coder` | `run(spec) → Outcome`, `sessions`, `session`, `turns`, `update`, `catalog`, `peers()`, `send(peer, text)` | `ClaudeCoder` — Claude Agent SDK (`run`), a `claude mcp serve` child (`peers`, `send` via ListAgents/SendMessage) | `OpenCodeCoder` — `opencode serve` |
-| `Notifier` | `notify(task)` on a terminal state | `OpenHumanAdapter` — `POST /rpc openhuman.webhooks_trigger_agent` | webhook, Hermes |
 | `Ledger` | tasks by id, newest first; the authority's records | core `StorePort` (sqlite KV, msgspec bytes) | — |
 | `Owner` | `admits(secret)` | `PassphraseAdapter` — argon2 hash checked by core `Crypto` | passkey |
 
@@ -68,4 +68,4 @@ only.
 - Workflows (Claude's `Workflow` tool) — they live inside the session that launched them; needs a held
   `ClaudeSDKClient`. Gap, not faked.
 - Interrupting an interactive session from outside — no mechanism exists.
-- MCP `tasks` (2026-07-28 spec) — OpenHuman's client does not speak them; job id + poll + callback instead.
+- MCP `tasks` (2026-07-28 spec) — client support unverified; job id + poll instead.

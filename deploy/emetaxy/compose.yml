@@ -6,8 +6,7 @@ services:
     hostname: emetaxy
     restart: unless-stopped
     user: "1000:1000"
-    # the host's loopback is the whole topology: it serves 127.0.0.1:45190 and calls back OpenHuman,
-    # which itself runs on host network. a bridge net would black-hole the callback.
+    # the host's loopback is the whole topology: it serves 127.0.0.1:45190 and reaches docling and the claude CLI there.
     network_mode: host
     labels:
       e-core.category: "bridge"

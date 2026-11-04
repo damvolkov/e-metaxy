@@ -44,7 +44,6 @@ class TaskOrder(CheckedStruct, frozen=True, kw_only=True):
     cwd: str
     session: str = ""
     fork: bool = False
-    caller: str = ""
 
 
 class Task(CheckedStruct, frozen=True, kw_only=True):
@@ -59,7 +58,6 @@ class Task(CheckedStruct, frozen=True, kw_only=True):
     session: str = ""
     parent: str = ""
     fork: bool = False
-    caller: str = ""
     result: str = ""
     error: str = ""
     cost: float = 0.0
@@ -93,5 +91,4 @@ class Task(CheckedStruct, frozen=True, kw_only=True):
             cwd=order.cwd,
             parent=order.session,
             fork=order.fork,
-            caller=order.caller,
         )

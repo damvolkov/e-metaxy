@@ -66,14 +66,14 @@ class EngDesk:
         """The words after a leading `eng`, or all of them when the front already dropped it."""
         return text[found.end() :].strip() if (found := PREFIX.match(text)) else text.strip()
 
-    async def _run_new(self, order: EngNew, text: str, inferred: str, profile: str, caller: str) -> Any:
+    async def _run_new(self, order: EngNew, text: str, inferred: str, profile: str) -> Any:
         """A named project that does not exist was never a project: the whole text is the order."""
         project, prompt = order.project, order.prompt
         try:
             _ = order.named and await anyio.to_thread.run_sync(self._projects.resolve, project)
         except UnknownProjectError:
             project, prompt = inferred, text
-        return await self._bridge.start(TaskOrder(prompt=prompt, profile=profile, cwd=project, caller=caller))
+        return await self._bridge.start(TaskOrder(prompt=prompt, profile=profile, cwd=project))
 
     ############################################################
 
@@ -89,13 +89,13 @@ class EngDesk:
             case order:
                 return order
 
-    async def run(self, text: str, project: str = "", profile: str = "code", caller: str = "") -> tuple[str, Any]:
+    async def run(self, text: str, project: str = "", profile: str = "code") -> tuple[str, Any]:
         """The verb that ran and what it answered."""
         order = self.parse(text, project)
         bridge = self._bridge
         match order:
             case EngNew():
-                answer = await self._run_new(order, self._common_body(text), project, profile, caller)
+                answer = await self._run_new(order, self._common_body(text), project, profile)
             case EngResume(ref=ref, prompt=prompt, fork=fork):
                 session = await bridge.read(ref, last=0)
                 answer = await bridge.start(
@@ -105,7 +105,6 @@ class EngDesk:
                         cwd=session.session.cwd or project,
                         session=session.session.session,
                         fork=fork,
-                        caller=caller,
                     )
                 )
             case EngRead(ref=ref):
