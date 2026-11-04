@@ -9,7 +9,7 @@ COPY profiles.yaml ./
 RUN uv sync --frozen --no-dev --no-editable
 
 ##### DEPLOY #####
-FROM python:3.14-slim-trixie AS deploy
+FROM python:3.15-slim-trixie AS deploy
 ### the coder works like the owner at a terminal: git and gh to ship, make and jq for the house scripts, node for
 ### the hooks and the npx MCP servers. uv, rust and the native claude come from the host, mounted read-only.
 RUN apt-get update \
