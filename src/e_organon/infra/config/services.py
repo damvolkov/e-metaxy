@@ -26,7 +26,8 @@ class ServiceSettings(BaseSettings):
     ##### TEKTON #####
 
     ### PROFILES — the nomos of the bridge, a YAML book read once at startup: what a caller may make a coder do, by name.
-    TEKTON_PROFILES: Path = Path("profiles.yaml")
+    ### Unset, the bridge is off: no coder, no `tekton/` tools — the public image runs the tools alone.
+    TEKTON_PROFILES: Path | None = None
     ### WORKSPACES — the root a project's short name is looked up under (`e-voice` → `<root>/<owner>/e-voice`).
     TEKTON_WORKSPACES: Path = Path("~/workspaces")
     ### LIMIT — how many coder runs may be in flight at once; the rest wait their turn.

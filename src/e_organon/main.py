@@ -29,12 +29,13 @@ from e_organon.api.state import AppState
 from e_organon.infra.auth.guard import OPT, guard
 from e_organon.infra.auth.models import Access
 from e_organon.infra.mcp.guard import internal
+from e_organon.infra.settings import settings as st
 from e_organon.infra.state import State
 from e_organon.mcp import mount
 from e_organon.mcp import registry as tools
 
-### the API's routers, each route declaring its access (`opt=OPT[...]`).
-GUARDED: Final = (health.ROUTES, auth.ROUTES, doc.ROUTES, tekton.ROUTES)
+### the API's routers, each route declaring its access (`opt=OPT[...]`); the bridge's join them only where it is on.
+GUARDED: Final = (health.ROUTES, auth.ROUTES, doc.ROUTES)
 
 
 def create_app() -> Litestar:
@@ -69,10 +70,14 @@ def create_app() -> Litestar:
     ##### ROUTERS #####
     ### every route passes the one guard, at the access it declares: each API route its own, the docs public (never
     ### authenticated).
-    _ = [app.register(Router(path="/", route_handlers=list(routes), guards=[guard])) for routes in GUARDED]
+    bridge = st.services.TEKTON_PROFILES is not None
+    guarded = (*GUARDED, tekton.ROUTES) if bridge else GUARDED
+    _ = [app.register(Router(path="/", route_handlers=list(routes), guards=[guard])) for routes in guarded]
     app.register(Router(path="/", route_handlers=list(docs.routes()), opt=OPT[Access.PUBLIC], guards=[guard]))
     ### the MCP door: the tools, routes the engine alone may reach, each at the access its tool declares; the endpoint, any
     ### caller's — the token middleware has resolved who, each tool admits it at its own.
-    app.register(Router(path="/", route_handlers=list(tools.ROUTES), guards=[internal, guard]))
+    app.register(
+        Router(path="/", route_handlers=list(tools.ROUTES if bridge else tools.CORE), guards=[internal, guard])
+    )
     app.register(Router(path="/", route_handlers=list(mount.routes()), opt=OPT[Access.ANONYMOUS], guards=[guard]))
     return app

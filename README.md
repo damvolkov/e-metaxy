@@ -28,7 +28,7 @@ Written files land in `ORGANON_OUTBOX` (inside the vault), named by content: one
 
 The tekton tools take a project by short name (looked up under `TEKTON_WORKSPACES`) or by path, and a profile by name:
 `profiles.yaml` (`TEKTON_PROFILES`) is what a caller may make a coder do — mode, tools, roots, limits — read once at
-startup. `TEKTON_LIMIT` bounds the runs in flight, `TEKTON_CLAUDE` names the Claude Code CLI.
+startup; unset, the bridge is off — no coder, no `tekton/` tools, as the public image runs. `TEKTON_LIMIT` bounds the runs in flight, `TEKTON_CLAUDE` names the Claude Code CLI.
 
 Plan and study: `docs/organon-study.md`; the tree it grows into: `docs/tree.md`.
 

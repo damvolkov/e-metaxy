@@ -50,18 +50,23 @@ async def lifespan(app: Litestar) -> AsyncGenerator[None]:
     doc.split = SplitDocService(found.pdf, files, artifacts)
     doc.fill = FillDocService(found.pdf, files, artifacts)
     doc.render = RenderDocService(found.render, files, artifacts)
-    bridge, tekton = system.engines.bridge, system.services.tekton
-    tekton.eng = EngTektonService(bridge, NamedProjects(st.services.TEKTON_WORKSPACES))
-    tekton.start = StartTektonService(bridge)
-    tekton.status = StatusTektonService(bridge)
-    tekton.tasks = TasksTektonService(bridge)
-    tekton.cancel = CancelTektonService(bridge)
-    tekton.catalog = CatalogTektonService(bridge)
-    tekton.find = FindTektonService(bridge)
-    tekton.read = ReadTektonService(bridge)
-    ### `update` is a method of `State` (a mapping): its node is written, and read, by key.
-    tekton["update"] = UpdateTektonService(bridge)
-    tekton.peers = PeersTektonService(bridge)
-    tekton.send = SendTektonService(bridge)
+    ### the tekton tools exist only with the bridge on.
+    match system.engines.bridge:
+        case None:
+            pass
+        case bridge:
+            tekton = system.services.tekton
+            tekton.eng = EngTektonService(bridge, NamedProjects(st.services.TEKTON_WORKSPACES))
+            tekton.start = StartTektonService(bridge)
+            tekton.status = StatusTektonService(bridge)
+            tekton.tasks = TasksTektonService(bridge)
+            tekton.cancel = CancelTektonService(bridge)
+            tekton.catalog = CatalogTektonService(bridge)
+            tekton.find = FindTektonService(bridge)
+            tekton.read = ReadTektonService(bridge)
+            ### `update` is a method of `State` (a mapping): its node is written, and read, by key.
+            tekton["update"] = UpdateTektonService(bridge)
+            tekton.peers = PeersTektonService(bridge)
+            tekton.send = SendTektonService(bridge)
     logger.info("services ready", step="START")
     yield

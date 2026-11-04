@@ -19,7 +19,7 @@ from e_organon.infra.mcp.registry import MCPRegistry
 from e_organon.infra.mcp.server import MCPServer
 from e_organon.infra.settings import settings as st
 from e_organon.mcp.instructions import INSTRUCTIONS
-from e_organon.mcp.registry import ROUTES
+from e_organon.mcp.registry import CORE, ROUTES
 from e_organon.mcp.state import MCPState
 
 
@@ -29,7 +29,7 @@ async def lifespan(app: Litestar) -> AsyncGenerator[None]:
     hosts = tuple(st.mcp.hosts) or (f"127.0.0.1:{st.app.port}", f"localhost:{st.app.port}")
     origins = tuple(st.mcp.origins) or tuple(f"http://{host}" for host in hosts)
     server = MCPServer(
-        MCPRegistry(ROUTES),
+        MCPRegistry(ROUTES if st.services.TEKTON_PROFILES else CORE),
         name="e-organon",
         version=version("e-organon"),
         instructions=INSTRUCTIONS,

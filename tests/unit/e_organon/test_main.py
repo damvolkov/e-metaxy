@@ -4,11 +4,16 @@ import inspect
 from importlib.metadata import version
 from typing import TYPE_CHECKING
 
+import pytest
+from litestar.testing import TestClient
+
 import e_organon.main as entrypoint
+from e_organon.api.lifespan import engines, mcp, providers, services
+from e_organon.infra.settings import settings as st
 from e_organon.main import create_app
 
 if TYPE_CHECKING:
-    from litestar.testing import TestClient
+    from collections.abc import Iterator
 
 ### the tekton tools, each a `POST /tekton/<tool>`.
 TEKTON = ("eng", "start", "status", "tasks", "cancel", "catalog", "find", "read", "update", "peers", "send")
@@ -53,3 +58,22 @@ def test_create_app_openapi_contract_comes_from_its_owners(client: TestClient) -
     config = client.app.openapi_config
     assert config.version == version("e-organon")
     assert "bearerAuth" in config.components.security_schemes
+
+
+@pytest.fixture
+def bare(monkeypatch: pytest.MonkeyPatch) -> Iterator[TestClient]:
+    """The app as the public image runs it: TEKTON_PROFILES unset, so no coder, no bridge, no `tekton/` tools."""
+    off = st.model_copy(update={"services": st.services.model_copy(update={"TEKTON_PROFILES": None})})
+    _ = [monkeypatch.setattr(module, "st", off) for module in (entrypoint, providers, engines, services, mcp)]
+    with TestClient(create_app()) as test_client:
+        yield test_client
+
+
+def test_create_app_without_profiles_serves_no_bridge(bare: TestClient) -> None:
+    system = bare.app.state.system
+    paths = {route.path for route in bare.app.routes}
+    tools = {entry.path for entry in system.mcp.server.registry}
+    assert (system.providers.coder, system.engines.bridge, "tekton" in system.services) == (None, None, False)
+    assert not {path for path in paths if path.startswith("/tekton")}
+    assert "/doc/convert" in paths
+    assert not {path for path in tools if path.startswith("/tekton")}

@@ -62,7 +62,8 @@ class ProvidersState:
     pages: PagesPort
     pdf: PdfPort
     render: RenderPort
-    coder: CoderPort
+    ### the coder opens only with the bridge on (TEKTON_PROFILES): the public image carries no Claude CLI.
+    coder: CoderPort | None
     ### docling-serve is optional: present only when DOCLING_URL is set — the doc tools read without it.
     docling: DocumentPort | None
 
@@ -87,7 +88,7 @@ async def lifespan(app: Litestar) -> AsyncGenerator[None]:
         pages = await enter(LiteparseAdapter())
         pdf = await enter(PikepdfAdapter())
         render = await enter(PdfiumAdapter())
-        coder = await enter(ClaudeDriver(st.services.TEKTON_CLAUDE))
+        coder = await enter(ClaudeDriver(st.services.TEKTON_CLAUDE)) if st.services.TEKTON_PROFILES else None
         docling = await enter(DoclingDriver(http)) if st.providers.drivers.documents.docling.url else None
         providers = ProvidersState(
             store=store,

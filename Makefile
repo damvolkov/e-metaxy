@@ -40,8 +40,8 @@ lock: ## refresh uv lockfile (against the current materialized)
 
 # — gates —
 lint: ## ruff check + format
-	@uv run ruff check --fix $(PACKAGE) scripts tests
-	@uv run ruff format $(PACKAGE) scripts tests
+	@uv run ruff check --fix $(PACKAGE) tests
+	@uv run ruff format $(PACKAGE) tests
 
 type: ## ty type check
 	@uv run ty check

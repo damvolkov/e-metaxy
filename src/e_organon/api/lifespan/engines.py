@@ -11,6 +11,7 @@ blocking."""
 from collections.abc import AsyncGenerator
 from contextlib import AsyncExitStack, asynccontextmanager
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Final
 
 import anyio
@@ -25,7 +26,7 @@ from e_organon.engines.health import HealthEngine
 from e_organon.infra.logger import logger
 from e_organon.infra.settings import settings as st
 from e_organon.ops.projects import NamedProjects
-from e_organon.ports.coder import Profile
+from e_organon.ports.coder import CoderPort, Profile
 
 ### the providers a ready service cannot do without; a role not here is optional.
 REQUIRED: Final[frozenset[str]] = frozenset({"store", "auth"})
@@ -40,7 +41,8 @@ class EnginesState:
     auth: AuthEngine
     health: HealthEngine
     artifact: ArtifactEngine
-    bridge: BridgeEngine
+    ### present only with the bridge on: the coder it drives opened (TEKTON_PROFILES set).
+    bridge: BridgeEngine | None
 
 
 @asynccontextmanager
@@ -51,19 +53,25 @@ async def lifespan(app: Litestar) -> AsyncGenerator[None]:
     conf, services = st.engines.auth, st.services
     async with AsyncExitStack() as stack:
         ### the profile book is read once, here: a profile changes with a restart, never under a running task.
-        book = Profile.book(await (await anyio.Path(services.TEKTON_PROFILES).expanduser()).read_bytes())
-        bridge = BridgeEngine(
-            coders={providers.coder.kind: providers.coder},
-            ledger=providers.store,
-            profiles=book,
-            projects=NamedProjects(services.TEKTON_WORKSPACES),
-            limit=services.TEKTON_LIMIT,
-        )
+        match providers.coder, services.TEKTON_PROFILES:
+            case (CoderPort() as coder, Path() as profiles):
+                book = Profile.book(await (await anyio.Path(profiles).expanduser()).read_bytes())
+                bridge = await stack.enter_async_context(
+                    BridgeEngine(
+                        coders={coder.kind: coder},
+                        ledger=providers.store,
+                        profiles=book,
+                        projects=NamedProjects(services.TEKTON_WORKSPACES),
+                        limit=services.TEKTON_LIMIT,
+                    )
+                )
+            case _:
+                bridge = None
         engines = EnginesState(
             auth=AuthEngine(providers.auth, conf),
             health=HealthEngine(providers.named, REQUIRED),
             artifact=ArtifactEngine(services.ORGANON_OUTBOX),
-            bridge=await stack.enter_async_context(bridge),
+            bridge=bridge,
         )
         system.engines = engines
         admin = (await engines.auth.ensure()).owner if conf.secret else "closed"

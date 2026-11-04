@@ -11,3 +11,5 @@ data
 # coverage data
 .coverage
 .coverage.*
+__pycache__/
+*.py[cod]
