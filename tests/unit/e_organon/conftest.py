@@ -1,6 +1,6 @@
 """tests/unit/e_organon: the live app on the real graph, a request away — `client` over the faked services of `tests/conftest`
 (`keys`: `ana` an account, `root` the admin; `ana_key` and `root_key` the `Authorization` headers that carry theirs), and what
-the access log wrote, recorded."""
+the access log wrote, recorded; and `book`, the profile book every tekton test runs under."""
 
 from typing import TYPE_CHECKING
 
@@ -9,9 +9,12 @@ from litestar.testing import TestClient
 
 from e_organon.api import middlewares as middlewares_module
 from e_organon.main import create_app
+from e_organon.ports.coder import Profile
 
 if TYPE_CHECKING:
-    from collections.abc import Iterator
+    from collections.abc import Iterator, Mapping
+
+    from pytest_resources import Resources
 
 
 class RequestLogs:
@@ -46,3 +49,9 @@ def root_key() -> dict[str, str]:
 def client() -> Iterator[TestClient]:
     with TestClient(create_app()) as test_client:
         yield test_client
+
+
+@pytest.fixture
+def book(resources: Resources) -> Mapping[str, Profile]:
+    """The tests' profile book: `research`, `code`, `direct`, each admitting `/tmp` alone."""
+    return Profile.book((resources.path / "profiles" / "book.yaml").read_bytes())

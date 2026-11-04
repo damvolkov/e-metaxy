@@ -6,6 +6,8 @@ reads its own scopes; it follows when e-arkhetypo's common migrates."""
 
 from pathlib import Path
 
+from pydantic import PositiveInt
+
 from e_organon.infra.config.base import BaseSettings
 
 
@@ -20,3 +22,14 @@ class ServiceSettings(BaseSettings):
     ORGANON_ROOTS: tuple[Path, ...] = (Path("~/.config/memory"), Path("~/workspaces"))
     ### OUTBOX — where a tool's output files land, content-addressed: inside a root, so an output is the next input.
     ORGANON_OUTBOX: Path = Path("~/.config/memory/workflow/organon")
+
+    ##### TEKTON #####
+
+    ### PROFILES — the nomos of the bridge, a YAML book read once at startup: what a caller may make a coder do, by name.
+    TEKTON_PROFILES: Path = Path("profiles.yaml")
+    ### WORKSPACES — the root a project's short name is looked up under (`e-voice` → `<root>/<owner>/e-voice`).
+    TEKTON_WORKSPACES: Path = Path("~/workspaces")
+    ### LIMIT — how many coder runs may be in flight at once; the rest wait their turn.
+    TEKTON_LIMIT: PositiveInt = 4
+    ### CLAUDE — the Claude Code CLI the coder runs and reaches live sessions through (a name on PATH, or a path).
+    TEKTON_CLAUDE: str = "claude"
