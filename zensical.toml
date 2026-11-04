@@ -7,6 +7,9 @@ repo_url = "https://github.com/damvolkov/e-organon"
 edit_uri = "edit/main/docs/"
 nav = [
   { "Home" = "index.md" },
+  { "Study" = "organon-study.md" },
+  { "Tree" = "tree.md" },
+  { "Bridge (e_metaxy)" = "bridge.md" },
   { "Releasing" = "release.md" },
 ]
 
