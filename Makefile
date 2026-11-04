@@ -1,34 +1,33 @@
 ##### CONFIG #####
-PROJECT    ?= e-metaxy
-PACKAGE    ?= src/e_metaxy
-MODULE     ?= e_metaxy
-IMAGE      ?= ghcr.io/damvolkov/e-metaxy:latest
-TEMPLATES  ?= ../e-arkhetypo/projects/python/core
-COMMON_SRC ?= $(TEMPLATES)/common
-TESTARGS    =
-ARGS        = $(filter-out $@,$(MAKECMDGOALS))
+PROJECT  ?= e-organon
+PACKAGE  ?= src/e_organon
+MODULE   ?= e_organon
+PORT     ?= 8000
+COMPOSE  ?= compose.yml
+TESTARGS  ?= -m "not slow and not integration"   ## real-service tests leave the gate: make test TESTARGS="-m slow", make integration
+ARGS      = $(filter-out $@,$(MAKECMDGOALS))
 
 RESET   := \033[0m
 BOLD    := \033[1m
 GREEN   := \033[0;32m
 CYAN    := \033[0;36m
 GRAY    := \033[0;90m
+RED     := \033[0;31m
 
 SHELL := bash
 .DEFAULT_GOAL := help
 MAKEFLAGS += --no-print-directory
 export PYTHONPATH := $(CURDIR)/src
-export E_CORE_SRC := $(abspath $(TEMPLATES))/src/e_core
 
 ##### TARGETS #####
-.PHONY: help install sync lock core core-check common common-check lint type arch validate harden hooks test cov live check ci run unit build deploy probe clean
+.PHONY: help install sync lock lint type arch validate harden hooks test integration cov stress docs docs-build check ci run up down build logs release ci-vars clean
 
 help:
-	@printf "$(BOLD)$(CYAN)$(PROJECT)$(RESET) $(GRAY)· uv · mcp · granian · claude-agent-sdk — core/ops/adapters/processors materialized into e_metaxy/ from $(TEMPLATES)$(RESET)\n\n"
+	@printf "$(BOLD)$(CYAN)$(PROJECT)$(RESET) $(GRAY)· uv · ruff · ty · tach · pytest · zensical · docker$(RESET)\n\n"
 	@awk 'BEGIN{FS=":.*##"} /^[a-z][a-zA-Z0-9_-]*:.*##/{printf "  $(GREEN)%-12s$(RESET) $(GRAY)%s$(RESET)\n",$$1,$$2}' $(MAKEFILE_LIST)
 
 # — env —
-install: core common ## full setup: materialize shared assets + sync deps + git hooks
+install: ## full setup: materialize shared assets + sync deps + git hooks
 	@uv sync
 	@uv run prek install
 	@printf "$(GREEN)✓ ready$(RESET)\n"
@@ -36,36 +35,13 @@ install: core common ## full setup: materialize shared assets + sync deps + git 
 sync: ## sync all deps (main + dev)
 	@uv sync
 
-lock: ## refresh uv lockfile
+lock: ## refresh uv lockfile (against the current materialized)
 	@uv lock
-
-# — shared —
-core: ## materialize core + ops + adapters + processors into e_metaxy/ from projects/python/core (structural rewrite)
-	@uv run python scripts/materialize.py
-
-core-check: ## fail if the materialized core drifted from e-arkhetypo
-	@uv run python scripts/materialize.py --check
-
-common: ## materialize shared project files from projects/python/core/common
-	@mkdir -p .github
-	@cp $(COMMON_SRC)/prek.toml prek.toml
-	@cp $(COMMON_SRC)/gitattributes .gitattributes
-	@cp $(COMMON_SRC)/python-version .python-version
-	@cp $(COMMON_SRC)/dependabot.yml .github/dependabot.yml
-	@cp $(COMMON_SRC)/CODEOWNERS .github/CODEOWNERS
-
-common-check: ## fail if the shared files drifted from projects/python/core/common
-	@diff $(COMMON_SRC)/prek.toml prek.toml \
-	 && diff $(COMMON_SRC)/gitattributes .gitattributes \
-	 && diff $(COMMON_SRC)/python-version .python-version \
-	 && diff $(COMMON_SRC)/dependabot.yml .github/dependabot.yml \
-	 && diff $(COMMON_SRC)/CODEOWNERS .github/CODEOWNERS \
-	 && printf "$(GREEN)✓ common in sync$(RESET)\n"
 
 # — gates —
 lint: ## ruff check + format
-	@uv run ruff check --fix $(PACKAGE) scripts tests
-	@uv run ruff format $(PACKAGE) scripts tests
+	@uv run ruff check --fix $(PACKAGE) src/infra src/ops src/ports src/providers src/engines src/processors scripts tests
+	@uv run ruff format $(PACKAGE) src/infra src/ops src/ports src/providers src/engines src/processors scripts tests
 
 type: ## ty type check
 	@uv run ty check
@@ -76,54 +52,67 @@ arch: ## enforce import architecture (tach)
 validate: ## validate pyproject.toml against schema
 	@uv run validate-pyproject pyproject.toml
 
-harden: ## zizmor audit of GitHub Actions workflows
-	@uv run zizmor --persona=regular .github/workflows
+harden: ## zizmor audit of GitHub Actions workflows (templates assemble them at generation)
+	@test -d .github/workflows && uv run zizmor --persona=regular .github/workflows || echo "no workflows assembled: e-taxis writes them"
 
-hooks: ## run all prek hooks on every file
+hooks: ## run all prek hooks on every file (ruff, ty, tach, zizmor, gitleaks)
 	@uv run prek run --all-files
 
 # — tests —
 test: ## run tests [TESTARGS='-k expr']
 	@uv run pytest tests $(TESTARGS) -n auto -q
 
-cov: ## run tests with the coverage gate (100%)
-	@uv run pytest tests --cov --cov-report=term-missing
+integration: ## the tests that need a real service (Postgres at POSTGRES_DSN, redis at REDIS_URL); skipped when none answers
+	@uv run pytest tests -m integration -q
 
-live: ## drive the real Claude Code login on this host (spends subscription quota)
-	@uv run pytest tests -m live -q -p no:randomly
+cov: ## run tests with coverage gate (fail under 100%), real-service tests out like the default run
+	@uv run pytest tests $(TESTARGS) --cov --cov-report=term-missing
+
+stress: ## soak stress-marked tests for ARGS seconds (pytest-stress)
+	@uv run pytest tests -m stress -q -p no:randomly --seconds $(or $(ARGS),30)
+
+# — docs —
+docs: ## serve docs site live at :8000
+	@uv run zensical serve
+
+docs-build: ## strict docs build to site/
+	@uv run zensical build --strict
 
 # — aggregate —
-check: lint type arch validate core-check common-check test ## fast local gate
-ci: lint type arch validate harden core-check common-check cov ## every gate CI runs
+check: lint type arch validate test ## fast local gate: lint + type + arch + validate + drift + test
+ci: lint type arch validate harden docs-build cov ## full pipeline: every gate CI runs, in one command
+
+# — release —
+release: ## cut a GitHub release via the release workflow [args: patch|minor|major]
+	@gh workflow run release.yml -f bump=$(or $(ARGS),patch)
+	@sleep 5
+	@gh run watch --exit-status $$(gh run list --workflow release.yml --limit 1 --json databaseId --jq '.[0].databaseId')
+
+ci-vars: ## list optional CI/CD gates (all inert by default) and their defaults
+	@printf "$(BOLD)optional CI/CD gates$(RESET) $(GRAY)— enable: gh variable set NAME --body true · manifest: .github/ci.vars.example$(RESET)\n\n"
+	@grep -E '^[A-Z][A-Z0-9_]*=' .github/ci.vars.example
 
 # — run —
-run: ## serve the bridge on loopback (granian)
+run: ## run app locally [args: forwarded]
 	@uv run python -m $(MODULE) $(ARGS)
 
-unit: ## install and start the systemd user unit (host-native uv; `deploy` is the container service)
-	@install -Dm644 ops/emetaxy.service $(HOME)/.config/systemd/user/emetaxy.service
-	@systemctl --user daemon-reload
-	@systemctl --user enable --now emetaxy.service
-	@systemctl --user --no-pager status emetaxy.service | head -5
+up: ## docker compose up (materializes into the build context first) [args: services]
+	@docker compose -f $(COMPOSE) up -d $(ARGS)
+	@printf "$(GREEN)✓ up$(RESET) $(GRAY)http://localhost:$(PORT)$(RESET)\n"
 
-build: ## build the gateway image
-	@docker build -t $(IMAGE) .
+down: ## docker compose down
+	@docker compose -f $(COMPOSE) down
 
-deploy: build ## install compose + systemd unit, enable and (re)start the container as a permanent service
-	@mkdir -p $(HOME)/.config/compose/emetaxy
-	@cp deploy/emetaxy/compose.yml $(HOME)/.config/compose/emetaxy/compose.yml
-	@cp deploy/systemd/emetaxy.service $(HOME)/.config/systemd/user/emetaxy.service
-	@systemctl --user daemon-reload
-	@systemctl --user enable emetaxy.service
-	@systemctl --user restart emetaxy.service
-	@until [ "$$(docker inspect -f '{{.State.Health.Status}}' emetaxy 2>/dev/null)" = healthy ]; do sleep 3; done
-	@printf "$(GREEN)✓ emetaxy: container healthy on 127.0.0.1:45190 · $$(git log --oneline -1)$(RESET)\n"
+build: ## docker image build [args: services]
+	@docker compose -f $(COMPOSE) build $(ARGS)
 
-probe: ## drive the live service as an MCP client: owner sign-in, then list the tools or call one [TOOL=work_list INPUT='{"limit":3}']
-	@uv run python scripts/probe.py $(TOOL) $(if $(INPUT),'$(INPUT)')
+logs: ## tail docker logs [args: service]
+	@docker compose -f $(COMPOSE) logs -f $(ARGS)
 
-clean: ## remove caches and build artifacts
-	@rm -rf .pytest_cache .ruff_cache .coverage dist build
+clean: ## remove caches + build artifacts + materialized
+	@find . -type d \( -name __pycache__ -o -name .pytest_cache -o -name .ruff_cache \) -exec rm -rf {} + 2>/dev/null || true
+	@rm -rf dist build *.egg-info .coverage .coverage.* .ty_cache site
+	@printf "$(GREEN)✓ clean$(RESET)\n"
 
 %:
 	@:

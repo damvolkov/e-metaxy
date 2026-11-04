@@ -1,91 +1,145 @@
-##### RELEASE #####
-# Git-first release: one version per tag (vX.Y.Z), one image — ghcr.io/damvolkov/e-metaxy.
-# Manual gate like every house service: nothing is published by a merge.
 name: release
+
+# Git-first: the tag IS the version (uv-dynamic-versioning). Nothing is published by a merge —
+# the gates in .github/ci.vars.example decide what a repo is. Generated from infra/, do not edit.
 
 on:
   workflow_dispatch:
     inputs:
       bump:
-        description: Version increment
+        description: Version increment (ignored when tag is set)
         type: choice
         default: patch
         options: [patch, minor, major]
+      tag:
+        description: Republish an existing v* tag verbatim (empty = cut a new version)
+        type: string
+        default: ""
 
-permissions: {}
 
 concurrency:
   group: release
   cancel-in-progress: false
 
 jobs:
+  # feature: pypi
   bump:
-    name: version + tag
-    runs-on: ubuntu-26.04
+    name: Version + tag
+    runs-on: ubuntu-latest
     permissions:
       contents: write
     outputs:
-      ref: ${{ steps.next.outputs.ref }}
-      version: ${{ steps.next.outputs.version }}
+      tag: ${{ steps.next.outputs.tag }}
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
         with:
           ref: main
-          fetch-depth: 0
           persist-credentials: false
       - id: next
-        name: next version, tag pushed, release opened
+        env:
+          BUMP: ${{ inputs.bump }}
+          GIVEN: ${{ inputs.tag }}
+        run: |
+          if [ -n "$GIVEN" ]; then echo "tag=$GIVEN" >> "$GITHUB_OUTPUT"; exit 0; fi
+          if git describe --tags --abbrev=0 >/dev/null 2>&1; then
+            IFS=. read -r M m p <<< "$(git describe --tags --abbrev=0 | sed 's/^v//')"
+            case "$BUMP" in
+              major) M=$((M+1)); m=0; p=0 ;;
+              minor) m=$((m+1)); p=0 ;;
+              *) p=$((p+1)) ;;
+            esac
+          else
+            M=0; m=1; p=0
+          fi
+          echo "tag=v$M.$m.$p" >> "$GITHUB_OUTPUT"
+      - name: Push tag and open the release
         env:
           GH_TOKEN: ${{ github.token }}
-          BUMP: ${{ inputs.bump }}
+          TAG: ${{ steps.next.outputs.tag }}
         run: |
-          set -euo pipefail
-          last="$(git tag -l 'v*' --sort=-v:refname | head -1)"
-          base="${last#v}"
-          [ -n "$base" ] || base=0.0.0
-          IFS=. read -r M m p <<< "$base"
-          case "$BUMP" in
-            major) M=$((M+1)); m=0; p=0 ;;
-            minor) m=$((m+1)); p=0 ;;
-            *) p=$((p+1)) ;;
-          esac
-          version="$M.$m.$p"
-          git tag "v${version}"
-          auth="AUTHORIZATION: basic $(printf '%s:%s' 'x-access-token' "$GH_TOKEN" | base64 -w0)"
-          git -c "http.https://github.com/.extraheader=${auth}" push origin "v${version}"
-          notes=("--generate-notes")
-          [ -n "$last" ] && notes+=("--notes-start-tag" "$last")
-          gh release create "v${version}" --title "e-metaxy ${version}" --latest --verify-tag "${notes[@]}"
-          echo "ref=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
-          echo "version=${version}" >> "$GITHUB_OUTPUT"
+          git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic $(printf '%s:%s' 'x-access-token' "$GH_TOKEN" | base64 -w0)" push origin "$TAG"
+          gh release create "$TAG" --latest --verify-tag --generate-notes || gh release edit "$TAG" --latest=true
 
-  image:
-    name: image
+  # feature: pypi
+  build:
+    name: sdist + wheel
     needs: bump
-    runs-on: ubuntu-26.04
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          ref: ${{ needs.bump.outputs.tag }}
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2  # v10.3.3
+      - name: Build (version resolved from the checked-out tag)
+        run: uv build
+      - name: Smoke — install the wheel in a clean env and import
+        shell: bash
+        run: |
+          uv venv .smoke
+          uv pip install --python .smoke/bin/python dist/*.whl
+          .smoke/bin/python -c "import e_organon"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9  # v7.0.2
+        with:
+          name: dist
+          path: dist
+
+  # feature: pypi
+  publish:
+    name: publish
+    if: vars.PUBLISH_PYPI == 'true'
+    needs: [bump, build]
+    runs-on: ubuntu-latest
+    environment:
+      name: pypi
+      url: https://pypi.org/project/e-organon/${{ needs.bump.outputs.tag }}
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333  # v8.0.2
+        with:
+          name: dist
+          path: dist
+      - uses: pypa/gh-action-pypi-publish@7245906fb61fa33a13554f9d5fb856fe61758086  # v1.14.3
+        with:
+          packages-dir: dist
+          skip-existing: true
+
+  # feature: image
+  image:
+    name: Container image → ghcr
+    needs: bump
+    if: vars.PUBLISH_IMAGE == 'true'
+    runs-on: ubuntu-latest
     permissions:
       contents: read
       packages: write
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
         with:
-          ref: ${{ needs.bump.outputs.ref }}
+          ref: ${{ needs.bump.outputs.tag }}
           persist-credentials: false
-      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
-      - uses: docker/login-action@81c6f93d4bc991e510b342a00b419b3bb4efc5c6 # v4.7.0
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069  # v4.4.1
+      - uses: docker/login-action@81c6f93d4bc991e510b342a00b419b3bb4efc5c6  # v4.7.0
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      - uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+      - uses: docker/metadata-action@dc802804100637a589fabce1cb79ff13a1411302  # v6.2.0
+        id: meta
         with:
-          context: .
-          push: true
+          images: ghcr.io/${{ github.repository_owner }}/e-organon
           tags: |
-            ghcr.io/${{ github.repository_owner }}/e-metaxy:${{ needs.bump.outputs.version }}
-            ghcr.io/${{ github.repository_owner }}/e-metaxy:latest
-          labels: |
-            org.opencontainers.image.title=e-metaxy
-            org.opencontainers.image.description=e-organon — canonical deterministic tools for agents; the #tekton bridge to Claude Code
+            type=semver,pattern={{version}}
+            type=raw,value=latest
+      - uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc  # v7.4.0
+        with:
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+

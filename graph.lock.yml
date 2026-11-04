@@ -1,0 +1,561 @@
+schema: 1
+system: api
+package: e_organon
+source: projects/python/api
+areas:
+- engines
+- infra
+- ops
+- ports
+- processors
+inputs_hash: c60aa71d576fa8392bf7a54fd04cdc9b660bc0ccf9bc7ff06b5728fe95c6978e
+units:
+- key: engines/auth
+  area: engines
+  name: auth
+  files:
+  - src/engines/auth.py
+  package: false
+  tests:
+  - tests/unit/engines/test_auth.py
+  deps:
+  - infra/errors
+  - infra/logger
+  - infra/settings
+  - ops/crypto
+  - ops/hash
+  - ports/auth
+  dependents: []
+  closure:
+  - infra/errors
+  - infra/logger
+  - infra/proxy
+  - infra/settings
+  - ops/crypto
+  - ops/file
+  - ops/hash
+  - ports/auth
+  - ports/provider
+  level: 4
+  locked: true
+  detachable: false
+- key: engines/health
+  area: engines
+  name: health
+  files:
+  - src/engines/health.py
+  package: false
+  tests:
+  - tests/unit/engines/test_health.py
+  deps:
+  - infra/logger
+  - infra/settings
+  - ports/provider
+  dependents: []
+  closure:
+  - infra/errors
+  - infra/logger
+  - infra/proxy
+  - infra/settings
+  - ops/file
+  - ports/provider
+  level: 4
+  locked: true
+  detachable: false
+- key: engines/telemetry
+  area: engines
+  name: telemetry
+  files:
+  - src/engines/telemetry.py
+  package: false
+  tests:
+  - tests/unit/engines/test_telemetry.py
+  deps:
+  - infra/logger
+  dependents: []
+  closure:
+  - infra/errors
+  - infra/logger
+  - infra/proxy
+  - infra/settings
+  - ops/file
+  level: 4
+  locked: false
+  detachable: false
+- key: infra/background
+  area: infra
+  name: background
+  files:
+  - src/infra/background.py
+  package: false
+  tests:
+  - tests/unit/infra/test_background.py
+  deps:
+  - infra/errors
+  - infra/logger
+  dependents: []
+  closure:
+  - infra/errors
+  - infra/logger
+  - infra/proxy
+  - infra/settings
+  - ops/file
+  level: 4
+  locked: false
+  detachable: false
+- key: infra/errors
+  area: infra
+  name: errors
+  files:
+  - src/infra/errors.py
+  package: false
+  tests:
+  - tests/unit/infra/test_errors.py
+  deps: []
+  dependents:
+  - engines/auth
+  - infra/background
+  - ops/crypto
+  - ops/file
+  - ops/image
+  - ops/registry
+  - processors/doc
+  closure: []
+  level: 0
+  locked: true
+  detachable: false
+- key: infra/events
+  area: infra
+  name: events
+  files:
+  - src/infra/events.py
+  package: false
+  tests:
+  - tests/unit/infra/test_events.py
+  deps:
+  - infra/logger
+  dependents: []
+  closure:
+  - infra/errors
+  - infra/logger
+  - infra/proxy
+  - infra/settings
+  - ops/file
+  level: 4
+  locked: false
+  detachable: false
+- key: infra/logger
+  area: infra
+  name: logger
+  files:
+  - src/infra/logger.py
+  package: false
+  tests:
+  - tests/unit/infra/test_logger.py
+  deps:
+  - infra/proxy
+  - infra/settings
+  dependents:
+  - engines/auth
+  - engines/health
+  - engines/telemetry
+  - infra/background
+  - infra/events
+  - processors/doc
+  closure:
+  - infra/errors
+  - infra/proxy
+  - infra/settings
+  - ops/file
+  level: 3
+  locked: true
+  detachable: false
+- key: infra/proxy
+  area: infra
+  name: proxy
+  files:
+  - src/infra/proxy.py
+  package: false
+  tests:
+  - tests/unit/infra/test_proxy.py
+  deps: []
+  dependents:
+  - infra/logger
+  - infra/settings
+  closure: []
+  level: 0
+  locked: true
+  detachable: false
+- key: infra/settings
+  area: infra
+  name: settings
+  files:
+  - src/infra/settings.py
+  package: false
+  tests:
+  - tests/unit/infra/test_settings.py
+  deps:
+  - infra/proxy
+  - ops/file
+  dependents:
+  - engines/auth
+  - engines/health
+  - infra/logger
+  - processors/doc
+  closure:
+  - infra/errors
+  - infra/proxy
+  - ops/file
+  level: 2
+  locked: true
+  detachable: false
+- key: infra/state
+  area: infra
+  name: state
+  files:
+  - src/infra/state.py
+  package: false
+  tests:
+  - tests/unit/infra/test_state.py
+  deps: []
+  dependents: []
+  closure: []
+  level: 0
+  locked: true
+  detachable: false
+- key: infra/struct
+  area: infra
+  name: struct
+  files:
+  - src/infra/struct.py
+  package: false
+  tests:
+  - tests/unit/infra/test_struct.py
+  deps: []
+  dependents: []
+  closure: []
+  level: 0
+  locked: false
+  detachable: false
+- key: ops/crypto
+  area: ops
+  name: crypto
+  files:
+  - src/ops/crypto.py
+  package: false
+  tests:
+  - tests/unit/ops/test_crypto.py
+  deps:
+  - infra/errors
+  dependents:
+  - engines/auth
+  closure:
+  - infra/errors
+  level: 1
+  locked: true
+  detachable: false
+- key: ops/file
+  area: ops
+  name: file
+  files:
+  - src/ops/file.py
+  package: false
+  tests:
+  - tests/unit/ops/test_file.py
+  deps:
+  - infra/errors
+  dependents:
+  - infra/settings
+  closure:
+  - infra/errors
+  level: 1
+  locked: true
+  detachable: false
+- key: ops/hash
+  area: ops
+  name: hash
+  files:
+  - src/ops/hash.py
+  package: false
+  tests:
+  - tests/unit/ops/test_hash.py
+  deps: []
+  dependents:
+  - engines/auth
+  closure: []
+  level: 0
+  locked: true
+  detachable: false
+- key: ops/image
+  area: ops
+  name: image
+  files:
+  - src/ops/image.py
+  package: false
+  tests:
+  - tests/unit/ops/test_image.py
+  deps:
+  - infra/errors
+  dependents: []
+  closure:
+  - infra/errors
+  level: 1
+  locked: false
+  detachable: false
+- key: ops/registry
+  area: ops
+  name: registry
+  files:
+  - src/ops/registry.py
+  package: false
+  tests:
+  - tests/unit/ops/test_registry.py
+  deps:
+  - infra/errors
+  dependents: []
+  closure:
+  - infra/errors
+  level: 1
+  locked: false
+  detachable: false
+- key: ops/wrappers
+  area: ops
+  name: wrappers
+  files:
+  - src/ops/wrappers.py
+  package: false
+  tests:
+  - tests/unit/ops/test_wrappers.py
+  deps: []
+  dependents: []
+  closure: []
+  level: 0
+  locked: false
+  detachable: false
+- key: ports/auth
+  area: ports
+  name: auth
+  files:
+  - src/ports/auth.py
+  package: false
+  tests: []
+  deps:
+  - ports/provider
+  dependents:
+  - engines/auth
+  closure:
+  - ports/provider
+  level: 1
+  locked: true
+  detachable: false
+- key: ports/database
+  area: ports
+  name: database
+  files:
+  - src/ports/database.py
+  package: false
+  tests:
+  - tests/unit/ports/test_database_real.py
+  deps:
+  - ports/provider
+  dependents: []
+  closure:
+  - ports/provider
+  level: 1
+  locked: true
+  detachable: false
+- key: ports/documents
+  area: ports
+  name: documents
+  files:
+  - src/ports/documents.py
+  package: false
+  tests: []
+  deps:
+  - ports/provider
+  dependents:
+  - processors/doc
+  closure:
+  - ports/provider
+  level: 1
+  locked: false
+  detachable: false
+- key: ports/extract
+  area: ports
+  name: extract
+  files:
+  - src/ports/extract.py
+  package: false
+  tests: []
+  deps:
+  - ports/provider
+  dependents: []
+  closure:
+  - ports/provider
+  level: 1
+  locked: false
+  detachable: false
+- key: ports/http
+  area: ports
+  name: http
+  files:
+  - src/ports/http.py
+  package: false
+  tests: []
+  deps:
+  - ports/provider
+  dependents: []
+  closure:
+  - ports/provider
+  level: 1
+  locked: true
+  detachable: false
+- key: ports/language
+  area: ports
+  name: language
+  files:
+  - src/ports/language.py
+  package: false
+  tests: []
+  deps:
+  - ports/provider
+  dependents: []
+  closure:
+  - ports/provider
+  level: 1
+  locked: false
+  detachable: false
+- key: ports/markdown
+  area: ports
+  name: markdown
+  files:
+  - src/ports/markdown.py
+  package: false
+  tests: []
+  deps:
+  - ports/provider
+  dependents:
+  - processors/doc
+  closure:
+  - ports/provider
+  level: 1
+  locked: false
+  detachable: false
+- key: ports/pages
+  area: ports
+  name: pages
+  files:
+  - src/ports/pages.py
+  package: false
+  tests: []
+  deps:
+  - ports/provider
+  dependents:
+  - processors/doc
+  closure:
+  - ports/provider
+  level: 1
+  locked: false
+  detachable: false
+- key: ports/provider
+  area: ports
+  name: provider
+  files:
+  - src/ports/provider.py
+  package: false
+  tests:
+  - tests/unit/ports/test_provider.py
+  deps: []
+  dependents:
+  - engines/health
+  - ports/auth
+  - ports/database
+  - ports/documents
+  - ports/extract
+  - ports/http
+  - ports/language
+  - ports/markdown
+  - ports/pages
+  - ports/store
+  - ports/watch
+  closure: []
+  level: 0
+  locked: true
+  detachable: false
+- key: ports/store
+  area: ports
+  name: store
+  files:
+  - src/ports/store.py
+  package: false
+  tests: []
+  deps:
+  - ports/provider
+  dependents: []
+  closure:
+  - ports/provider
+  level: 1
+  locked: true
+  detachable: false
+- key: ports/watch
+  area: ports
+  name: watch
+  files:
+  - src/ports/watch.py
+  package: false
+  tests: []
+  deps:
+  - ports/provider
+  dependents: []
+  closure:
+  - ports/provider
+  level: 1
+  locked: false
+  detachable: false
+- key: processors/doc
+  area: processors
+  name: doc
+  files:
+  - src/processors/doc.py
+  package: false
+  tests:
+  - tests/unit/processors/test_doc.py
+  - tests/unit/processors/test_doc_real.py
+  deps:
+  - infra/errors
+  - infra/logger
+  - infra/settings
+  - ports/documents
+  - ports/markdown
+  - ports/pages
+  - processors/models
+  dependents: []
+  closure:
+  - infra/errors
+  - infra/logger
+  - infra/proxy
+  - infra/settings
+  - ops/file
+  - ports/documents
+  - ports/markdown
+  - ports/pages
+  - ports/provider
+  - processors/models
+  level: 4
+  locked: false
+  detachable: false
+- key: processors/models
+  area: processors
+  name: models
+  files:
+  - src/processors/models.py
+  package: false
+  tests:
+  - tests/unit/processors/test_models.py
+  deps: []
+  dependents:
+  - processors/doc
+  closure: []
+  level: 0
+  locked: false
+  detachable: false

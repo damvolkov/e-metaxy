@@ -1,84 +1,56 @@
-# e-metaxy
+# e-organon
 
-<p align="center">
-  <img src="assets/logo.svg" alt="e-metaxy" height="110" />
-</p>
+ὄργανον, *the instrument*. A hub of canonical deterministic tools — REST, streaming and MCP — for Claude Code, Hermes
+and OpenCode: what costs an agent tokens or never gets done, done by code and small local models, never an LLM.
 
-> **Becoming e-organon** (ὄργανον, *the instrument*): a hub of canonical deterministic tools — REST, streaming and
-> MCP — for Claude Code, Hermes and OpenCode. Plan and study: `docs/organon-study.md`. Until the skeleton lands,
-> this repository serves one thing: the bridge the Discord #tekton channel drives.
+##### TOOLS #####
 
-The bridge carries `eng` orders from the #tekton channel (Claude Code's Discord plugin) to Claude Code and the
-results back. A caller never waits on work: `work_start` returns a task id at once; `work_status` reads it (or waits
-a bounded time). Recorded sessions are found, read and continued; live interactive sessions are listed and messaged
-by name.
+A tool is `section/word` — `doc/convert`, `doc/signature`, `image/cutout` — and inside it is a workflow over ports:
+`services/<section>/<word>.py`, a `ToolFlow` whose events (`step` … `done` | `failed`) are the tool's whole life.
+Every tool is one `POST /<section>/<word>`: `Accept: text/event-stream` streams the events, anything else gets the
+answer; its MCP twin (`<section>_<word>`, same handler) answers in batch. Files travel by path under the allowed roots
+(`ORGANON_FILES__ROOTS`: the vault, the workspaces), never as bytes in the arguments.
 
-```
-#tekton (Claude Code channel) ──MCP (HTTP, loopback, OAuth)──▶ bridge ──Agent SDK──▶ Claude Code (your ~/.claude)
-                                                                  └──claude mcp serve──▶ live sessions
-```
-
-## Tools
-
-| tool | scope | does |
+| Tool | Does | Engines |
 |---|---|---|
-| `eng(text, project?, profile?, caller?)` | work · sessions | the user's `eng` message as typed, in the grammar every front shares: `eng [project:] <order>` new · `eng @ref: <order>` continue · `eng @ref+: <order>` branch · `eng @ref?` read · `eng @ref = <title>` rename · `eng ls [project]` · `eng ps` · `eng stop <task>` |
-| `work_start(prompt, project, profile?, session?, fork?, caller?)` | work | runs the prompt in Claude Code; `session` continues, `fork` branches; returns at once |
-| `work_status(task, wait?)` | work | the task now, or once it ends within `wait` seconds (≤25) |
-| `work_list(state?, limit?)` | work | newest tasks first |
-| `work_cancel(task)` | work | interrupts a running task |
-| `catalog(project?)` | work | the slash commands, skills and agents Claude Code offers in a project |
-| `session_find(project?, text?, limit?)` | sessions | recorded sessions, newest first, filtered by title, branch or tag |
-| `session_read(session, last?)` | sessions | a session and its last turns — where it stopped |
-| `session_update(session, title?, tag?)` | sessions | renames or tags a session |
-| `live_list()` | live | sessions open in a terminal: name, idle/busy |
-| `live_send(peer, text)` | live | delivers text to an open session's inbox |
+| `doc/convert` | any document → Markdown | liteparse, docling-serve (when `DOCLING_URL`), anytomd |
 
-A skill or slash command is a prompt: `work_start(prompt="/research vLLM sleep mode", project="e-voice", …)`. A
-project is a short name, resolved under `~/workspaces` (`METAXY_WORKSPACES`), or a path.
+Plan and study: `docs/organon-study.md`; the tree it grows into: `docs/tree.md`.
 
-## Auth
+##### LAYOUT #####
 
-OAuth 2.1 only, the way MCP clients expect it: e-metaxy is its own authorization server. A client registers
-itself (dynamic registration, PKCE), the browser lands on `/oauth/consent`, and the owner approves it with a
-passphrase. Access tokens are short JWTs bound to `/mcp`; refresh tokens rotate and can be revoked. `/ops` asks for
-the same token.
-
-```bash
-uv run e-metaxy keys     # CRYPTO__SECRET='…'          — the key that signs the tokens
-uv run e-metaxy owner    # METAXY_AUTH_OWNER_HASH='…'  — argon2 of the owner's passphrase (asked twice)
+```
+src/e_organon/       # the service: api/ (lifespan, routers, stream), mcp/ (the MCP door), services/ (the tools), models/
+src/{engines,infra,ops,ports,processors,providers}/   # e-arkhetypo's common, materialized whole
+tests/unit/      # mirrors src, import-mode=importlib; no service in the default run (`tests/conftest.py` fakes them all)
+tests/benchmark/  # the load no single module owns: the whole app under concurrent traffic (`make stress`)
+tests/support/   # the fakes the mirror shares (a scripted psqlpy pool, the accounts' store, the MCP client) — redis rides fakeredis
+Dockerfile       # two-stage: builder (uv) + deploy (python-slim, non-root)
+compose.yml      # single e-organon service, :8000
 ```
 
-Both lines go to `~/.config/e-metaxy/env`; without an owner the service refuses to start.
+##### TAXONOMY #####
 
-## Profiles
+Providers sit by capability — `providers/<drivers|adapters>/<capability>/<name>.py` (`providers.drivers.store.redis`,
+`providers.drivers.http.wreq`, `providers.drivers.database.psqlpy`) — and the settings mirror that tree:
+`st.providers.drivers.store.redis.url`, `st.app.port`. Every exception descends from `infra.errors.CoreError`; the
+service's own live in `e_organon` and stay out of that tree. Env variable names are unchanged (`REDIS_URL`, `POSTGRES_DSN`).
 
-`profiles.yaml` is the nomos of the bridge: a caller names a profile, never a flag. Each fixes the permission mode
-(`default`, `dontAsk`, `acceptEdits`, `plan`, `auto`, and `bypassPermissions` — used by `direct`, which approves
-everything as if you worked in Claude Code yourself; deny rules and hooks still hold), the allowed and denied tools,
-the roots `cwd` must live under, and turn/budget limits. Your `~/.claude` loads on top of every profile.
-
-## Run
+##### USAGE #####
 
 ```bash
-make install        # materialize the e-arkhetypo core, sync, hooks
-make check          # lint · ty · tach · validate · drift · tests
-make live           # the real Claude Code login on this host (spends a little quota)
-make run            # serve on 127.0.0.1:45190
-make deploy         # build the image, install compose + systemd unit: permanent container service
-make unit           # the same service host-native instead (uv, no docker)
-make probe          # the live service as an MCP client: owner sign-in, list the tools
-make probe TOOL=session_find INPUT='{"text":"voice"}'   # …or call one
+make install        # materialize infra + sync deps
+make run            # python -m e_organon
+make check          # lint + type + arch + validate + infra-drift + test
+make integration    # the tests marked `integration` (a real service); out of check, test and cov
+make stress         # soak concurrent-load tests
+make up             # docker compose up
 ```
 
-The container runs Claude Code as you would at a terminal, with your setup mounted at the same paths: `~/.claude`
-and `~/.claude.json`, `~/workspaces`, the toolchains (`~/.local/bin`, uv, the native claude, rust) and the ledger.
-No ssh keys: git reaches GitHub over https with `GH_TOKEN`. `deploy/systemd/emetaxy.service` keeps it up through
-boot and logout; images publish to `ghcr.io/damvolkov/e-metaxy` from the `release` workflow (manual dispatch).
+##### AUTH #####
 
-Configuration is `METAXY_*`, `CRYPTO__SECRET` and `GH_TOKEN`, read from `~/.config/e-metaxy/env`. `make probe`
-signs in with the passphrase in `~/.config/e-metaxy/passphrase` (`METAXY_PROBE_PASSPHRASE`). The service runs as
-the user logged in to Claude Code: no API key — an `ANTHROPIC_API_KEY` in the environment is blanked for the coder
-so the subscription login is used.
+`TokenMiddleware` resolves the `Authorization: Bearer <key>` header once per request into a caller (an account, the admin, or nobody); every route declares its access (`opt=OPT[Access.USER]`) and one guard admits the caller or refuses it. Keys are opaque, kept as a digest in Postgres (`providers/drivers/auth/postgres`), handed out once by the admin (`POST /auth/accounts/{name}/token`); the admin's first comes from `AUTH_SECRET=… python -m e_organon admin`.
 
-Design and boundaries: [`docs/design.md`](docs/design.md).
+The MCP door (`src/e_organon/mcp/`) serves the same resources to agents at `/mcp` under the same keys and the same refusals: each tool a Litestar route, twin of `api/router/<resource>.py`, reached through the official SDK by one engine (`infra/mcp`).
+
+`make` alone lists every target.

@@ -1,68 +1,80 @@
 ##### BUILD #####
 [build-system]
-requires = ["hatchling>=1.32", "uv-dynamic-versioning>=0.14"]
+requires = ["hatchling>=1.32", "uv-dynamic-versioning>=0.14.1"]
 build-backend = "hatchling.build"
 
 ##### PROJECT #####
 [project]
-name = "e-metaxy"
+name = "e-organon"
 dynamic = ["version"]
-description = "e-organon: a hub of canonical deterministic tools (REST, streaming, MCP) for agents; today, the #tekton bridge to Claude Code"
+description = "e-organon: canonical deterministic tools for agents — REST, streaming and MCP over workflows"
 readme = "README.md"
 requires-python = ">=3.14"
 license = "MIT"
 license-files = ["LICEN[CS]E*"]
 authors = [{ name = "damvolkov", email = "damvolkovv@gmail.com" }]
-keywords = ["e-stack", "mcp", "claude-code", "agents"]
+keywords = ["e-stack"]
 classifiers = [
     "Programming Language :: Python :: 3 :: Only",
     "Programming Language :: Python :: 3.14",
     "Typing :: Typed",
 ]
 dependencies = [
-    ##### bridge #####
-    "mcp>=2.3",
-    "claude-agent-sdk>=0.2.164",
-    ##### web — one litestar app serves the REST door and mounts the MCP one #####
-    "litestar>=2.24",
-    "granian>=2.7",
-    "asgi-correlation-id>=5.0",
-    ##### processors (materialized common set) — liteparse reads PDFs in-process, polars frames the deep doc #####
-    "liteparse>=2.14",
-    "polars>=2.0",
-    ### 1.4 drops `detect_format`, which the materialized MDProcessor calls: the pin moves with projects/python/core.
-    "anytomd[full]>=1.3.1.post2,<1.5",
+    ##### common, whole: organon wires every section (2026-11-04) #####
+    "pyyaml>=6.0",
+    "pgqueuer[asyncpg]>=1.6",
+    "awa-pg>=0.6.9",
+    "theine>=2.0",
+    "tokenizers>=0.23",
+    "opentelemetry-sdk>=1.44",
+    "opentelemetry-exporter-otlp-proto-http>=1.44",
+    "opentelemetry-exporter-otlp-proto-grpc>=1.44",
     ##### core #####
+    "litestar>=2.24",
+    "granian[reload]>=2.7",
+    "asgi-correlation-id>=5.0",
     "structlog>=26.1",
+    ### the MCP door: the official SDK speaks the protocol (infra/mcp/server only), litestar serves its tools as routes.
+    "mcp>=2.3",
+    ### the MCP SDK parses forms through starlette, which needs it.
+    "python-multipart>=0.0.32",
+    ##### data #####
     "msgspec>=0.21",
+    ### ops/registry dumps through it; the compose loader of the whole stack.
+    "e-serde>=0.6.1",
     "pydantic>=2.10",
     "pydantic-settings>=2.6",
-    "pyyaml>=6.0",
-    "beartype>=0.22.9",
-    "anyio>=4.15.1",
-    ##### crypto (materialized core) #####
+    ##### crypto #####
     "joserfc>=1.7.5",
     "cryptography>=50.0.1",
     "argon2-cffi>=25.1.0",
     "bcrypt>=5.0.0",
-    ##### edges #####
-    "wreq>=0.12",
+    "anyio>=4.15.1",
+    ##### http #####
+    "wreq>=0.10",
+    ##### stores #####
+    "redis>=6.2",
     "aiosqlite>=0.20",
-    ##### telemetry (materialized core) #####
-    "opentelemetry-sdk>=1.44",
-    "opentelemetry-exporter-otlp-proto-http>=1.44",
-    "opentelemetry-exporter-otlp-proto-grpc>=1.44",
-    ### the SDK's OAuth endpoints parse their forms through starlette, which needs it.
-    "python-multipart>=0.0.32",
+    ### the db lifespan provisions the databases the settings name: CREATE DATABASE, outside any transaction.
+    "psqlpy>=0.12",
+    ##### queue clock — the in-process supervisor's schedules (infra/background) #####
+    "croniter>=6.0",
+    ##### web — rtrafilatura: a page's main content (providers/adapters/rtrafilatura) #####
+    "rtrafilatura>=0.2",
+    "beartype>=0.22.9",
+    ##### documents — liteparse (Rust, in-process) first, docling-serve for what it reads better; polars frames #####
+    "liteparse>=2.14",
+    "anytomd[full]>=1.3.1.post2,<1.4",
+    "tree-sitter-language-pack>=1.22",
+    "lingua-language-detector>=2.2",
+    "watchfiles>=1.3.0",
+    "polars>=2.0",
 ]
 
-[project.scripts]
-e-metaxy = "e_metaxy.__main__:main"
-
 [project.urls]
-Homepage = "https://github.com/damvolkov/e-metaxy"
-Source = "https://github.com/damvolkov/e-metaxy"
-Issues = "https://github.com/damvolkov/e-metaxy/issues"
+Homepage = "https://github.com/damvolkov/e-arkhetypo"
+Source = "https://github.com/damvolkov/e-arkhetypo"
+Issues = "https://github.com/damvolkov/e-arkhetypo/issues"
 
 ##### DEPS #####
 [dependency-groups]
@@ -80,21 +92,30 @@ test = [
     "pytest-xdist[psutil]>=3.8",
     "pytest-randomly>=5.0",
     "pytest-timeout>=2.4",
-    "pytest-httpserver>=1.1",
+    "pytest-stress>=1.0.1",
+    "fakeredis>=2.40.0",
+    ### the MCP door's tests drive the SDK's own client over an ASGI transport, in process.
     "httpx2>=2.13",
+    ### no [serde] extra: it pins e-serde<0.6 and the main dependency (ops/registry) needs >=0.6.1, which the plugin loads through.
+    "pytest-resources>=0.3.2",
+]
+docs = [
+    "mkdocstrings[python]>=1.0.7",
+    "zensical>=0.0.70",
 ]
 dev = [
     { include-group = "lint" },
     { include-group = "test" },
+    { include-group = "docs" },
     "prek>=0.4",
-    ### structural rewrite of projects/python/core at materialization time (scripts/materialize.py); parses real 3.14 syntax.
-    "libcst>=1.9",
 ]
 
 [tool.uv]
 required-version = ">=0.12"
 default-groups = ["dev"]
-exclude-newer = "2026-10-20"
+exclude-newer = "7 days"
+### first-party packages (pytest-resources, e-serde) and fast-shipping Rust bindings publish same-day: exempt them from the freshness guard.
+exclude-newer-package = { "pytest-resources" = "2100-01-01T00:00:00Z", "e-serde" = "2100-01-01T00:00:00Z", "anytomd" = "2100-01-01T00:00:00Z", "liteparse" = "2100-01-01T00:00:00Z", "openai" = "2100-01-01T00:00:00Z", "rtrafilatura" = "2100-01-01T00:00:00Z" }
 cache-keys = [{ file = "pyproject.toml" }, { git = { commit = true, tags = true } }]
 
 ##### VERSION #####
@@ -108,27 +129,16 @@ bump = true
 fallback-version = "0.0.0"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/e_metaxy"]
+packages = ["src/e_organon", "src/infra", "src/ops", "src/ports", "src/providers", "src/engines", "src/processors"]
 
 [tool.hatch.build.targets.sdist]
-include = ["src/", "tests/", "README.md", "profiles.yaml"]
+include = ["src/", "tests/", "README.md"]
 
 ##### LINT #####
 [tool.ruff]
 line-length = 120
 target-version = "py314"
 src = ["src", "tests"]
-### the materialized common set is linted at its source (projects/python/core); its copies under e_metaxy must stay
-### byte-identical to the generator, so ruff never touches them (else `make core-check` reports drift).
-### e-metaxy's own modules inside those sections (the lifespan chain, the middleware stack, two settings scopes, three
-### adapters) are linted here: the globs name the copies, never a whole section.
-extend-exclude = [
-    "src/e_metaxy/core/{crypto,errors,logger,proxy,state,struct}.py",
-    "src/e_metaxy/core/settings/{__init__,agent,api,app,base,cli,crypto,darts,db,docling,doc,docs,http,md,oauth,otel,redis,theme,ui}.py",
-    "src/e_metaxy/ops",
-    "src/e_metaxy/processors",
-    "src/e_metaxy/adapters/{anytomd,base,docling,http,otel,ports,sqlite}.py",
-]
 
 [tool.ruff.lint]
 select = [
@@ -139,25 +149,38 @@ select = [
 ignore = ["E501", "ISC001", "PLR0913"]
 
 [tool.ruff.lint.per-file-ignores]
-### fixtures root profiles under /tmp and sign in with fixed passphrases; parametrized tests take one argument per column.
-"tests/**" = ["S101", "S105", "S106", "S108", "PLR2004", "PLR0917", "ARG", "FBT"]
+"tests/**" = ["S101", "S106", "PLR2004", "ARG", "FBT"]
 "scripts/**" = ["T20", "S603", "S607", "PTH"]
-### msgspec and the mcp SDK resolve annotations at runtime — type-checking imports would break them.
-"src/e_metaxy/**" = ["TC001", "TC002", "TC003"]
+### litestar and msgspec resolve annotations at runtime — type-checking imports would break them.
+"src/e_organon/api/**" = ["TC001", "TC002", "TC003"]
+"src/e_organon/websockets/**" = ["TC001", "TC002", "TC003"]
+"src/e_organon/models/**" = ["TC001", "TC002", "TC003"]
+"src/e_organon/main.py" = ["TC001", "TC002", "TC003"]
+"src/e_organon/mcp/**" = ["TC001", "TC002", "TC003"]
+### the one module that speaks the MCP protocol: an SDK upgrade touches it alone.
+"src/infra/mcp/server.py" = ["TID251"]
+### NON_SERVICE is an exclusion vocabulary for host tokens, not a socket bind.
+"src/ops/compose.py" = ["S104"]
+"src/providers/adapters/language/lingua.py" = ["TID251"]
+"src/providers/adapters/watch/watchfiles.py" = ["TID251"]
 
 [tool.ruff.lint.isort]
-known-first-party = ["e_metaxy"]
+known-first-party = ["e_organon", "infra", "ops", "ports", "providers", "engines", "processors"]
 
 [tool.ruff.lint.flake8-type-checking]
+### pydantic and msgspec resolve these classes' annotations at runtime: their imports must stay real.
 runtime-evaluated-base-classes = [
     "pydantic.BaseModel",
-    "e_metaxy.core.settings.base.BaseSettings",
+    "infra.config.base.BaseSettings",
     "msgspec.Struct",
-    "e_metaxy.core.struct.CheckedStruct",
+    "infra.struct.CheckedStruct",
 ]
 
 [tool.ruff.lint.flake8-tidy-imports]
 ban-relative-imports = "all"
+
+[tool.ruff.lint.flake8-tidy-imports.banned-api]
+"mcp.server".msg = "the MCP SDK's server is the engine's protocol (infra/mcp/server): an upgrade touches that one module"
 
 [tool.ruff.format]
 docstring-code-format = true
@@ -168,26 +191,6 @@ python-version = "3.14"
 
 [tool.ty.src]
 include = ["src", "tests"]
-### the common set is materialized and type-checked at its source (e-arkhetypo projects/python/core); its copies
-### under e_metaxy are not edited or checked here — e-metaxy's own modules inside those sections are.
-exclude = [
-    "src/e_metaxy/core/*",
-    "!src/e_metaxy/core/lifespan",
-    "!src/e_metaxy/core/middlewares.py",
-    "!src/e_metaxy/core/settings",
-    "src/e_metaxy/core/settings/*",
-    "!src/e_metaxy/core/settings/authority.py",
-    "!src/e_metaxy/core/settings/metaxy.py",
-    "src/e_metaxy/ops",
-    "src/e_metaxy/processors",
-    "src/e_metaxy/adapters/anytomd.py",
-    "src/e_metaxy/adapters/base.py",
-    "src/e_metaxy/adapters/http.py",
-    "src/e_metaxy/adapters/otel.py",
-    "src/e_metaxy/adapters/sqlite.py",
-    "src/e_metaxy/adapters/ports.py",
-    "src/e_metaxy/adapters/docling.py",
-]
 
 [tool.ty.terminal]
 error-on-warning = true
@@ -196,67 +199,33 @@ error-on-warning = true
 [tool.pytest]
 minversion = "9.0"
 testpaths = ["tests"]
-addopts = ["--import-mode=importlib", "-ra", "-m", "not live"]
-pythonpath = ["src", "tests/unit"]
+addopts = ["--import-mode=importlib", "-ra"]
+### tests on the path beside src: `from support.psqlpy import FakePsqlpyServer`, the fakes the mirror shares.
+pythonpath = ["src", "tests"]
 strict = true
-filterwarnings = ["error"]
+filterwarnings = [
+    "error",
+    ### joserfc warns on every EdDSA JWT per RFC 9864 (non-committing signature); kept as an offered alg.
+    "ignore::joserfc.errors.SecurityWarning",
+]
 timeout = "60"
 asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "function"
 markers = [
     "slow: slow tests (deselect with -m 'not slow')",
-    "live: drives the real Claude Code login on this host (run with `make live`)",
+    "stress: concurrent-load tests, soaken for a duration with `make stress` (pytest-stress)",
+    "integration: needs a real service (Postgres, redis, an IdP) and stays out of the default run: `make integration`",
 ]
 
 ##### COVERAGE #####
 [tool.coverage.run]
-### the common set (core, ops, processors, the copied adapters) is materialized and tested at its source
-### (projects/python/core); the gate covers only the service — its edges, logic, models, lifespans and own adapters.
-source_pkgs = ["e_metaxy"]
+### infra/, ops/, ports/, providers/, engines/ and processors/ are materialized and tested at their source (projects/python/common); the gate covers the service.
+source_pkgs = ["e_organon"]
 branch = true
 parallel = true
-### e-metaxy's own modules inside those sections (lifespans, middlewares, settings scopes) stay under the gate.
-omit = [
-    "*/e_metaxy/core/crypto.py",
-    "*/e_metaxy/core/errors.py",
-    "*/e_metaxy/core/logger.py",
-    "*/e_metaxy/core/proxy.py",
-    "*/e_metaxy/core/state.py",
-    "*/e_metaxy/core/struct.py",
-    "*/e_metaxy/core/settings/__init__.py",
-    "*/e_metaxy/core/settings/agent.py",
-    "*/e_metaxy/core/settings/api.py",
-    "*/e_metaxy/core/settings/app.py",
-    "*/e_metaxy/core/settings/base.py",
-    "*/e_metaxy/core/settings/cli.py",
-    "*/e_metaxy/core/settings/crypto.py",
-    "*/e_metaxy/core/settings/darts.py",
-    "*/e_metaxy/core/settings/db.py",
-    "*/e_metaxy/core/settings/docling.py",
-    "*/e_metaxy/core/settings/doc.py",
-    "*/e_metaxy/core/settings/docs.py",
-    "*/e_metaxy/core/settings/http.py",
-    "*/e_metaxy/core/settings/md.py",
-    "*/e_metaxy/core/settings/oauth.py",
-    "*/e_metaxy/core/settings/otel.py",
-    "*/e_metaxy/core/settings/redis.py",
-    "*/e_metaxy/core/settings/theme.py",
-    "*/e_metaxy/core/settings/ui.py",
-    "*/e_metaxy/ops/*",
-    "*/e_metaxy/processors/*",
-    "*/e_metaxy/adapters/anytomd.py",
-    "*/e_metaxy/adapters/base.py",
-    "*/e_metaxy/adapters/docling.py",
-    "*/e_metaxy/adapters/http.py",
-    "*/e_metaxy/adapters/otel.py",
-    "*/e_metaxy/adapters/ports.py",
-    "*/e_metaxy/adapters/sqlite.py",
-]
 
 [tool.coverage.report]
 fail_under = 100
 show_missing = true
 skip_covered = true
-exclude_also = ["if TYPE_CHECKING:", "if __name__ == .__main__.:", "@overload", "raise NotImplementedError", '^\s*\.\.\.$']
-
-##### UV #####
+exclude_also = ["if TYPE_CHECKING:", "@overload", "raise NotImplementedError", '^\s*\.\.\.$']
