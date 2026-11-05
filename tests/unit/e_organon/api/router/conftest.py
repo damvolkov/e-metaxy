@@ -35,7 +35,8 @@ def told() -> Told:
 
 @pytest.fixture
 def hostile(vault: Path, resources: Resources) -> Path:
-    """The hostile corpus (`tests/resources/hostile`, made by `support.hostile`) copied into the vault, its symlink kept as a
-    symlink — out of the roots — : the folder every hostile test points a tool into."""
-    shutil.copytree(resources.path / "hostile", vault / "hostile", symlinks=True)
+    """The hostile corpus (`tests/resources/hostile`, made by `support.hostile`) copied into the vault, plus `escape`, a symlink
+    out of the roots made here (an absolute link cannot ship in the sdist): the folder every hostile test points a tool into."""
+    shutil.copytree(resources.path / "hostile", vault / "hostile")
+    (vault / "hostile" / "escape").symlink_to("/etc/passwd")
     return vault / "hostile"

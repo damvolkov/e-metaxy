@@ -2,6 +2,14 @@
 
 ## [Unreleased]
 
+### Fixed
+- **The image ran Python 3.15 over a 3.14 venv** (Renovate bumped the deploy stage and `.python-version` alone): the
+  published v0.8.0 `latest` could not `import e_organon`. Back to 3.14; the deploy stage now runs
+  `python -c "import e_organon"` so such an image fails its build; Renovate keeps Python `<3.15` until lingua ships a
+  3.15 wheel.
+- **The sdist could not build**: the hostile corpus committed `escape`, an absolute symlink to `/etc/passwd`, which uv
+  refuses in an archive. The fixture makes the link at test time; nothing absolute is committed.
+
 ### Added
 - Quality (`TODO_jobs` step 6): a hostile corpus (`tests/resources/hostile/`: pixel bombs, a bad-CRC PNG, a PDF with
   JavaScript, one of 20 000 pages, truncated and garbage files, a symlink out of the roots) run through every doc/ and

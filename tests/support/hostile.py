@@ -109,12 +109,9 @@ FILES = {
 
 
 def build(target: Path = HERE) -> None:
-    """Write every file, and the symlink `escape` to a file outside any root."""
+    """Write every file. The symlink `escape` is never committed — an absolute link breaks the sdist — the fixture makes it."""
     target.mkdir(parents=True, exist_ok=True)
     _ = [(target / name).write_bytes(make()) for name, make in FILES.items()]
-    link = target / "escape"
-    link.unlink(missing_ok=True)
-    link.symlink_to("/etc/passwd")
 
 
 if __name__ == "__main__":
