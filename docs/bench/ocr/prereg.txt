@@ -1,0 +1,6 @@
+Pre-registration, written 2026-11-05 before the test run (dev: 3 pages per language x 3 levels, used only to fix the scoring).
+H: RapidOCR reads scanned pages (ES and EN) with a lower character error rate than Tesseract (liteparse, in process).
+Primary metric: page CER (Levenshtein over the words joined by a space / truth length), paired per page, BCa bootstrap 95 %
+(20 000 resamples), on the 120 test pages (20 per language x clean, noisy, bad). Decision: adopt RapidOCR (the better of r5, r6
+by mean CER) iff mean(CER_T - CER_R) has its CI lower bound above 0.01 AND its page p95 latency is under 10 s; else keep Tesseract
+(no new dependency). Secondary: word recall with a box in place, exact-word accuracy, latency p50/p95, per level and language.

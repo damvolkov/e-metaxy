@@ -212,6 +212,9 @@ class ProviderSettings(BaseSettings):
     DOC_TESSDATA: Path | None = None
     DOC_OCR_LANGUAGE: str = "eng"
 
+    ### RAPIDOCR — the `doc/ocr` tool: off, no tool and no models; on, its models are fetched into `<ORGANON_DATA>/doc/models`.
+    OCR_ENABLED: bool = False
+
     @field_validator("RERANK_URL", "GLINER_URL", mode="before")
     @classmethod
     def _url_none(cls, value: object) -> object:

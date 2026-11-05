@@ -104,3 +104,12 @@ def test_providers_docling_reads_the_docling_settings(monkeypatch: pytest.Monkey
     monkeypatch.setattr(providers_lifespan, "st", st.model_copy(update={"DOCLING_URL": url}))
     driver = providers_lifespan.docling_driver(cast("HTTPPort", object()))
     assert isinstance(driver, DoclingDriver)
+
+
+def test_providers_ocr_is_off_by_default(client: TestClient) -> None:
+    assert "ocr" not in client.app.state.system.providers.named
+
+
+def test_providers_ocr_opens_on_its_models_in_the_data_subtree(ocr_on: Path, client: TestClient, fake_ocr) -> None:
+    ### the engine is the fake of `ocr_on`: what is held is where the lifespan told it to keep its models.
+    assert (fake_ocr.models, "ocr" in client.app.state.system.providers.named) == (ocr_on, True)

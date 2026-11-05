@@ -3,7 +3,8 @@
 The MCP engine asks for JSON, so a tool always answers in batch: the result, or the `Failed` reason as its error. Paths
 are under the vault or the workspaces; a written file lands in the outbox, content-named, and is the next tool's input."""
 
-from typing import Final
+from collections.abc import Callable
+from typing import Any, Final
 
 from litestar.handlers import HTTPRouteHandler
 
@@ -83,17 +84,35 @@ SIGNATURE: Final = MCPTool(
     read_only=False,
 )
 
-##### ROUTES #####
-ROUTES: tuple[HTTPRouteHandler, ...] = tuple(
-    tool.route(Access.USER, dependencies=router.TOOL_DEPS, exception_handlers=REFUSALS)(handler)
-    for tool, handler in (
-        (CONVERT, router.convert),
-        (INSPECT, router.inspect),
-        (MERGE, router.merge),
-        (SPLIT, router.split),
-        (FILL, router.fill),
-        (RENDER, router.render),
-        (STAMP, router.stamp),
-        (SIGNATURE, router.signature),
-    )
+OCR: Final = MCPTool(
+    name="doc_ocr",
+    title="Read a scan",
+    description=(
+        "The words of a scanned PDF or an image by `path` (`pages` from 0, all when empty; `dpi` a PDF page is drawn at, "
+        "72-300, default 150), each with its box `[left, bottom, right, top]` in points on the displayed page, origin "
+        "bottom-left — where doc_stamp places things —, and each page's `text`. An image is one page, a pixel a point."
+    ),
 )
+
+
+##### ROUTES #####
+def routes(*tools: tuple[MCPTool, Callable[..., Any]]) -> tuple[HTTPRouteHandler, ...]:
+    """The route of each tool over its handler."""
+    return tuple(
+        tool.route(Access.USER, dependencies=router.TOOL_DEPS, exception_handlers=REFUSALS)(handler)
+        for tool, handler in tools
+    )
+
+
+ROUTES: tuple[HTTPRouteHandler, ...] = routes(
+    (CONVERT, router.convert),
+    (INSPECT, router.inspect),
+    (MERGE, router.merge),
+    (SPLIT, router.split),
+    (FILL, router.fill),
+    (RENDER, router.render),
+    (STAMP, router.stamp),
+    (SIGNATURE, router.signature),
+)
+### served only where the engine is on (OCR_ENABLED).
+OCR_ROUTES: tuple[HTTPRouteHandler, ...] = routes((OCR, router.ocr))

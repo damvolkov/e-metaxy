@@ -461,5 +461,25 @@
       "input",
       "tool"
     ]
+  },
+  {
+    "name": "doc_ocr",
+    "title": "Read a scan",
+    "description": "The words of a scanned PDF or an image by `path` (`pages` from 0, all when empty; `dpi` a PDF page is drawn at, 72-300, default 150), each with its box `[left, bottom, right, top]` in points on the displayed page, origin bottom-left — where doc_stamp places things —, and each page's `text`. An image is one page, a pixel a point.",
+    "access": "user",
+    "annotations": {
+      "destructive_hint": false,
+      "open_world_hint": false,
+      "read_only_hint": true
+    },
+    "arguments": [
+      "dpi",
+      "language",
+      "pages",
+      "path"
+    ],
+    "required": [
+      "path"
+    ]
   }
 ]

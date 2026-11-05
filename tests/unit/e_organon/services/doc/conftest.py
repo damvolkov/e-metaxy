@@ -9,15 +9,18 @@ import pytest
 from e_organon.engines.artifact import ArtifactEngine
 from e_organon.models.doc import FileOut, StampIn
 from e_organon.models.flow import Done, Failed
+from e_organon.ports.ocr import OcrWord
 from e_organon.providers.adapters.cutout.opencv import OpencvAdapter
 from e_organon.providers.adapters.pdf.pikepdf import PikepdfAdapter
 from e_organon.providers.adapters.render.pdfium import PdfiumAdapter
+from e_organon.services.doc.ocr import OcrDocService
 from e_organon.services.doc.signature import SignatureDocService
 from e_organon.services.doc.stamp import StampDocService
 from e_organon.services.files import AllowedFiles
 from e_organon.services.image.cutout import CutoutImageService
 from support.ink import ink_png, red_png
-from support.pdf import blank, form, labelled
+from support.ocr import FakeOcr
+from support.pdf import blank, form, labelled, rotated
 from support.photo import photo
 
 if TYPE_CHECKING:
@@ -33,6 +36,7 @@ def vault(tmp_path: Path) -> Path:
     (tmp_path / "form.pdf").write_bytes(form())
     (tmp_path / "three.pdf").write_bytes(blank(3))
     (tmp_path / "labelled.pdf").write_bytes(labelled())
+    (tmp_path / "sideways.pdf").write_bytes(rotated(90))
     (tmp_path / "ink.png").write_bytes(ink_png())
     (tmp_path / "firma.jpg").write_bytes(photo()[0])
     return tmp_path
@@ -113,3 +117,23 @@ def golden(vault: Path, resources: Resources) -> Path:
         (vault / name).write_bytes((resources.path / "golden" / name).read_bytes())
     (vault / "red.png").write_bytes(red_png())
     return vault
+
+
+@pytest.fixture
+def ocr_words() -> tuple[OcrWord, ...]:
+    """What the fake engine reads on every image: two words on a line, one on the next, boxes in pixels."""
+    return (
+        OcrWord(text="uno", box=(10, 20, 110, 60)),
+        OcrWord(text="dos", box=(130, 22, 230, 62)),
+        OcrWord(text="tres", box=(10, 100, 110, 140)),
+    )
+
+
+@pytest.fixture
+def fake_ocr(ocr_words: tuple[OcrWord, ...]) -> FakeOcr:
+    return FakeOcr(ocr_words)
+
+
+@pytest.fixture
+def reader(fake_ocr: FakeOcr, pdf: PikepdfAdapter, render: PdfiumAdapter, files: AllowedFiles) -> OcrDocService:
+    return OcrDocService(fake_ocr, pdf, render, files, max_pixels=5_000_000)

@@ -24,6 +24,10 @@ class AnchorNotFoundError(OrganonError, LookupError):
     """The text is on no page of the PDF — or not that many times."""
 
 
+class PageNotFoundError(OrganonError, LookupError):
+    """The PDF has no page of that number (from 0)."""
+
+
 class UnknownJobError(OrganonError, LookupError):
     """No job under that id: never submitted, or long settled and gone."""
 

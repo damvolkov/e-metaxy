@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING
 
 from e_organon.infra.mcp.server import MCPServer
 from e_organon.mcp.instructions import INSTRUCTIONS
-from e_organon.mcp.registry import ROUTES
+from e_organon.mcp.registry import routes
 from e_organon.mcp.state import MCPState
 
 if TYPE_CHECKING:
@@ -20,6 +20,6 @@ async def test_state_section_holds_the_server(client: AsyncTestClient[Litestar])
         "e_organon.mcp.state",
         MCPState,
         MCPServer,
-        len(ROUTES),
+        len(routes(bridge=True, ocr=False)),
     )
     assert section.server.instructions == INSTRUCTIONS

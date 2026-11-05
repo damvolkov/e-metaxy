@@ -151,3 +151,37 @@ class SignatureIn(msgspec.Struct, frozen=True, kw_only=True):
     photo: str
     at: At
     color: bool = True
+
+
+##### OCR #####
+class OcrIn(msgspec.Struct, frozen=True, kw_only=True):
+    """`path`: a scanned PDF or an image. `pages`: which pages of a PDF, from 0 (all when empty). `language`: a hint for
+    the engine, which today reads every Latin script alike. `dpi`: the resolution a PDF page is drawn at before it is read."""
+
+    path: str
+    pages: list[PAGE] = msgspec.field(default_factory=list)
+    language: str = ""
+    dpi: Annotated[int, msgspec.Meta(ge=72, le=300)] = 150
+
+
+class OcrWordOut(msgspec.Struct, frozen=True, kw_only=True):
+    """A word and its box `(left, bottom, right, top)` in points on the displayed page, origin at its bottom-left."""
+
+    text: str
+    box: tuple[float, float, float, float]
+
+
+class OcrPageOut(msgspec.Struct, frozen=True, kw_only=True):
+    """A page read: its number (from 0), its displayed size in points, its text — lines apart — and its words."""
+
+    page: int
+    width: float
+    height: float
+    text: str
+    words: list[OcrWordOut]
+
+
+class OcrOut(msgspec.Struct, frozen=True, kw_only=True):
+    """The pages read, in order. An image is one page, one pixel a point."""
+
+    pages: list[OcrPageOut]

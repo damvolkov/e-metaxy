@@ -23,6 +23,7 @@ from e_organon.ports.database import DatabaseListenPort, DatabasePort
 from e_organon.ports.documents import DocumentPort
 from e_organon.ports.http import HTTPPort
 from e_organon.ports.markdown import MarkdownPort
+from e_organon.ports.ocr import OcrPort
 from e_organon.ports.pages import PagesPort
 from e_organon.ports.pdf import PdfPort
 from e_organon.ports.provider import Provider
@@ -30,6 +31,7 @@ from e_organon.ports.render import RenderPort
 from e_organon.ports.store import StorePort
 from e_organon.providers.adapters.cutout.opencv import OpencvAdapter
 from e_organon.providers.adapters.markdown.anytomd import AnytomdAdapter
+from e_organon.providers.adapters.ocr.rapidocr import RapidocrAdapter
 from e_organon.providers.adapters.pages.liteparse import LiteparseAdapter
 from e_organon.providers.adapters.pdf.pikepdf import PikepdfAdapter
 from e_organon.providers.adapters.render.pdfium import PdfiumAdapter
@@ -42,7 +44,7 @@ from e_organon.providers.drivers.http.wreq import WreqDriver
 from e_organon.providers.drivers.store.sqlite import SqliteDriver
 
 ### the roles a deployment may leave empty: each stays out of `named` (and the health survey) until its setting is set.
-OPTIONAL: frozenset[str] = frozenset({"docling"})
+OPTIONAL: frozenset[str] = frozenset({"docling", "ocr"})
 
 
 ##### SECTION #####
@@ -71,6 +73,8 @@ class ProvidersState:
     coder: CoderPort | None
     ### docling-serve is optional: present only when DOCLING_URL is set — the doc tools read without it.
     docling: DocumentPort | None
+    ### the OCR engine opens only with the tool on (OCR_ENABLED): its models are fetched at that start, never otherwise.
+    ocr: OcrPort | None
 
     @property
     def named(self) -> Mapping[str, Provider]:
@@ -103,6 +107,11 @@ def liteparse() -> LiteparseAdapter:
     return LiteparseAdapter(
         workers=st.DOC_WORKERS, ocr=st.DOC_OCR, tessdata=tessdata.expanduser(), ocr_language=st.DOC_OCR_LANGUAGE
     )
+
+
+def rapidocr() -> RapidocrAdapter:
+    """The OCR engine, its models in doc/'s subtree of ORGANON_DATA."""
+    return RapidocrAdapter(models=st.ORGANON_DATA.expanduser() / "doc" / "models" / "rapidocr")
 
 
 def docling_driver(http: HTTPPort) -> DoclingDriver:
@@ -152,6 +161,7 @@ async def lifespan(app: Litestar) -> AsyncGenerator[None]:
         cutout = await enter(OpencvAdapter())
         coder = await enter(ClaudeDriver(st.TEKTON_CLAUDE)) if st.TEKTON_PROFILES else None
         docling = await enter(docling_driver(http)) if st.DOCLING_URL else None
+        ocr = await enter(rapidocr()) if st.OCR_ENABLED else None
         providers = ProvidersState(
             store=store,
             http=http,
@@ -165,6 +175,7 @@ async def lifespan(app: Litestar) -> AsyncGenerator[None]:
             cutout=cutout,
             coder=coder,
             docling=docling,
+            ocr=ocr,
         )
         system.providers = providers
         logger.info("providers ready", providers=sorted(providers.named), step="START")

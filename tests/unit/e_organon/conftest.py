@@ -11,16 +11,21 @@ from typing import TYPE_CHECKING
 import pytest
 from litestar.testing import TestClient
 
+from e_organon import main as main_module
 from e_organon.api import middlewares as middlewares_module
 from e_organon.api.lifespan import engines as engines_module
+from e_organon.api.lifespan import mcp as mcp_lifespan_module
+from e_organon.api.lifespan import providers as providers_module
 from e_organon.api.lifespan import services as services_module
 from e_organon.engines.bridge import BridgeEngine, Task, TaskOrder
 from e_organon.infra.settings import settings as st
 from e_organon.main import create_app
 from e_organon.ops.projects import NamedProjects
 from e_organon.ports.coder import Profile
+from e_organon.ports.ocr import OcrWord
 from e_organon.providers.drivers.store.sqlite import SqliteDriver
 from support.ink import ink_png
+from support.ocr import FakeOcr
 from support.pdf import labelled
 from support.photo import photo
 
@@ -80,6 +85,24 @@ def vault(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     monkeypatch.setattr(services_module, "st", on)
     monkeypatch.setattr(engines_module, "st", on)
     return tmp_path
+
+
+@pytest.fixture
+def fake_ocr() -> FakeOcr:
+    """The engine `ocr_on` opens in place of RapidOCR: it reads every image as one word."""
+    return FakeOcr((OcrWord(text="hola", box=(10, 20, 110, 60)),))
+
+
+@pytest.fixture
+def ocr_on(monkeypatch: pytest.MonkeyPatch, fake_ocr: FakeOcr, tmp_path: Path) -> Path:
+    """The app with OCR_ENABLED: its engine is the fake, built where the real one would keep its models — the returned
+    `<ORGANON_DATA>/doc/models/rapidocr`. Request it before `client`."""
+    on = st.model_copy(update={"OCR_ENABLED": True, "ORGANON_DATA": tmp_path / "data"})
+    monkeypatch.setattr(main_module, "st", on)
+    monkeypatch.setattr(providers_module, "st", on)
+    monkeypatch.setattr(mcp_lifespan_module, "st", on)
+    monkeypatch.setattr(providers_module, "RapidocrAdapter", lambda *, models: fake_ocr.keeping(models))
+    return tmp_path / "data" / "doc" / "models" / "rapidocr"
 
 
 @pytest.fixture

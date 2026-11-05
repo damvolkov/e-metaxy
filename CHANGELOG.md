@@ -2,6 +2,16 @@
 
 ## [Unreleased]
 
+### Added
+- **`doc/ocr` (TODO_doc, 3)**: the words of a scanned PDF or an image, each with its box in points on the displayed page
+  (origin bottom-left, as `doc/stamp`), and each page's text. Behind `OcrPort`; adapter `RapidocrAdapter` (PP-OCRv5 mobile
+  detector + `latin` recogniser, onnxruntime). Off unless `OCR_ENABLED` (no route, no MCP tool, no models); on, models
+  are fetched into `<ORGANON_DATA>/doc/models/rapidocr` at start. Pixel budget checked before decoding, page budget by the
+  render port. Benched pre-registered against Tesseract (liteparse), 120 synthetic ES/EN pages, interleaved, paired BCa
+  (`docs/bench/ocr.md`): CER 0.299 -> 0.030, `CER_T - CER_r5` +0.269 [+0.193, +0.353], p95 4.1 s; Tesseract is better on
+  clean and lightly noisy pages (0.005 against 0.04) and collapses on bad scans. Adds rapidocr + onnxruntime (~120 MB in a
+  venv; docker image delta not measured, the daemon was down).
+
 ### Changed
 - **`image/cutout` drops printed form lines (TODO_doc, 2)**: long straight runs of the ink mask (probabilistic Hough, tilt
   allowed) are taken off, and a stroke crossing one is bridged. Benched pre-registered, A against A + lines, paired BCa on

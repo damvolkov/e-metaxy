@@ -80,3 +80,10 @@ async def test_organon_submit_refuses_what_cannot_be_a_job(
     connect: Connect, ana_key: dict[str, str], arguments: dict[str, object], reason: str
 ) -> None:
     assert reason in await refused(connect, "organon_submit", arguments, ana_key)
+
+
+async def test_organon_find_ranks_doc_ocr_when_the_engine_is_on(
+    ocr_on: Path, vault: Path, connect: Connect, ana_key: dict[str, str]
+) -> None:
+    found = await call(connect, "organon_find", {"query": "read a scan words boxes", "section": "doc"}, ana_key)
+    assert found["tools"][0]["name"] == "doc_ocr"
