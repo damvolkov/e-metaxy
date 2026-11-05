@@ -62,7 +62,7 @@ hooks: ## run all prek hooks on every file (ruff, ty, tach, zizmor, gitleaks)
 test: ## run tests [TESTARGS='-k expr']
 	@uv run pytest tests $(TESTARGS) -n auto -q
 
-integration: ## the tests that need a real service (Postgres at POSTGRES_DSN, redis at REDIS_URL); skipped when none answers
+integration: ## the tests that need a real service (Postgres at POSTGRES_DSN and QUEUE_DSN); skipped when none answers
 	@uv run pytest tests -m integration -q
 
 cov: ## run tests with coverage gate (fail under 100%), real-service tests out like the default run

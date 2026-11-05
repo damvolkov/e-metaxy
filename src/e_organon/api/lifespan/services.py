@@ -24,8 +24,11 @@ from e_organon.services.doc.fill import FillDocService
 from e_organon.services.doc.inspect import InspectDocService
 from e_organon.services.doc.merge import MergeDocService
 from e_organon.services.doc.render import RenderDocService
+from e_organon.services.doc.signature import SignatureDocService
 from e_organon.services.doc.split import SplitDocService
+from e_organon.services.doc.stamp import StampDocService
 from e_organon.services.files import AllowedFiles
+from e_organon.services.image.cutout import CutoutImageService
 from e_organon.services.tekton.cancel import CancelTektonService
 from e_organon.services.tekton.catalog import CatalogTektonService
 from e_organon.services.tekton.eng import EngTektonService
@@ -79,6 +82,10 @@ async def lifespan(app: Litestar) -> AsyncGenerator[None]:
     doc.split = SplitDocService(found.pdf, files, artifacts)
     doc.fill = FillDocService(found.pdf, files, artifacts)
     doc.render = RenderDocService(found.render, files, artifacts)
+    doc.stamp = StampDocService(found.pdf, found.render, files, artifacts)
+    image = system.services.image
+    image.cutout = CutoutImageService(found.cutout, files, artifacts, max_pixels=st.ORGANON_MAX_PIXELS)
+    doc.signature = SignatureDocService(image.cutout, doc.stamp)
     ### the tekton tools exist only with the bridge on.
     match system.engines.bridge:
         case None:

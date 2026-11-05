@@ -2,6 +2,7 @@
 
 from datetime import timedelta
 from enum import StrEnum, auto
+from typing import Literal
 
 from pydantic import SecretStr
 
@@ -28,7 +29,9 @@ class EngineSettings(BaseSettings):
     AUTH_ADMIN: str = "admin"
 
     ### DISPATCH
-    QUEUE_ENGINE: QueueEngine = QueueEngine.PGQUEUER
+    ### only the engines the composition root has a row for (`api/lifespan/engines.QUEUES`): awa takes a DSN, not the
+    ### queue's database, so it is refused here, at load, rather than as a KeyError mid-lifespan.
+    QUEUE_ENGINE: Literal[QueueEngine.PGQUEUER] = QueueEngine.PGQUEUER
     ### how often at most a job's progress is written; the last snapshot is always written when it ends.
     QUEUE_THROTTLE: timedelta = timedelta(seconds=0.5)
 

@@ -1,0 +1,15 @@
+"""Arm C (control): rembg ISNet general-use matting, the mask as ink."""
+import sys, time
+import numpy as np
+from PIL import Image
+from rembg import new_session, remove
+
+session = new_session("isnet-general-use")
+for line in sys.stdin:
+    src, dst = line.split()
+    img = Image.open(src).convert("RGB")
+    t = time.perf_counter()
+    mask = remove(img, session=session, only_mask=True)
+    ms = (time.perf_counter() - t) * 1000
+    Image.fromarray(((np.asarray(mask) > 128) * 255).astype(np.uint8)).save(dst)
+    print(f"{ms:.3f}", flush=True)

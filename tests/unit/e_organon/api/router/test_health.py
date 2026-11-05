@@ -7,9 +7,9 @@ from typing import TYPE_CHECKING
 import pytest
 
 from e_organon.api.lifespan.providers import OPTIONAL, ProvidersState
-from e_organon.providers.drivers.store.redis import RedisDriver
 from e_organon.providers.drivers.store.sqlite import SqliteDriver
 from support.auth import FakeAuth
+from support.queue import FakeQueueDatabase
 
 if TYPE_CHECKING:
     from litestar.testing import TestClient
@@ -32,13 +32,13 @@ async def test_ready_answers_every_provider(client: TestClient) -> None:
 
 @pytest.mark.parametrize(
     ("driver", "role", "status"),
-    [(RedisDriver, "redis", 200), (SqliteDriver, "store", 503), (FakeAuth, "auth", 503)],
+    [(FakeQueueDatabase, "queue", 200), (SqliteDriver, "store", 503), (FakeAuth, "auth", 503)],
     ids=["optional-down", "required-down", "auth-down"],
 )
 async def test_ready_required(
     client: TestClient,
     monkeypatch: pytest.MonkeyPatch,
-    driver: type[SqliteDriver | RedisDriver | FakeAuth],
+    driver: type[SqliteDriver | FakeQueueDatabase | FakeAuth],
     role: str,
     status: int,
 ) -> None:

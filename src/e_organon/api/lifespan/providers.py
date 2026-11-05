@@ -18,7 +18,8 @@ from e_organon.infra.logger import logger
 from e_organon.infra.settings import settings as st
 from e_organon.ports.auth import AuthPort
 from e_organon.ports.coder import CoderPort
-from e_organon.ports.database import DatabasePort
+from e_organon.ports.cutout import CutoutPort
+from e_organon.ports.database import DatabaseListenPort, DatabasePort
 from e_organon.ports.documents import DocumentPort
 from e_organon.ports.http import HTTPPort
 from e_organon.ports.markdown import MarkdownPort
@@ -27,16 +28,17 @@ from e_organon.ports.pdf import PdfPort
 from e_organon.ports.provider import Provider
 from e_organon.ports.render import RenderPort
 from e_organon.ports.store import StorePort
+from e_organon.providers.adapters.cutout.opencv import OpencvAdapter
 from e_organon.providers.adapters.markdown.anytomd import AnytomdAdapter
 from e_organon.providers.adapters.pages.liteparse import LiteparseAdapter
 from e_organon.providers.adapters.pdf.pikepdf import PikepdfAdapter
 from e_organon.providers.adapters.render.pdfium import PdfiumAdapter
 from e_organon.providers.drivers.auth.postgres import PostgresAuthDriver
 from e_organon.providers.drivers.coder.claude import ClaudeDriver
+from e_organon.providers.drivers.database.asyncpg import AsyncpgDriver
 from e_organon.providers.drivers.database.psqlpy import PsqlpyDriver
 from e_organon.providers.drivers.documents.docling import DoclingDriver
 from e_organon.providers.drivers.http.wreq import WreqDriver
-from e_organon.providers.drivers.store.redis import RedisDriver
 from e_organon.providers.drivers.store.sqlite import SqliteDriver
 
 ### the roles a deployment may leave empty: each stays out of `named` (and the health survey) until its setting is set.
@@ -49,19 +51,22 @@ class ProvidersState:
     """The typed providers section: fields named by role, typed by the port the role speaks.
 
     `store` is the KV edge the app's records live on; `auth` is where accounts and keys live, over `database`, the
-    service's one SQL pool; `coder` is the engineer harness the tekton tools drive; any further field is an optional
-    provider the export may drop. The providers are
-    singletons — factory machinery comes later."""
+    service's one SQL pool; `queue` is the pool of the queue's own database, asyncpg — PgQueuer's catalog queries return
+    `name[]`, which psqlpy cannot decode: on it the schema never installs and the queue falls to memory; `coder` is the engineer harness the tekton
+    tools drive; any further field is an optional provider the export may drop. The providers are singletons —
+    factory machinery comes later."""
 
     store: StorePort
-    redis: StorePort
     http: HTTPPort
     database: DatabasePort
+    ### the queue's database, apart from the service's (QUEUE_DSN): the durable background rides on it.
+    queue: DatabaseListenPort
     auth: AuthPort
     markdown: MarkdownPort
     pages: PagesPort
     pdf: PdfPort
     render: RenderPort
+    cutout: CutoutPort
     ### the coder opens only with the bridge on (TEKTON_PROFILES): the public image carries no Claude CLI.
     coder: CoderPort | None
     ### docling-serve is optional: present only when DOCLING_URL is set — the doc tools read without it.
@@ -132,28 +137,32 @@ async def lifespan(app: Litestar) -> AsyncGenerator[None]:
     async with AsyncExitStack() as stack:
         enter = stack.enter_async_context
         store = await enter(SqliteDriver(path=st.DB_PATH, timeout=st.DB_TIMEOUT))
-        redis = await enter(RedisDriver(url=st.REDIS_URL, pool=st.REDIS_POOL, timeout=st.REDIS_TIMEOUT))
         http = await enter(
             WreqDriver(base_url=st.HTTP_BASE_URL, timeout=st.HTTP_TIMEOUT, agent=st.HTTP_AGENT, headers=st.HTTP_HEADERS)
         )
         database = await enter(PsqlpyDriver(dsn=st.POSTGRES_DSN, pool=st.POSTGRES_POOL, timeout=st.POSTGRES_TIMEOUT))
+        queue = await enter(
+            AsyncpgDriver(dsn=st.QUEUE_DSN, pool_min=st.ASYNCPG_POOL_MIN, pool=st.QUEUE_POOL, timeout=st.QUEUE_TIMEOUT)
+        )
         auth = await enter(PostgresAuthDriver(database))
         markdown = await enter(anytomd())
         pages = await enter(liteparse())
-        pdf = await enter(PikepdfAdapter())
-        render = await enter(PdfiumAdapter())
+        pdf = await enter(PikepdfAdapter(max_pages=st.ORGANON_MAX_PAGES, max_pixels=st.ORGANON_MAX_PIXELS))
+        render = await enter(PdfiumAdapter(max_pages=st.ORGANON_MAX_PAGES))
+        cutout = await enter(OpencvAdapter())
         coder = await enter(ClaudeDriver(st.TEKTON_CLAUDE)) if st.TEKTON_PROFILES else None
         docling = await enter(docling_driver(http)) if st.DOCLING_URL else None
         providers = ProvidersState(
             store=store,
-            redis=redis,
             http=http,
             database=database,
+            queue=queue,
             auth=auth,
             markdown=markdown,
             pages=pages,
             pdf=pdf,
             render=render,
+            cutout=cutout,
             coder=coder,
             docling=docling,
         )

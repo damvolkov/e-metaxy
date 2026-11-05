@@ -135,6 +135,122 @@
     ]
   },
   {
+    "name": "doc_stamp",
+    "title": "Stamp a PDF",
+    "description": "An `image` (a PNG path, its transparency kept) or a `text` drawn on a PDF by `path`, `at` a form field, a text anchor or a box (PDF points, bottom-left origin). The image keeps its aspect ratio. Returns the copy's `path`.",
+    "access": "user",
+    "annotations": {
+      "destructive_hint": false,
+      "open_world_hint": false,
+      "read_only_hint": false
+    },
+    "arguments": [
+      "at",
+      "image",
+      "opacity",
+      "path",
+      "text"
+    ],
+    "required": [
+      "at",
+      "path"
+    ]
+  },
+  {
+    "name": "doc_signature",
+    "title": "Sign a PDF with a photo",
+    "description": "A photo of a handwritten signature (`photo`) cut out and placed on a PDF (`path`) `at` as doc_stamp's. Visual only, not a cryptographic signature. Returns the copy's `path`.",
+    "access": "user",
+    "annotations": {
+      "destructive_hint": false,
+      "open_world_hint": false,
+      "read_only_hint": false
+    },
+    "arguments": [
+      "at",
+      "color",
+      "path",
+      "photo"
+    ],
+    "required": [
+      "at",
+      "path",
+      "photo"
+    ]
+  },
+  {
+    "name": "image_cutout",
+    "title": "Cut ink out of a photo",
+    "description": "A photo of ink on paper (a signature) by `path`, as a transparent PNG of the ink alone: paper tint, uneven light and shadows gone, soft edges. `color` keeps the ink's own colour (default; off, black); `crop` cuts to the ink (default). Returns the PNG's `path`, the next tool's input (doc_stamp).",
+    "access": "user",
+    "annotations": {
+      "destructive_hint": false,
+      "open_world_hint": false,
+      "read_only_hint": false
+    },
+    "arguments": [
+      "color",
+      "crop",
+      "path"
+    ],
+    "required": [
+      "path"
+    ]
+  },
+  {
+    "name": "organon_find",
+    "title": "Find a tool",
+    "description": "The tools that answer a need, best first (at most 5): `query` in words, `section` (doc, tekton…) to narrow. Each comes with its description and its arguments' JSON Schema.",
+    "access": "user",
+    "annotations": {
+      "destructive_hint": false,
+      "open_world_hint": false,
+      "read_only_hint": true
+    },
+    "arguments": [
+      "query",
+      "section"
+    ],
+    "required": [
+      "query"
+    ]
+  },
+  {
+    "name": "organon_job",
+    "title": "Check a job",
+    "description": "A job — a tool run in the background — by `job`: its `state` (available, running, completed, failed, cancelled), its `progress` (`steps` entered so far; at the end `done`, the tool's answer, or `failed`) and its `errors`. `wait`: seconds to hold the answer until it settles (0-25; 0 answers at once).",
+    "access": "user",
+    "annotations": {
+      "destructive_hint": false,
+      "open_world_hint": false,
+      "read_only_hint": true
+    },
+    "arguments": [
+      "job",
+      "wait"
+    ],
+    "required": [
+      "job"
+    ]
+  },
+  {
+    "name": "organon_cancel",
+    "title": "Cancel a job",
+    "description": "A job by `job`, stopped where it awaits; one already settled comes back as it is.",
+    "access": "user",
+    "annotations": {
+      "destructive_hint": true,
+      "open_world_hint": false,
+      "read_only_hint": false
+    },
+    "arguments": [
+      "job"
+    ],
+    "required": [
+      "job"
+    ]
+  },
+  {
     "name": "tekton_eng",
     "title": "Run an eng order",
     "description": "Pass the user's `eng` message exactly as typed, prefix included; the grammar is parsed here, never by you. `project`: the project the conversation is about, for an order that names none; `profile`: what a new run may do. Grammar: `eng [project:] <order>` new session · `eng @ref: <order>` continue · `eng @ref+: <order>` branch · `eng @ref?` where it stopped · `eng @ref = <title>` rename · `eng ls [project]` sessions · `eng ps` tasks · `eng stop <task>`. `ref` is a session id, its first 8 characters or its exact title. Answers `verb` and `result`.",

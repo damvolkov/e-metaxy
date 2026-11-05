@@ -3,6 +3,46 @@
 ## [Unreleased]
 
 ### Added
+- Quality (`TODO_jobs` step 6): a hostile corpus (`tests/resources/hostile/`: pixel bombs, a bad-CRC PNG, a PDF with
+  JavaScript, one of 20 000 pages, truncated and garbage files, a symlink out of the roots) run through every doc/ and
+  image/ tool on the whole stack — always a clean 200 or 422, under 10 s (125 cases) — and goldens for the new tools
+  (cutout IoU ≥ 0.99 against a stored mask; stamp's matrix and pdfium's rendered pixels; signature's ink in the stamp).
+  Limits added where the corpus found none: `ORGANON_MAX_PAGES` (5 000; a merge of 20 000 pages took 52 s, render
+  drew them all) in the pikepdf and pdfium adapters, and `ORGANON_MAX_PIXELS` on a stamp's image. `make check`: 674
+  passed, coverage 100 %.
+- `doc/stamp` and `doc/signature` (`TODO_jobs` step 5): an image (PNG, transparency kept) or a text drawn on a PDF page
+  `at` a form field, a text anchor (found by pdfium's text search, `occurrence`, `offset`, `width`) or a box — a tagged
+  union in the request; `doc/signature` is `image/cutout` then `doc/stamp`, one stream (`cutout.*`, `stamp.*`). Ports:
+  `PdfPort.stamp`, `RenderPort.find`; REST, MCP `doc_stamp`/`doc_signature`, job kinds. Visual only, not PAdES.
+  Placement tested against the page's own `cm` matrix (field, anchor ± 3 pt, box). The stamp tools' schema took the
+  tool list to 5 669 tokens with the bridge (25 tools, 2.8 % of 200 k): profiles still not needed, budget test now
+  8 000. `make check`: 505 passed, coverage 100 %.
+- `image/cutout` (`TODO_jobs` step 4): the ink of a photographed signature as a transparent PNG in the outbox
+  (`POST /image/cutout`, MCP `image_cutout`, a job kind on the `image` queue, `ORGANON_SLOTS_IMAGE`). `CutoutPort` +
+  `OpencvAdapter` (flat-field by closing, Sauvola, darkness gate, specks dropped; soft alpha); the photo's pixels are read
+  from its header first and refused over `ORGANON_MAX_PIXELS` (40 MP). Bench (`docs/bench/cutout.md`, raw samples kept,
+  60 synthetic test images, interleaved, paired BCa bootstrap): A F 0.909 / IoU 0.834 / 50 ms p50 against rembg ISNet
+  F 0.816 / IoU 0.689 / 931 ms, A − C F +0.100 CI [0.075, 0.116] > 0.03 → OpenCV wins; synthetic data only. Image: +508 MB
+  (1 862 → 2 371 MB; opencv-headless, scikit-image, scipy, numpy). `make check`: 470 passed, coverage 100 %.
+- Job ownership and a closed queue setting (`TODO_jobs` follow-ups): a job records its caller's account (`owner`) and its
+  tool input travels under one key (`input`), so no input field can meet the dispatch's own kwargs (`attempts`,
+  `coalesce`, `_trace`); the dispatch engine is common and untouched. Another account's job is 404 on `GET /jobs/{id}`,
+  `/events`, `DELETE` and `organon_job`/`organon_cancel` (existence not revealed); the admin reaches every job.
+  `QUEUE_ENGINE` is `Literal[pgqueuer]`: `awa` has no row (it takes a DSN, not the queue's database), so it is a config
+  error at load, not a KeyError mid-lifespan. `make check`: 451 passed, coverage 100 %.
+- Catalog (`TODO_jobs` step 3): `organon/find {query, section?}` (REST and MCP `organon_find`) ranks the MCP registry's
+  tools by name 4 / title 2 / description 1 over lower-cased words, five at most, ties by name — no model
+  (`docs/catalog.md`). Tools at rest, measured (tiktoken cl100k_base as proxy): 11 tools 2 209 tokens, 22 with the
+  bridge 4 167 (2.1 % of 200 k), +150 synthetic 32 683 — about 190 a tool. Verdict: no per-section MCP profiles (a
+  tenth of 200 k comes at ~105 tools); a 5 000-token budget test guards it. `make check`: 440 passed, coverage 100 %.
+- Jobs (`TODO_jobs` step 2): every tool but tekton's is a kind `<section>/<word>` on its section's queue
+  (`ORGANON_SLOTS_DOC`, default 2). `Prefer: respond-async` (RFC 7240) on a tool route answers `202 {job, state}` with
+  `Location: /jobs/{id}`; `GET /jobs/{id}`, `GET /jobs/{id}/events` (SSE, polled until settled: `step`…, then `done` or
+  `failed`, the very events of the tool's own stream) and `DELETE /jobs/{id}`; MCP `organon_job` (`wait` up to 25 s) and
+  `organon_cancel`. Evidence: `doc/convert` queued streams `resolve`, `read`, `done` and settles `completed` with the
+  batch's answer — in tests (memory) and live on ParadeDB/pgqueuer (throwaway databases); `make check` 421 passed,
+  coverage 100 %. Fix to step 1: the queue's database is asyncpg — psqlpy cannot decode `name[]`, which pgqueuer's
+  catalog queries return, so the durable queue never opened on it (measured live: fell to memory).
 - The skeleton (`TODO_skeleton`): `e_organon` on e-arkhetypo's api template with common materialized inside the
   package; the canonical tool shape — `POST /<section>/<word>`, SSE or batch by `Accept`, its MCP twin from the same
   handler; `doc/` with convert, inspect, fill, merge, split, render (docling + anytomd, pikepdf, pdfium) and the
@@ -15,6 +55,29 @@
   reused after: first start 2.5 s (eng+spa, 29 MB), second 0.25 s.
 
 ### Changed
+- `doc/stamp` honours the page's geometry: `/Rotate` (0/90/180/270, inherited too) and the crop box. `at.box` is in the page
+  *as displayed* (origin at the visible page's bottom-left after the turn); a field's and an anchor's rectangles are the
+  PDF's, user space, turned into displayed ones by `PageGeometry` (new, in `ports/pdf`, with `PdfPort.geometry`); the image
+  is drawn upright on a turned page. Tested on what pdfium renders, not on the matrix: a box's quadrants' colours at their
+  places and an anchor stamp centred on the text's ink, on 0/90/180/270, cropped, 90 + cropped, 270 + cropped. Red before
+  (6 of 14 failed on the old code). `occurrence` counts in pdfium's reading order, which follows the displayed page.
+  `make check`: 541 passed, coverage 100 %.
+- `image/cutout` without scikit-image: Sauvola ported to `cv2.boxFilter` (float64, reflect-101 borders, R = 1.0 as
+  scikit-image sets it for a float image), dropping scikit-image, scipy, imageio, tifffile and lazy-loader. Equivalence
+  on the 80 bench images: ink masks identical (pixel IoU min 1.000000, median 1.000000), F median on test 0.9094 both
+  ways (`docs/bench/cutout.md`, "Port"). Image: 2 371 → 2 161 MB (−210 MB; +299 MB over the
+  1 862 MB before the image tools, all of it opencv-headless and numpy).
+- Flaky test fixed: `test_organon_another_accounts_job_is_unknown_the_admin_reads_it[organon_cancel]` hung once in a
+  hundred runs under load. Cause (found by logging the tool's path): the in-process MCP client runs a tool on the test's
+  loop while the dispatch and its jobs' `anyio.Event`s live on the REST client's loop, and `organon_cancel` awaits the
+  job's end across the two — an event set on one loop does not wake a waiter on the other. The test now cancels a
+  `settled` job (REST waits for its events first). 120 of 120 runs clean under 30 parallel processes; not a product
+  bug — a remote MCP client runs on the server's own loop.
+- One base (`TODO_jobs` step 1): redis is out of organon (provider, state, tests, `fakeredis`); the queue lives in
+  ParadeDB — a second `PsqlpyDriver` on `QUEUE_DSN` (`organon_background`, created by `api/lifespan/db` beside
+  `organon`), `PgqueuerDriver` on it, `DispatchEngine` over memory as fallback, entered by `api/lifespan/jobs`; `queue`
+  is a provider in `/ready` (optional; asyncpg since step 2 — see Added). Defaults now name `organon` / `organon_background`. `make check`: 385 passed,
+  coverage 100 %.
 - Settings as category clusters (e-nous settings law, e-arkhetypo #109): `infra/config/{infra,providers,engines,
   processors,services,api,mcp,cli,…}.py` hold UPPERCASE typed fields named as their env variables; one `Settings`,
   `settings = Settings()`, read only by the composition root, which passes keyword arguments to every provider, engine,

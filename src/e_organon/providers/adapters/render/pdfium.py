@@ -1,4 +1,5 @@
-"""providers/adapters/render/pdfium: PDF pages as PNG through pypdfium2 (PDFium, the engine Chrome renders with).
+"""providers/adapters/render/pdfium: PDF pages as PNG, and where a text sits on them, through pypdfium2 (PDFium, the engine
+Chrome renders with).
 
 PDFium is not thread-safe: every render takes the adapter's lock, off the loop in a worker thread."""
 
@@ -11,9 +12,12 @@ import pypdfium2 as pdfium
 
 from e_organon.infra.errors import ParseError
 from e_organon.ports.provider import Isolation, Locality, ProviderSpec, Workload
+from e_organon.ports.render import TextHit
 
 ### PDF user space is 72 points per inch.
 POINTS: Final[float] = 72.0
+### the most pages a document may have before any is read: a page tree can name one page twenty thousand times cheaply.
+PAGES: Final[int] = 5_000
 
 
 ##### ADAPTER #####
@@ -22,19 +26,25 @@ class PdfiumAdapter:
 
     spec: ClassVar[ProviderSpec] = ProviderSpec("pdfium", Locality.EMBEDDED, Workload.CPU_BOUND, Isolation.SERIAL)
 
-    __slots__ = ("_lock",)
+    __slots__ = ("_lock", "_max_pages")
 
-    def __init__(self) -> None:
+    def __init__(self, *, max_pages: int = PAGES) -> None:
         self._lock = threading.Lock()
+        self._max_pages = max_pages
 
     ##### PRIVATE #####
 
     def _common_open(self, data: bytes) -> pdfium.PdfDocument:
         try:
-            return pdfium.PdfDocument(data)
+            document = pdfium.PdfDocument(data)
         except pdfium.PdfiumError as error:
             msg = f"not a readable PDF: {error}"
             raise ParseError(msg) from error
+        match len(document) <= self._max_pages:
+            case False:
+                msg = f"{len(document)} pages; the limit is {self._max_pages}"
+                raise ParseError(msg)
+        return document
 
     def _count_read(self, data: bytes) -> int:
         with self._lock:
@@ -51,6 +61,31 @@ class PdfiumAdapter:
             sink = io.BytesIO()
             image.save(sink, format="PNG", optimize=True)
             return sink.getvalue()
+
+    @staticmethod
+    def _find_page(page: pdfium.PdfPage, index: int, text: str) -> list[TextHit]:
+        """Every match on the page, case ignored: the union of its characters' boxes."""
+        textpage = page.get_textpage()
+        matches = iter(textpage.search(text, match_case=False).get_next, None)
+        boxes = [[textpage.get_charbox(i) for i in range(start, start + count)] for start, count in matches]
+        return [
+            TextHit(
+                page=index,
+                rect=(
+                    min(b[0] for b in chars),
+                    min(b[1] for b in chars),
+                    max(b[2] for b in chars),
+                    max(b[3] for b in chars),
+                ),
+            )
+            for chars in boxes
+            if chars
+        ]
+
+    def _find_scan(self, data: bytes, text: str) -> tuple[TextHit, ...]:
+        with self._lock:
+            document = self._common_open(data)
+            return tuple(hit for index in range(len(document)) for hit in self._find_page(document[index], index, text))
 
     ############################################################
 
@@ -70,3 +105,6 @@ class PdfiumAdapter:
 
     async def page(self, data: bytes, index: int, dpi: int) -> bytes:
         return await anyio.to_thread.run_sync(self._page_draw, data, index, dpi)
+
+    async def find(self, data: bytes, text: str) -> tuple[TextHit, ...]:
+        return await anyio.to_thread.run_sync(self._find_scan, data, text)

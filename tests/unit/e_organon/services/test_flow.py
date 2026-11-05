@@ -59,3 +59,7 @@ async def test_flow_base_has_no_workflow() -> None:
     assert [event async for event in ToolFlow[str, str]().events("x")] == [
         Failed(kind="NotImplementedError", reason="")
     ]
+
+
+async def test_flow_arguments_are_the_declared_input() -> None:
+    assert (Echo.arguments(), Echo().arguments()) == (str, str)

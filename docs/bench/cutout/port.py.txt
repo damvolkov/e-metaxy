@@ -1,0 +1,29 @@
+import sys, glob, statistics as st
+import cv2, numpy as np
+from skimage.filters import threshold_sauvola
+sys.path.insert(0, "/home/damien/workspaces/damien/e-organon/src")
+from e_organon.providers.adapters.cutout.opencv import OpencvAdapter as A, WINDOW, K, GATE, SPECK, CLOSE
+
+def old(img):
+    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    background = cv2.morphologyEx(gray, cv2.MORPH_CLOSE, cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (CLOSE, CLOSE)))
+    flat = np.clip(gray.astype(np.float32) / np.maximum(background, 1) * 255, 0, 255)
+    ink = (flat < threshold_sauvola(flat, window_size=WINDOW, k=K)) & (flat < GATE)
+    count, labels, stats, _ = cv2.connectedComponentsWithStats(ink.astype(np.uint8), connectivity=8)
+    keep = np.zeros(count, bool); keep[1:] = stats[1:, cv2.CC_STAT_AREA] >= SPECK
+    return keep[labels]
+
+def score(p, t):
+    tp=float((p&t).sum()); pr=tp/max(p.sum(),1); rc=tp/max(t.sum(),1); f=2*pr*rc/max(pr+rc,1e-9); return f, tp/max(float((p|t).sum()),1)
+
+ious, fs_new, fs_old = [], [], []
+for split in ("dev","test"):
+    for jpg in sorted(glob.glob(f"/tmp/bench-cutout/data/{split}/*.jpg")):
+        img = cv2.imread(jpg); truth = cv2.imread(jpg.replace(".jpg",".mask.png"), 0) > 127
+        a, b = old(img), A._cut_ink(img)[1]
+        ious.append((float((a&b).sum())/max(float((a|b).sum()),1), split))
+        if split=="test":
+            fs_old.append(score(a,truth)[0]); fs_new.append(score(b,truth)[0])
+v=[i for i,_ in ious]
+print("n", len(v), "IoU old vs new: min %.6f median %.6f"%(min(v), st.median(v)))
+print("test F median old %.4f new %.4f"%(st.median(fs_old), st.median(fs_new)))

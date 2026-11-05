@@ -1,7 +1,7 @@
 """api.lifespan.db: create every database the settings name, when missing, before any edge connects to one.
 
 Each database is a row: its concern, and the settings whose DSN names it — the service's own (POSTGRES_DSN, default
-`app` on the local ParadeDB); any new database is one more row. Each is created on its server's maintenance database
+`organon` on the local ParadeDB) and the queue's (QUEUE_DSN, `organon_background`); any new database is one more row. Each is created on its server's maintenance database
 by the psqlpy driver, the rows in order. One that cannot be reached or created is a warning, never a crash here: an
 edge on a missing database fails loudly where it connects. Nothing is written to the graph."""
 
@@ -20,7 +20,7 @@ from e_organon.providers.drivers.database.psqlpy import PsqlpyDriver
 ##### ROWS #####
 def databases() -> Mapping[str, Secret[PostgresDsn]]:
     """Every database the service needs, by concern: its DSN."""
-    return {"app": st.POSTGRES_DSN}
+    return {"app": st.POSTGRES_DSN, "queue": st.QUEUE_DSN}
 
 
 async def provision(concern: str, dsn: Secret[PostgresDsn]) -> bool:

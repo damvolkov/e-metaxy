@@ -58,3 +58,34 @@ def form() -> bytes:
         )
         pdf.docinfo[Name.Title] = String("Solicitud")
         return _save(pdf)
+
+
+def labelled(*, rotate: int = 0, crop: tuple[float, float, float, float] | None = None, second: bool = True) -> bytes:
+    """One page with real text for a text search to find: `Firma:` at (100, 700) and, when `second`, `Firma: otra` at
+    (100, 500) — user space, Helvetica 14 —, turned by `rotate` degrees and seen through the `crop` box if given."""
+    with pikepdf.new() as pdf:
+        page = pdf.add_blank_page(page_size=A4)
+        page.obj.Resources = Dictionary(
+            Font=Dictionary(F1=Dictionary(Type=Name.Font, Subtype=Name.Type1, BaseFont=Name.Helvetica))
+        )
+        page.obj.Contents = pdf.make_stream(
+            b"BT /F1 14 Tf 100 700 Td (Firma:) Tj ET"
+            + (b" BT /F1 14 Tf 100 500 Td (Firma: otra) Tj ET" if second else b"")
+        )
+        page.obj.Rotate = rotate
+        _ = crop and setattr(page.obj, "CropBox", Array(list(crop)))
+        return _save(pdf)
+
+
+def placements(data: bytes) -> list[tuple[float, ...]]:
+    """The matrix `(w 0 0 h x y)` in force at every image drawn on the first page: the last `cm` before each `Do`."""
+    found: list[tuple[float, ...]] = []
+    last: tuple[float, ...] = ()
+    with pikepdf.open(io.BytesIO(data)) as pdf:
+        for operands, operator in pikepdf.parse_content_stream(pdf.pages[0]):
+            match str(operator):
+                case "cm":
+                    last = tuple(float(each) for each in operands)
+                case "Do":
+                    found.append(last)
+    return found

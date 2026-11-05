@@ -12,6 +12,25 @@ class OutsideRootsError(OrganonError):
     """The path sits under none of ORGANON_ROOTS, or does not exist."""
 
 
+class ImageTooLargeError(OrganonError):
+    """The image has more pixels than the service decodes: refused from its header, before a pixel is read."""
+
+
+class FieldNotFoundError(OrganonError, LookupError):
+    """The PDF has no form field of that full name."""
+
+
+class AnchorNotFoundError(OrganonError, LookupError):
+    """The text is on no page of the PDF — or not that many times."""
+
+
+class UnknownJobError(OrganonError, LookupError):
+    """No job under that id: never submitted, or long settled and gone."""
+
+    def __init__(self, job: str) -> None:
+        super().__init__(f"unknown job {job!r}")
+
+
 class FlowError(Exception):
     """A batch run whose workflow ended in `Failed`: carries it, so the batch answer is the streamed one."""
 

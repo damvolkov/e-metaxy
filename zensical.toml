@@ -9,6 +9,8 @@ nav = [
   { "Home" = "index.md" },
   { "Study" = "organon-study.md" },
   { "Tree" = "tree.md" },
+  { "Catalog" = "catalog.md" },
+  { "Bench: cutout" = "bench/cutout.md" },
   { "Bridge (e_metaxy)" = "bridge.md" },
   { "Releasing" = "release.md" },
 ]

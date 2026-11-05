@@ -39,7 +39,7 @@ src/e_organon/       # the service: api/ (lifespan, routers, stream), mcp/ (the 
                      # and e-arkhetypo's common materialized whole inside it: engines/ infra/ ops/ ports/ processors/ providers/
 tests/unit/      # mirrors src, import-mode=importlib; no service in the default run (`tests/conftest.py` fakes them all)
 tests/benchmark/  # the load no single module owns: the whole app under concurrent traffic (`make stress`)
-tests/support/   # the fakes the mirror shares (a scripted psqlpy pool, the accounts' store, the MCP client) — redis rides fakeredis
+tests/support/   # the fakes the mirror shares (a scripted psqlpy pool, the accounts' store, the MCP client), the durable queue (down: jobs run in memory)
 Dockerfile       # two-stage: builder (uv) + deploy (python-slim, non-root)
 compose.yml      # single e-organon service, host network, :45190
 ```
@@ -47,9 +47,9 @@ compose.yml      # single e-organon service, host network, :45190
 ##### TAXONOMY #####
 
 Providers sit by capability — `e_organon/providers/<drivers|adapters>/<capability>/<name>.py`
-(`e_organon.providers.drivers.store.redis`, `e_organon.providers.drivers.http.wreq`). The settings are one `Settings`
+(`e_organon.providers.drivers.queue.pgqueuer`, `e_organon.providers.drivers.http.wreq`). The settings are one `Settings`
 over the category clusters of `infra/config/` (infra, providers, engines, processors, services, the doors): UPPERCASE
-fields named as their env variables — `st.REDIS_URL`, `st.APP_PORT` —, read by the composition root alone, which hands
+fields named as their env variables — `st.QUEUE_DSN`, `st.APP_PORT` —, read by the composition root alone, which hands
 each provider, engine and service its values. Every exception descends from `infra.errors.CoreError`; the service's own
 live in `e_organon` and stay out of that tree.
 

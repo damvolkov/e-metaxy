@@ -16,7 +16,7 @@ from e_organon.api.stream import answer
 from e_organon.infra.auth.guard import OPT
 from e_organon.infra.auth.models import Access
 from e_organon.infra.state import State
-from e_organon.models.doc import ConvertIn, FillIn, InspectIn, MergeIn, RenderIn, SplitIn
+from e_organon.models.doc import ConvertIn, FillIn, InspectIn, MergeIn, RenderIn, SignatureIn, SplitIn, StampIn
 
 TOOL_DEPS: Final[dict[str, Provide]] = {DepKey.GRAPH.value: Provide(graph, sync_to_thread=False)}
 
@@ -52,6 +52,16 @@ async def render(data: JSONBody[RenderIn], request: Request[Any, Any, Any], grap
     return await answer(request, graph.services.doc.render, data)
 
 
+async def stamp(data: JSONBody[StampIn], request: Request[Any, Any, Any], graph: NamedDependency[State]) -> Any:
+    """doc/stamp: an image or a text drawn on a PDF page."""
+    return await answer(request, graph.services.doc.stamp, data)
+
+
+async def signature(data: JSONBody[SignatureIn], request: Request[Any, Any, Any], graph: NamedDependency[State]) -> Any:
+    """doc/signature: a photographed signature placed on a PDF."""
+    return await answer(request, graph.services.doc.signature, data)
+
+
 ##### ROUTES #####
 ROUTES: tuple[HTTPRouteHandler, ...] = tuple(
     post(
@@ -63,5 +73,5 @@ ROUTES: tuple[HTTPRouteHandler, ...] = tuple(
         security=SECURITY,
         dependencies=TOOL_DEPS,
     )(handler)
-    for handler in (convert, inspect, merge, split, fill, render)
+    for handler in (convert, inspect, merge, split, fill, render, stamp, signature)
 )

@@ -11,9 +11,9 @@ import io
 
 from pytest_resources import FileType, eserde_loaders
 
-from support.app import coder, keys, psqlpy, redis_server
+from support.app import coder, keys, psqlpy, queue, queue_database
 
-__all__ = ["coder", "keys", "psqlpy", "redis_server"]
+__all__ = ["coder", "keys", "psqlpy", "queue", "queue_database"]
 
 
 def pytest_resource_loaders(register) -> None:

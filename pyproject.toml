@@ -74,6 +74,7 @@ dependencies = [
     "pillow>=13.0.0",
     ##### tekton — Claude Code as a coder: the Agent SDK runs a spec, a `claude mcp serve` child reaches live sessions #####
     "claude-agent-sdk>=0.2.164",
+    "opencv-python-headless>=5.0.0.93",
 ]
 
 [project.urls]
@@ -98,11 +99,11 @@ test = [
     "pytest-randomly>=5.0",
     "pytest-timeout>=2.4",
     "pytest-stress>=1.0.1",
-    "fakeredis>=2.40.0",
     ### the MCP door's tests drive the SDK's own client over an ASGI transport, in process.
     "httpx2>=2.13",
     ### no [serde] extra: it pins e-serde<0.6 and the main dependency (ops/registry) needs >=0.6.1, which the plugin loads through.
     "pytest-resources>=0.3.2",
+    "tiktoken>=0.14.0",
 ]
 docs = [
     "mkdocstrings[python]>=1.0.7",

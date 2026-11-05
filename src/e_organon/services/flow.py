@@ -5,7 +5,8 @@ that stream made total: whatever the workflow raises becomes its last event, `Fa
 mid-way. `run` is the batch reading of the same stream — the answer, or `FlowError` with the very `Failed` a stream
 would have sent. REST streams or batches per request; the MCP twin batches."""
 
-from typing import TYPE_CHECKING
+from types import get_original_bases
+from typing import TYPE_CHECKING, get_args, get_origin
 
 from e_organon.infra.logger import logger
 from e_organon.models.error import FlowError
@@ -27,6 +28,12 @@ class ToolFlow[I, O]:
     ############################################################
 
     ##### PUBLIC #####
+
+    @classmethod
+    def arguments(cls) -> type[I]:
+        """The input type the tool was declared over — `ToolFlow[ConvertIn, ConvertOut]` says `ConvertIn` —: what a job
+        stored as builtins is decoded into."""
+        return next(get_args(base)[0] for base in get_original_bases(cls) if get_origin(base) is ToolFlow)
 
     async def events(self, data: I) -> AsyncIterator[Event]:
         """Every event the workflow emits; a raise becomes the last one, `Failed`."""

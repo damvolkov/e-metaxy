@@ -89,3 +89,65 @@ class RenderIn(msgspec.Struct, frozen=True, kw_only=True):
     path: str
     pages: list[PAGE] = msgspec.field(default_factory=list)
     dpi: DPI = 110
+
+
+##### STAMP #####
+POINTS = Annotated[float, msgspec.Meta(gt=0)]
+OPACITY = Annotated[float, msgspec.Meta(ge=0, le=1)]
+
+
+class AtField(msgspec.Struct, frozen=True, kw_only=True, tag="field"):
+    """An AcroForm field by its full name (`doc/inspect` lists them): its widget's page and rectangle."""
+
+    field: str
+
+
+class AtAnchor(msgspec.Struct, frozen=True, kw_only=True, tag="anchor"):
+    """A text found on the pages, case ignored, the `occurrence`-th in page order: the stamp starts at its bottom-left
+    corner plus `offset` (points, y up), fitted in the text's box or `width` wide."""
+
+    anchor: str
+    occurrence: Annotated[int, msgspec.Meta(ge=1)] = 1
+    offset: tuple[float, float] = (0.0, 0.0)
+    width: POINTS | None = None
+
+
+class AtBox(msgspec.Struct, frozen=True, kw_only=True, tag="box"):
+    """A box in PDF points from the bottom-left of `page` (from 0); no `height`, the image's aspect gives it."""
+
+    page: PAGE
+    x: float
+    y: float
+    width: POINTS
+    height: POINTS | None = None
+
+
+At = AtField | AtAnchor | AtBox
+
+
+class StampIn(msgspec.Struct, frozen=True, kw_only=True):
+    """`path`: the PDF. `image` (a PNG path) or `text` (Helvetica), one of the two. `at`: where, tagged by `type`.
+    `opacity`: 0-1."""
+
+    path: str
+    at: At
+    image: str | None = None
+    text: str | None = None
+    opacity: OPACITY = 1.0
+
+    def __post_init__(self) -> None:
+        match (self.image is None, self.text is None):
+            case (True, True) | (False, False):
+                msg = "give an image or a text to stamp, one of the two"
+                raise ValueError(msg)
+
+
+##### SIGNATURE #####
+class SignatureIn(msgspec.Struct, frozen=True, kw_only=True):
+    """`path`: the PDF to sign. `photo`: the signature on paper. `at`: where, as `doc/stamp`'s. `color`: the ink's own
+    colour (off, black)."""
+
+    path: str
+    photo: str
+    at: At
+    color: bool = True

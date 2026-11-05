@@ -7,5 +7,8 @@ from typing import Final
 
 from litestar.types import ExceptionHandlersMap
 
+from e_organon.api.router.jobs import missing
+from e_organon.models.error import UnknownJobError
+
 ### every tool route's exception handlers, copied by each route (`MCPTool.route`): Litestar takes a mutable map.
-REFUSALS: Final[ExceptionHandlersMap] = {}
+REFUSALS: Final[ExceptionHandlersMap] = {UnknownJobError: missing}
