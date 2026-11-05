@@ -185,3 +185,23 @@ class OcrOut(msgspec.Struct, frozen=True, kw_only=True):
     """The pages read, in order. An image is one page, one pixel a point."""
 
     pages: list[OcrPageOut]
+
+
+##### SIGN #####
+class SignIn(msgspec.Struct, frozen=True, kw_only=True):
+    """`path`: the PDF to sign. Invisible by default; give `at` (as `doc/stamp`'s) and one of `image` (a PNG path), `text`
+    or `photo` (a signature on paper, cut out as `doc/signature` does) and its appearance is drawn there first."""
+
+    path: str
+    at: At | None = None
+    image: str | None = None
+    text: str | None = None
+    photo: str | None = None
+
+    def __post_init__(self) -> None:
+        match (self.at is None, sum(each is not None for each in (self.image, self.text, self.photo))):
+            case (True, 0) | (False, 1):
+                pass
+            case _:
+                msg = "give `at` with exactly one of image, text or photo for a visible signature, or none of them"
+                raise ValueError(msg)

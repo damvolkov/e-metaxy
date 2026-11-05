@@ -3,9 +3,11 @@
 
 from typing import TYPE_CHECKING
 
+import anyio
 import pytest
 
 from support.mcp import call, refused
+from support.signed import validated
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -13,6 +15,7 @@ if TYPE_CHECKING:
     from support.auth import FakeAuth
     from support.jobs import Queued
     from support.mcp import Connect
+    from support.pki import Pki
 
 
 async def test_organon_job_waits_for_the_answer(queued: Queued, connect: Connect, ana_key: dict[str, str]) -> None:
@@ -87,3 +90,11 @@ async def test_organon_find_ranks_doc_ocr_when_the_engine_is_on(
 ) -> None:
     found = await call(connect, "organon_find", {"query": "read a scan words boxes", "section": "doc"}, ana_key)
     assert found["tools"][0]["name"] == "doc_ocr"
+
+
+async def test_doc_sign_is_a_tool_only_with_a_key(
+    vault: Path, sign_on: Pki, connect: Connect, ana_key: dict[str, str]
+) -> None:
+    signed = await call(connect, "doc_sign", {"path": str(vault / "labelled.pdf")}, ana_key)
+    _, status = await validated(await anyio.Path(signed["path"]).read_bytes(), sign_on)
+    assert status.bottom_line

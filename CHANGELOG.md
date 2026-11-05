@@ -12,6 +12,15 @@
   clean and lightly noisy pages (0.005 against 0.04) and collapses on bad scans. Adds rapidocr + onnxruntime (~120 MB in a
   venv; docker image delta not measured, the daemon was down).
 
+- **`doc/sign` (TODO_doc, 4)**: a PDF signed in PAdES (`ETSI.CAdES.detached`, SHA-256, incremental, signable again) with
+  pyHanko 0.38, the key a PKCS#12 named by `SIGN_P12` + `SIGN_P12_PASSWORD` (a secret) and an optional `SIGN_TSA_URL`
+  (B-T). Without `SIGN_P12` there is no route, no MCP tool and no key read. Invisible by default; with `at` and one of
+  `image`, `text` or `photo` the appearance is drawn first by `doc/stamp` / `doc/signature` and the signature seals it.
+  Behind `SignPort`; adapter `PyhankoAdapter`. Evidence: tests mint a throwaway CA and PKCS#12 with `cryptography`; the
+  signed PDF validates with pyHanko's own validator (intact, valid, trusted under the CA), a one-byte change after signing
+  breaks it, a signed PDF takes a second signature. Not byte-deterministic by nature (the signature carries its time).
+  Adds pyhanko, aiohttp and friends (~18 MB in a venv; docker image delta not measured, the daemon was down). No bench: pyHanko has no serious OSS rival in Python (endesive is the contrast, unmeasured) — the plan's own reasoning.
+
 ### Changed
 - **`image/cutout` drops printed form lines (TODO_doc, 2)**: long straight runs of the ink mask (probabilistic Hough, tilt
   allowed) are taken off, and a stroke crossing one is bridged. Benched pre-registered, A against A + lines, paired BCa on

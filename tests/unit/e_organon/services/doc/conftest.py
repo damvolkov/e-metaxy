@@ -13,7 +13,9 @@ from e_organon.ports.ocr import OcrWord
 from e_organon.providers.adapters.cutout.opencv import OpencvAdapter
 from e_organon.providers.adapters.pdf.pikepdf import PikepdfAdapter
 from e_organon.providers.adapters.render.pdfium import PdfiumAdapter
+from e_organon.providers.adapters.sign.pyhanko import PyhankoAdapter
 from e_organon.services.doc.ocr import OcrDocService
+from e_organon.services.doc.sign import SignDocService
 from e_organon.services.doc.signature import SignatureDocService
 from e_organon.services.doc.stamp import StampDocService
 from e_organon.services.files import AllowedFiles
@@ -24,10 +26,12 @@ from support.pdf import blank, form, labelled, rotated
 from support.photo import photo
 
 if TYPE_CHECKING:
+    from collections.abc import AsyncIterator
     from pathlib import Path
 
     from pytest_resources import Resources
 
+    from support.pki import Pki
     from support.stamp import Refusal, Stamped
 
 
@@ -137,3 +141,15 @@ def fake_ocr(ocr_words: tuple[OcrWord, ...]) -> FakeOcr:
 @pytest.fixture
 def reader(fake_ocr: FakeOcr, pdf: PikepdfAdapter, render: PdfiumAdapter, files: AllowedFiles) -> OcrDocService:
     return OcrDocService(fake_ocr, pdf, render, files, max_pixels=5_000_000)
+
+
+@pytest.fixture
+async def sealer(
+    pki: Pki,
+    stamper: StampDocService,
+    signer: SignatureDocService,
+    files: AllowedFiles,
+    artifacts: ArtifactEngine,
+) -> AsyncIterator[SignDocService]:
+    async with PyhankoAdapter(p12=pki.p12, password=pki.password, tsa_url=None) as sign:
+        yield SignDocService(sign, stamper, signer, files, artifacts)

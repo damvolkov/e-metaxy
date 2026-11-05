@@ -481,5 +481,26 @@
     "required": [
       "path"
     ]
+  },
+  {
+    "name": "doc_sign",
+    "title": "Sign a PDF cryptographically",
+    "description": "A PDF by `path` signed in PAdES with the key this server holds — who sealed it and that it was not changed since; a viewer validates it. Invisible; with `at` (as doc_stamp's) and one of `image`, `text` or `photo` its appearance is drawn there first. Returns the signed copy's `path`. Any later edit breaks it.",
+    "access": "user",
+    "annotations": {
+      "destructive_hint": false,
+      "open_world_hint": false,
+      "read_only_hint": false
+    },
+    "arguments": [
+      "at",
+      "image",
+      "path",
+      "photo",
+      "text"
+    ],
+    "required": [
+      "path"
+    ]
   }
 ]

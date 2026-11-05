@@ -25,6 +25,7 @@ from e_organon.services.doc.inspect import InspectDocService
 from e_organon.services.doc.merge import MergeDocService
 from e_organon.services.doc.ocr import OcrDocService
 from e_organon.services.doc.render import RenderDocService
+from e_organon.services.doc.sign import SignDocService
 from e_organon.services.doc.signature import SignatureDocService
 from e_organon.services.doc.split import SplitDocService
 from e_organon.services.doc.stamp import StampDocService
@@ -93,6 +94,12 @@ async def lifespan(app: Litestar) -> AsyncGenerator[None]:
             pass
         case ocr:
             doc.ocr = OcrDocService(ocr, found.pdf, found.render, files, max_pixels=st.ORGANON_MAX_PIXELS)
+    ### `doc/sign` exists only with its key configured (SIGN_P12).
+    match found.sign:
+        case None:
+            pass
+        case sign:
+            doc.sign = SignDocService(sign, doc.stamp, doc.signature, files, artifacts)
     ### the tekton tools exist only with the bridge on.
     match system.engines.bridge:
         case None:

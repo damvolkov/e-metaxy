@@ -16,7 +16,18 @@ from e_organon.api.stream import answer
 from e_organon.infra.auth.guard import OPT
 from e_organon.infra.auth.models import Access
 from e_organon.infra.state import State
-from e_organon.models.doc import ConvertIn, FillIn, InspectIn, MergeIn, OcrIn, RenderIn, SignatureIn, SplitIn, StampIn
+from e_organon.models.doc import (
+    ConvertIn,
+    FillIn,
+    InspectIn,
+    MergeIn,
+    OcrIn,
+    RenderIn,
+    SignatureIn,
+    SignIn,
+    SplitIn,
+    StampIn,
+)
 
 TOOL_DEPS: Final[dict[str, Provide]] = {DepKey.GRAPH.value: Provide(graph, sync_to_thread=False)}
 
@@ -67,6 +78,11 @@ async def ocr(data: JSONBody[OcrIn], request: Request[Any, Any, Any], graph: Nam
     return await answer(request, graph.services.doc.ocr, data)
 
 
+async def sign(data: JSONBody[SignIn], request: Request[Any, Any, Any], graph: NamedDependency[State]) -> Any:
+    """doc/sign: a PDF signed in PAdES with the deployment's key."""
+    return await answer(request, graph.services.doc.sign, data)
+
+
 ##### ROUTES #####
 def routes(*handlers: Any) -> tuple[HTTPRouteHandler, ...]:
     """One `POST /doc/<name>` route for each handler."""
@@ -84,6 +100,7 @@ def routes(*handlers: Any) -> tuple[HTTPRouteHandler, ...]:
     )
 
 
-### the tools every deployment serves; `OCR` is served only where its engine is on (OCR_ENABLED).
+### the tools every deployment serves; `OCR` only where its engine is on (OCR_ENABLED), `SIGN` where a key is set (SIGN_P12).
 ROUTES: tuple[HTTPRouteHandler, ...] = routes(convert, inspect, merge, split, fill, render, stamp, signature)
 OCR: tuple[HTTPRouteHandler, ...] = routes(ocr)
+SIGN: tuple[HTTPRouteHandler, ...] = routes(sign)

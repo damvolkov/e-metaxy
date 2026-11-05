@@ -20,6 +20,6 @@ async def test_state_section_holds_the_server(client: AsyncTestClient[Litestar])
         "e_organon.mcp.state",
         MCPState,
         MCPServer,
-        len(routes(bridge=True, ocr=False)),
+        len(routes(bridge=True, ocr=False, sign=False)),
     )
     assert section.server.instructions == INSTRUCTIONS

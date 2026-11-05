@@ -10,6 +10,7 @@ engines' concern (`api/lifespan/engines`)."""
 from collections.abc import AsyncGenerator, Mapping
 from contextlib import AsyncExitStack, asynccontextmanager
 from dataclasses import dataclass, fields
+from typing import TYPE_CHECKING
 
 from litestar import Litestar
 
@@ -28,6 +29,7 @@ from e_organon.ports.pages import PagesPort
 from e_organon.ports.pdf import PdfPort
 from e_organon.ports.provider import Provider
 from e_organon.ports.render import RenderPort
+from e_organon.ports.sign import SignPort
 from e_organon.ports.store import StorePort
 from e_organon.providers.adapters.cutout.opencv import OpencvAdapter
 from e_organon.providers.adapters.markdown.anytomd import AnytomdAdapter
@@ -35,6 +37,7 @@ from e_organon.providers.adapters.ocr.rapidocr import RapidocrAdapter
 from e_organon.providers.adapters.pages.liteparse import LiteparseAdapter
 from e_organon.providers.adapters.pdf.pikepdf import PikepdfAdapter
 from e_organon.providers.adapters.render.pdfium import PdfiumAdapter
+from e_organon.providers.adapters.sign.pyhanko import PyhankoAdapter
 from e_organon.providers.drivers.auth.postgres import PostgresAuthDriver
 from e_organon.providers.drivers.coder.claude import ClaudeDriver
 from e_organon.providers.drivers.database.asyncpg import AsyncpgDriver
@@ -43,8 +46,11 @@ from e_organon.providers.drivers.documents.docling import DoclingDriver
 from e_organon.providers.drivers.http.wreq import WreqDriver
 from e_organon.providers.drivers.store.sqlite import SqliteDriver
 
+if TYPE_CHECKING:
+    from pathlib import Path
+
 ### the roles a deployment may leave empty: each stays out of `named` (and the health survey) until its setting is set.
-OPTIONAL: frozenset[str] = frozenset({"docling", "ocr"})
+OPTIONAL: frozenset[str] = frozenset({"docling", "ocr", "sign"})
 
 
 ##### SECTION #####
@@ -75,6 +81,8 @@ class ProvidersState:
     docling: DocumentPort | None
     ### the OCR engine opens only with the tool on (OCR_ENABLED): its models are fetched at that start, never otherwise.
     ocr: OcrPort | None
+    ### the signer opens only with its key configured (SIGN_P12): without it there is no `doc/sign` and no key is read.
+    sign: SignPort | None
 
     @property
     def named(self) -> Mapping[str, Provider]:
@@ -112,6 +120,15 @@ def liteparse() -> LiteparseAdapter:
 def rapidocr() -> RapidocrAdapter:
     """The OCR engine, its models in doc/'s subtree of ORGANON_DATA."""
     return RapidocrAdapter(models=st.ORGANON_DATA.expanduser() / "doc" / "models" / "rapidocr")
+
+
+def pyhanko(p12: Path) -> PyhankoAdapter:
+    """The PAdES signer on the PKCS#12 SIGN_P12, its password and its optional time-stamp authority."""
+    return PyhankoAdapter(
+        p12=p12.expanduser(),
+        password=st.SIGN_P12_PASSWORD.get_secret_value(),
+        tsa_url=None if st.SIGN_TSA_URL is None else str(st.SIGN_TSA_URL),
+    )
 
 
 def docling_driver(http: HTTPPort) -> DoclingDriver:
@@ -162,6 +179,7 @@ async def lifespan(app: Litestar) -> AsyncGenerator[None]:
         coder = await enter(ClaudeDriver(st.TEKTON_CLAUDE)) if st.TEKTON_PROFILES else None
         docling = await enter(docling_driver(http)) if st.DOCLING_URL else None
         ocr = await enter(rapidocr()) if st.OCR_ENABLED else None
+        sign = await enter(pyhanko(st.SIGN_P12)) if st.SIGN_P12 is not None else None
         providers = ProvidersState(
             store=store,
             http=http,
@@ -176,6 +194,7 @@ async def lifespan(app: Litestar) -> AsyncGenerator[None]:
             coder=coder,
             docling=docling,
             ocr=ocr,
+            sign=sign,
         )
         system.providers = providers
         logger.info("providers ready", providers=sorted(providers.named), step="START")

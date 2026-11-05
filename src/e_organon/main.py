@@ -79,7 +79,12 @@ def create_app() -> Litestar:
     ### every route passes the one guard, at the access it declares: each API route its own, the docs public (never
     ### authenticated).
     bridge = st.TEKTON_PROFILES is not None
-    guarded = (*GUARDED, *([tekton.ROUTES] if bridge else []), *([doc.OCR] if st.OCR_ENABLED else []))
+    guarded = (
+        *GUARDED,
+        *([tekton.ROUTES] if bridge else []),
+        *([doc.OCR] if st.OCR_ENABLED else []),
+        *([doc.SIGN] if st.SIGN_P12 is not None else []),
+    )
     _ = [app.register(Router(path="/", route_handlers=list(routes), guards=[guard])) for routes in guarded]
     app.register(
         Router(
@@ -92,7 +97,11 @@ def create_app() -> Litestar:
     ### the MCP door: the tools, routes the engine alone may reach, each at the access its tool declares; the endpoint, any
     ### caller's — the token middleware has resolved who, each tool admits it at its own.
     app.register(
-        Router(path="/", route_handlers=list(tools.routes(bridge=bridge, ocr=st.OCR_ENABLED)), guards=[internal, guard])
+        Router(
+            path="/",
+            route_handlers=list(tools.routes(bridge=bridge, ocr=st.OCR_ENABLED, sign=st.SIGN_P12 is not None)),
+            guards=[internal, guard],
+        )
     )
     app.register(
         Router(path="/", route_handlers=list(mount.routes(path=st.MCP_PATH)), opt=OPT[Access.ANONYMOUS], guards=[guard])

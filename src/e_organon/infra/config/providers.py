@@ -215,6 +215,12 @@ class ProviderSettings(BaseSettings):
     ### RAPIDOCR — the `doc/ocr` tool: off, no tool and no models; on, its models are fetched into `<ORGANON_DATA>/doc/models`.
     OCR_ENABLED: bool = False
 
+    ### PYHANKO — the `doc/sign` tool: unset SIGN_P12, no tool and no key read. The key is a PKCS#12 file and its password a
+    ### secret, both the deployment's, never a request's; a TSA URL adds a trusted time-stamp (PAdES B-T).
+    SIGN_P12: Path | None = None
+    SIGN_P12_PASSWORD: SecretStr = SecretStr("")
+    SIGN_TSA_URL: HttpUrl | None = None
+
     @field_validator("RERANK_URL", "GLINER_URL", mode="before")
     @classmethod
     def _url_none(cls, value: object) -> object:

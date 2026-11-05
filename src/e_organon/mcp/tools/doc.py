@@ -93,6 +93,16 @@ OCR: Final = MCPTool(
         "bottom-left — where doc_stamp places things —, and each page's `text`. An image is one page, a pixel a point."
     ),
 )
+SIGN: Final = MCPTool(
+    name="doc_sign",
+    title="Sign a PDF cryptographically",
+    description=(
+        "A PDF by `path` signed in PAdES with the key this server holds — who sealed it and that it was not changed "
+        "since; a viewer validates it. Invisible; with `at` (as doc_stamp's) and one of `image`, `text` or `photo` its "
+        "appearance is drawn there first. Returns the signed copy's `path`. Any later edit breaks it."
+    ),
+    read_only=False,
+)
 
 
 ##### ROUTES #####
@@ -116,3 +126,5 @@ ROUTES: tuple[HTTPRouteHandler, ...] = routes(
 )
 ### served only where the engine is on (OCR_ENABLED).
 OCR_ROUTES: tuple[HTTPRouteHandler, ...] = routes((OCR, router.ocr))
+### served only where a key is set (SIGN_P12).
+SIGN_ROUTES: tuple[HTTPRouteHandler, ...] = routes((SIGN, router.sign))

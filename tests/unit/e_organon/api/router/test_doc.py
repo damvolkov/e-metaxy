@@ -6,11 +6,14 @@ import anyio
 import pytest
 
 from support.pdf import placements
+from support.signed import validated
 
 if TYPE_CHECKING:
     from pathlib import Path
 
     from litestar.testing import TestClient
+
+    from support.pki import Pki
 
 PATH = {"path": "/etc/hostname"}
 SSE = {"accept": "text/event-stream"}
@@ -98,3 +101,23 @@ def test_doc_ocr_queues_as_a_job_when_asked(
     )
     job = client.get(f"/jobs/{response.json()['job']}", headers=ana_key)
     assert (response.status_code, job.json()["kind"]) == (202, "doc/ocr")
+
+
+def test_doc_sign_is_no_route_until_a_key_is_set(vault: Path, client: TestClient, ana_key: dict[str, str]) -> None:
+    response = client.post("/doc/sign", json={"path": str(vault / "labelled.pdf")}, headers=ana_key)
+    assert response.status_code == 404
+
+
+async def test_doc_sign_answers_a_pdf_that_validates(
+    vault: Path, sign_on: Pki, client: TestClient, ana_key: dict[str, str]
+) -> None:
+    response = client.post("/doc/sign", json={"path": str(vault / "labelled.pdf")}, headers=ana_key)
+    _, status = await validated(await anyio.Path(response.json()["path"]).read_bytes(), sign_on)
+    assert (response.status_code, status.bottom_line) == (200, True)
+
+
+def test_doc_sign_a_visible_signature_without_an_appearance_is_422(
+    vault: Path, sign_on: Pki, client: TestClient, ana_key: dict[str, str]
+) -> None:
+    order = {"path": str(vault / "labelled.pdf"), "at": {"type": "box", "page": 0, "x": 1, "y": 1, "width": 5}}
+    assert client.post("/doc/sign", json=order, headers=ana_key).status_code == 400

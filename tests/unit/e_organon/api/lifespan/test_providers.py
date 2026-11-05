@@ -24,6 +24,8 @@ from e_organon.providers.drivers.documents.docling import DoclingDriver
 if TYPE_CHECKING:
     from pathlib import Path
 
+    from support.pki import Pki
+
 ### the roles are the section's fields: a provider the export drops leaves this list with it.
 ### an optional role is empty here (no DOCLING_URL in tests): the roles are the section's other fields.
 ROLES: Final[tuple[str, ...]] = tuple(each.name for each in fields(ProvidersState) if each.name not in OPTIONAL)
@@ -113,3 +115,11 @@ def test_providers_ocr_is_off_by_default(client: TestClient) -> None:
 def test_providers_ocr_opens_on_its_models_in_the_data_subtree(ocr_on: Path, client: TestClient, fake_ocr) -> None:
     ### the engine is the fake of `ocr_on`: what is held is where the lifespan told it to keep its models.
     assert (fake_ocr.models, "ocr" in client.app.state.system.providers.named) == (ocr_on, True)
+
+
+def test_providers_sign_is_off_without_a_key(client: TestClient) -> None:
+    assert "sign" not in client.app.state.system.providers.named
+
+
+def test_providers_sign_opens_on_the_pkcs12(sign_on: Pki, client: TestClient) -> None:
+    assert client.app.state.system.providers.named["sign"].spec.name == "pyhanko"

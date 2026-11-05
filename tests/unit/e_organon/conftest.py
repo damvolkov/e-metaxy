@@ -10,6 +10,7 @@ from typing import TYPE_CHECKING
 
 import pytest
 from litestar.testing import TestClient
+from pydantic import SecretStr
 
 from e_organon import main as main_module
 from e_organon.api import middlewares as middlewares_module
@@ -24,6 +25,7 @@ from e_organon.ops.projects import NamedProjects
 from e_organon.ports.coder import Profile
 from e_organon.ports.ocr import OcrWord
 from e_organon.providers.drivers.store.sqlite import SqliteDriver
+from support import pki as pki_module
 from support.ink import ink_png
 from support.ocr import FakeOcr
 from support.pdf import labelled
@@ -36,6 +38,7 @@ if TYPE_CHECKING:
 
     from support.bridge import Settle, Wire
     from support.coder import ScriptedCoder
+    from support.pki import Pki
 
 
 class RequestLogs:
@@ -103,6 +106,23 @@ def ocr_on(monkeypatch: pytest.MonkeyPatch, fake_ocr: FakeOcr, tmp_path: Path) -
     monkeypatch.setattr(mcp_lifespan_module, "st", on)
     monkeypatch.setattr(providers_module, "RapidocrAdapter", lambda *, models: fake_ocr.keeping(models))
     return tmp_path / "data" / "doc" / "models" / "rapidocr"
+
+
+@pytest.fixture(scope="session")
+def pki(tmp_path_factory: pytest.TempPathFactory) -> Pki:
+    """A throwaway CA and signer, made once for the run."""
+    return pki_module.make(tmp_path_factory.mktemp("pki"))
+
+
+@pytest.fixture
+def sign_on(monkeypatch: pytest.MonkeyPatch, pki: Pki) -> Pki:
+    """The app with SIGN_P12 set to the throwaway signer's PKCS#12 — `doc/sign` is a route and a tool. Request it before
+    `client`."""
+    on = st.model_copy(update={"SIGN_P12": pki.p12, "SIGN_P12_PASSWORD": SecretStr(pki.password)})
+    monkeypatch.setattr(main_module, "st", on)
+    monkeypatch.setattr(providers_module, "st", on)
+    monkeypatch.setattr(mcp_lifespan_module, "st", on)
+    return pki
 
 
 @pytest.fixture
