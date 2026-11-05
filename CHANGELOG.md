@@ -2,6 +2,13 @@
 
 ## [Unreleased]
 
+### Added
+- **`organon/submit` (TODO_doc, 1)**: REST `POST /organon/submit` (202, `Location: /jobs/{id}`) and MCP `organon_submit`
+  queue any doc/ or image/ tool by `<section>/<word>` with an `input` checked by `msgspec.convert` into the tool's own
+  Struct; a tool that is no job (tekton, organon) or input that misses the Struct is a 422 before anything is queued.
+  Reuses `JobsService.submit` (`enqueue` only resolves and decodes). Evidence: an MCP client submits `doc/convert` and
+  polls `organon_job` to `completed`; 685 tests, coverage 100 %.
+
 ### Fixed
 - **PDF outputs are deterministic**: pikepdf drew a random `/ID` and random resource names (`prefix="Org"`), so one
   request wrote a new file each run and the content-addressed outbox never deduplicated (found live: the same

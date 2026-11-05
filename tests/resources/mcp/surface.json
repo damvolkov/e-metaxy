@@ -442,5 +442,24 @@
       "peer",
       "text"
     ]
+  },
+  {
+    "name": "organon_submit",
+    "title": "Run a tool as a job",
+    "description": "A tool run in the background: `tool` is its name as `organon_find` lists it with a slash (`doc/convert`), `input` its arguments. Answers at once with the `job` to follow with organon_job; the input is checked first, a tool that is no job (tekton, organon) refused.",
+    "access": "user",
+    "annotations": {
+      "destructive_hint": false,
+      "open_world_hint": false,
+      "read_only_hint": false
+    },
+    "arguments": [
+      "input",
+      "tool"
+    ],
+    "required": [
+      "input",
+      "tool"
+    ]
   }
 ]

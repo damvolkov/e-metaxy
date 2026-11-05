@@ -31,6 +31,13 @@ class UnknownJobError(OrganonError, LookupError):
         super().__init__(f"unknown job {job!r}")
 
 
+class UnknownToolError(OrganonError, LookupError):
+    """No tool of that name runs as a job: it does not exist, or it answers at once (tekton, organon)."""
+
+    def __init__(self, tool: str) -> None:
+        super().__init__(f"no tool {tool!r} runs as a job")
+
+
 class FlowError(Exception):
     """A batch run whose workflow ended in `Failed`: carries it, so the batch answer is the streamed one."""
 
