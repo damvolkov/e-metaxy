@@ -15,6 +15,7 @@ import io
 import warnings
 from contextlib import ExitStack
 from functools import partial
+from itertools import count
 from types import MappingProxyType
 from typing import TYPE_CHECKING, Any, ClassVar, Final, Self
 
@@ -237,6 +238,19 @@ class PikepdfAdapter:
         return [width * ax, width * ay, height * bx, height * by, origin[0], origin[1]]
 
     @staticmethod
+    def _stamp_name(page: pikepdf.Page) -> pikepdf.Name:
+        """The first `/Org<n>` free in every resource kind of the page (pikepdf replaces a name across kinds): its prefix
+        draws a random name, and one request must write the same bytes every time — the outbox names a file by content."""
+        resources = page.obj.get("/Resources", pikepdf.Dictionary())
+        taken = {
+            name
+            for group in resources.as_dict().values()
+            if isinstance(group, pikepdf.Dictionary)
+            for name in group.as_dict()
+        }
+        return pikepdf.Name(next(name for n in count(1) if (name := f"/Org{n}") not in taken))
+
+    @staticmethod
     def _stamp_text(page: pikepdf.Page, pdf: pikepdf.Pdf, geometry: PageGeometry, box: PdfBox, text: str) -> list[Any]:
         """The operators that write `text` in Helvetica inside the box."""
         font = pdf.make_indirect(
@@ -247,7 +261,7 @@ class PikepdfAdapter:
                 Encoding=pikepdf.Name.WinAnsiEncoding,
             )
         )
-        name = page.add_resource(font, pikepdf.Name.Font, prefix="Org")
+        name = page.add_resource(font, pikepdf.Name.Font, PikepdfAdapter._stamp_name(page))
         size = min(box.height or DEFAULT_SIZE, box.width / (EM * max(len(text), 1)))
         shown = pikepdf.String(text.encode("cp1252", errors="replace"))
         return [
@@ -274,7 +288,7 @@ class PikepdfAdapter:
             case (bytes() as picture, _):
                 xobject, width, height = self._stamp_image(pdf, picture)
                 x, y, w, h = PikepdfAdapter._stamp_fit(box, width, height)
-                name = page.add_resource(xobject, pikepdf.Name.XObject, prefix="Org")
+                name = page.add_resource(xobject, pikepdf.Name.XObject, PikepdfAdapter._stamp_name(page))
                 drawn = [
                     (PikepdfAdapter._stamp_matrix(geometry, x, y, w, h), pikepdf.Operator("cm")),
                     ([name], pikepdf.Operator("Do")),
@@ -284,7 +298,7 @@ class PikepdfAdapter:
         state = page.add_resource(
             pikepdf.Dictionary(Type=pikepdf.Name.ExtGState, ca=opacity, CA=opacity),
             pikepdf.Name.ExtGState,
-            prefix="Org",
+            PikepdfAdapter._stamp_name(page),
         )
         gs = [([state], pikepdf.Operator("gs"))] if opacity < 1 else []
         wrap = [([], pikepdf.Operator("q")), *gs, *drawn, ([], pikepdf.Operator("Q"))]
@@ -324,7 +338,7 @@ class PikepdfAdapter:
     @staticmethod
     def _common_save(pdf: pikepdf.Pdf) -> bytes:
         sink = io.BytesIO()
-        pdf.save(sink)
+        pdf.save(sink, deterministic_id=True)
         return sink.getvalue()
 
     ############################################################

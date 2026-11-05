@@ -3,6 +3,18 @@
 ## [Unreleased]
 
 ### Fixed
+- **PDF outputs are deterministic**: pikepdf drew a random `/ID` and random resource names (`prefix="Org"`), so one
+  request wrote a new file each run and the content-addressed outbox never deduplicated (found live: the same
+  `doc/signature` gave three hashes). `deterministic_id=True` and the first `/Org<n>` free across every resource kind
+  (pikepdf replaces a name across kinds). A test holds two stamps of one input byte-identical.
+
+### TODO_jobs — finished (2026-11-05)
+- One base (ParadeDB: pgqueuer queue, no redis), jobs for every doc/ and image/ tool, `organon/find`, `image/cutout`
+  (benched), `doc/stamp`, `doc/signature`, the hostile corpus and goldens; v0.8.1 released and deployed. Live on the
+  host: `doc/signature` by anchor in batch (125 ms), SSE (8 steps) and as a pgqueuer job (`/jobs/1`, completed);
+  `/ready` all providers up.
+
+### Fixed
 - **The image ran Python 3.15 over a 3.14 venv** (Renovate bumped the deploy stage and `.python-version` alone): the
   published v0.8.0 `latest` could not `import e_organon`. Back to 3.14; the deploy stage now runs
   `python -c "import e_organon"` so such an image fails its build; Renovate keeps Python `<3.15` until lingua ships a
