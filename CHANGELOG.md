@@ -3,6 +3,12 @@
 ## [Unreleased]
 
 ### Added
+- Job ownership and a closed queue setting (`TODO_jobs` follow-ups): a job records its caller's account (`owner`) and its
+  tool input travels under one key (`input`), so no input field can meet the dispatch's own kwargs (`attempts`,
+  `coalesce`, `_trace`); the dispatch engine is common and untouched. Another account's job is 404 on `GET /jobs/{id}`,
+  `/events`, `DELETE` and `organon_job`/`organon_cancel` (existence not revealed); the admin reaches every job.
+  `QUEUE_ENGINE` is `Literal[pgqueuer]`: `awa` has no row (it takes a DSN, not the queue's database), so it is a config
+  error at load, not a KeyError mid-lifespan. `make check`: 451 passed, coverage 100 %.
 - Catalog (`TODO_jobs` step 3): `organon/find {query, section?}` (REST and MCP `organon_find`) ranks the MCP registry's
   tools by name 4 / title 2 / description 1 over lower-cased words, five at most, ties by name — no model
   (`docs/catalog.md`). Tools at rest, measured (tiktoken cl100k_base as proxy): 11 tools 2 209 tokens, 22 with the

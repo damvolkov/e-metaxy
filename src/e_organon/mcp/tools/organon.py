@@ -14,8 +14,9 @@ from litestar.di import NamedDependency
 from litestar.handlers import HTTPRouteHandler
 from litestar.params import JSONBody
 
+from e_organon.api.router import jobs as jobs_router
 from e_organon.api.router import organon as router
-from e_organon.infra.auth.models import Access
+from e_organon.infra.auth.models import Access, Caller
 from e_organon.infra.mcp.models import MCPTool
 from e_organon.infra.state import State
 from e_organon.mcp.refusals import REFUSALS
@@ -49,16 +50,19 @@ CANCEL: Final = MCPTool(
 
 
 ##### HANDLERS #####
-async def job(data: JSONBody[StatusJobIn], graph: NamedDependency[State]) -> Job:
-    return await graph.services.jobs.status(data.job, data.wait)
+async def job(data: JSONBody[StatusJobIn], graph: NamedDependency[State], caller: NamedDependency[Caller]) -> Job:
+    return await graph.services.jobs.status(data.job, caller, data.wait)
 
 
-async def cancel(data: JSONBody[CancelJobIn], graph: NamedDependency[State]) -> Job:
-    return await graph.services.jobs.cancel(data.job)
+async def cancel(data: JSONBody[CancelJobIn], graph: NamedDependency[State], caller: NamedDependency[Caller]) -> Job:
+    return await graph.services.jobs.cancel(data.job, caller)
 
 
 ##### ROUTES #####
-ROUTES: tuple[HTTPRouteHandler, ...] = tuple(
-    tool.route(Access.USER, dependencies=router.TOOL_DEPS, exception_handlers=REFUSALS)(handler)
-    for tool, handler in ((FIND, router.find), (JOB, job), (CANCEL, cancel))
+ROUTES: tuple[HTTPRouteHandler, ...] = (
+    FIND.route(Access.USER, dependencies=router.TOOL_DEPS, exception_handlers=REFUSALS)(router.find),
+    *(
+        tool.route(Access.USER, dependencies=jobs_router.DEPS, exception_handlers=REFUSALS)(handler)
+        for tool, handler in ((JOB, job), (CANCEL, cancel))
+    ),
 )

@@ -8,6 +8,7 @@ import pytest
 from support.mcp import call, refused
 
 if TYPE_CHECKING:
+    from support.auth import FakeAuth
     from support.jobs import Queued
     from support.mcp import Connect
 
@@ -41,3 +42,14 @@ async def test_organon_find_ranks_the_tools_for_an_agent(connect: Connect, ana_k
     found = await call(connect, "organon_find", {"query": "split a pdf into pages", "section": "doc"}, ana_key)
     assert found["tools"][0]["name"] == "doc_split"
     assert found["tools"][0]["schema"]["properties"]["ranges"] is not None
+
+
+@pytest.mark.parametrize("tool", ["organon_job", "organon_cancel"])
+async def test_organon_another_accounts_job_is_unknown_the_admin_reads_it(
+    queued: Queued, connect: Connect, keys: FakeAuth, ana_key: dict[str, str], root_key: dict[str, str], tool: str
+) -> None:
+    keys.key("t-bob", "bob")
+    job = await queued(ana_key)
+    refusal = await refused(connect, tool, {"job": job}, {"Authorization": "Bearer t-bob"})
+    seen = await call(connect, tool, {"job": job}, root_key)
+    assert (refusal, seen["id"]) == (f"unknown job '{job}'", job)

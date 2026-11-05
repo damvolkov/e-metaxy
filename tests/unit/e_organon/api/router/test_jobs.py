@@ -10,6 +10,7 @@ if TYPE_CHECKING:
 
     from litestar.testing import TestClient
 
+    from support.auth import FakeAuth
     from support.sse import Told
 
 ASYNC = {"prefer": "respond-async"}
@@ -96,3 +97,27 @@ def test_jobs_unknown_job_is_404(client: TestClient, root_key: dict[str, str], m
 @pytest.mark.parametrize(("method", "path"), [("GET", "/jobs/1"), ("GET", "/jobs/1/events"), ("DELETE", "/jobs/1")])
 def test_jobs_need_a_key(client: TestClient, method: str, path: str) -> None:
     assert client.request(method, path).status_code == 401
+
+
+@pytest.mark.parametrize(("method", "suffix"), [("GET", ""), ("GET", "/events"), ("DELETE", "")])
+def test_jobs_belong_to_who_queued_them(
+    vault: Path,
+    client: TestClient,
+    keys: FakeAuth,
+    ana_key: dict[str, str],
+    root_key: dict[str, str],
+    method: str,
+    suffix: str,
+) -> None:
+    """Another account is told 404 — never 403, existence is not revealed —; the owner and the admin are served."""
+    keys.key("t-bob", "bob")
+    job = client.post("/doc/convert", json={"path": str(vault / "plan.md")}, headers=ana_key | ASYNC).json()["job"]
+    bob = client.request(method, f"/jobs/{job}{suffix}", headers={"Authorization": "Bearer t-bob"})
+    owner = client.request(method, f"/jobs/{job}{suffix}", headers=ana_key)
+    admin = client.request(method, f"/jobs/{job}{suffix}", headers=root_key)
+    assert (bob.status_code, bob.json()["detail"], owner.status_code, admin.status_code) == (
+        404,
+        f"unknown job '{job}'",
+        200,
+        200,
+    )

@@ -49,7 +49,7 @@ def _answer_preferred(request: Request[Any, Any, Any]) -> bool:
 
 
 async def _answer_job[I](request: Request[Any, Any, Any], tool: ToolFlow[I, Any], data: I) -> Response[AcceptedJob]:
-    accepted = await AppState.of(request.app).system.services.jobs.submit(tool, data)
+    accepted = await AppState.of(request.app).system.services.jobs.submit(tool, data, request.user)
     return Response(
         accepted,
         status_code=HTTP_202_ACCEPTED,

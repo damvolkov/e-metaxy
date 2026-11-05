@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING
 import pytest
 
 from e_organon.engines.dispatch import DispatchEngine
+from e_organon.infra.auth.models import Caller, Role
 from e_organon.infra.background import Background
 from e_organon.services.jobs import JobsService
 from support.tools import BoomTool, ShoutTool, SlowTool, crash
@@ -15,6 +16,21 @@ if TYPE_CHECKING:
     from collections.abc import AsyncGenerator
 
     from e_organon.services.flow import ToolFlow
+
+
+@pytest.fixture
+def ana() -> Caller:
+    return Caller(owner="o-ana", name="ana", role=Role.USER)
+
+
+@pytest.fixture
+def bob() -> Caller:
+    return Caller(owner="o-bob", name="bob", role=Role.USER)
+
+
+@pytest.fixture
+def root() -> Caller:
+    return Caller(owner="o-root", name="root", role=Role.ADMIN)
 
 
 @pytest.fixture

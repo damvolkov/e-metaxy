@@ -5,18 +5,21 @@ tool's own workflow: the stored arguments decoded into the tool's input, its `St
 (`done`) or its failure (`failed`) reported last — a failure also raised, so the job settles `failed`, once. The
 progress is cumulative (`steps` holds every step so far): a snapshot written at most every throttle, and always once at
 the end, still tells all that happened, so a reader that polls misses nothing. A job's arguments are the tool's input
-as builtins, spread as keyword arguments to the dispatch: `attempts` and `coalesce` are the dispatch's own names, so a
-tool takes no input field called that.
+as builtins under one key, `input`, beside `owner`, the account that queued it: the dispatch's own names (`attempts`,
+`coalesce`, `_trace`) can never meet a field of a tool's input. A job is its owner's: for any other caller it does not
+exist (`UnknownJobError`, never a refusal that would reveal it); the admin reaches every job.
 
 `status` reads a job, held up to `wait` seconds until it settles; `events` replays it as the events a stream of the tool
 would have told, polled until it settles; `cancel` stops it. A job unknown to the dispatch is `UnknownJobError`."""
 
 from collections import deque
+from functools import partial
 from typing import TYPE_CHECKING, Any, Self
 
 import anyio
 import msgspec
 
+from e_organon.infra.auth.models import Role
 from e_organon.infra.background import SETTLED, BackgroundJob, BackgroundState
 from e_organon.models.error import FlowError, UnknownJobError
 from e_organon.models.flow import Done, Event, Failed, Step
@@ -26,6 +29,7 @@ if TYPE_CHECKING:
     from collections.abc import AsyncIterator, Awaitable, Callable, Mapping
 
     from e_organon.engines.dispatch import DispatchEngine
+    from e_organon.infra.auth.models import Caller
     from e_organon.infra.background import BackgroundReporter, BackgroundWork
     from e_organon.services.flow import ToolFlow
 
@@ -98,18 +102,19 @@ class JobsService:
 
     ##### PRIVATE #####
 
-    async def _status_read(self, job: str) -> BackgroundJob:
-        match await self._dispatch.job(job):
-            case None:
-                raise UnknownJobError(job)
-            case found:
+    async def _status_read(self, job: str, caller: Caller) -> BackgroundJob:
+        """The job if it is the caller's — or the caller is the admin —, else it is unknown."""
+        match found := await self._dispatch.job(job):
+            case BackgroundJob() if caller.role is Role.ADMIN or found.args.get("owner") == caller.owner:
                 return found
+            case _:
+                raise UnknownJobError(job)
 
     @staticmethod
     async def _register_events(tool: ToolFlow[Any, Any], args: Mapping[str, Any]) -> AsyncIterator[Event]:
         """The tool's events over the stored arguments; arguments it cannot read are its first and only event, `Failed`."""
         try:
-            data = msgspec.convert(args, tool.arguments())
+            data = msgspec.convert(args.get("input", {}), tool.arguments())
         except msgspec.ValidationError as error:
             yield Failed(kind=type(error).__name__, reason=str(error))
         else:
@@ -154,29 +159,30 @@ class JobsService:
             for (kind, queue), tool in zip(self.kinds.items(), self._tools.values(), strict=True)
         ]
 
-    async def submit(self, tool: ToolFlow[Any, Any], data: msgspec.Struct) -> AcceptedJob:
-        """The tool queued over `data`, at once."""
-        job = await self._dispatch.submit(self._kinds[tool], **msgspec.to_builtins(data))
+    async def submit(self, tool: ToolFlow[Any, Any], data: msgspec.Struct, caller: Caller) -> AcceptedJob:
+        """The tool queued over `data` for the caller, at once."""
+        job = await self._dispatch.submit(self._kinds[tool], owner=caller.owner, input=msgspec.to_builtins(data))
         return AcceptedJob(job=job.id, state=job.state)
 
-    async def status(self, job: str, wait: float = 0.0) -> Job:
+    async def status(self, job: str, caller: Caller, wait: float = 0.0) -> Job:
         """The job now, or once it settles if that comes within `wait` seconds."""
         with anyio.move_on_after(wait):
-            async for _ in self.events(job):
+            async for _ in self.events(job, caller):
                 pass
-        return Job.of(await self._status_read(job))
+        return Job.of(await self._status_read(job, caller))
 
-    async def events(self, job: str) -> AsyncIterator[Event]:
+    async def events(self, job: str, caller: Caller) -> AsyncIterator[Event]:
         """The job's steps as it enters them, then its answer or why not, polled until it settles."""
-        async for event in WatchJobsService(self._status_read, job, self._poll):
+        async for event in WatchJobsService(partial(self._status_read, caller=caller), job, self._poll):
             match event:
                 case None:
                     pass
                 case _:
                     yield event
 
-    async def cancel(self, job: str) -> Job:
+    async def cancel(self, job: str, caller: Caller) -> Job:
         """The job stopped where it awaits; one already settled comes back as it is."""
+        _ = await self._status_read(job, caller)
         match await self._dispatch.cancel(job):
             case None:
                 raise UnknownJobError(job)

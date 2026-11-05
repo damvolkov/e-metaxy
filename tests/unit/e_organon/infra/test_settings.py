@@ -19,6 +19,7 @@ from pydantic_settings import SettingsConfigDict
 from e_organon.infra import settings as composer
 from e_organon.infra.config.api import ApiSettings, HTTPMethod
 from e_organon.infra.config.base import BaseSettings
+from e_organon.infra.config.engines import QueueEngine
 from e_organon.infra.config.infra import Env, InfraSettings
 from e_organon.infra.settings import Settings, settings
 
@@ -227,3 +228,11 @@ def test_below_the_root_config_gives_only_types() -> None:
         if ".infra.config" in f".{module}" and name.endswith("Settings")
     }
     assert sorted(clusters) == []
+
+
+def test_queue_engine_without_a_row_is_a_config_error() -> None:
+    """`awa` is a queue the common offers, but the root has no row for it (it takes a DSN, not the queue's database):
+    refused when the settings load, not as a KeyError mid-lifespan."""
+    with pytest.raises(ValidationError, match="QUEUE_ENGINE"):
+        Settings.model_validate({"QUEUE_ENGINE": "awa"})
+    assert Settings.model_validate({"QUEUE_ENGINE": "pgqueuer"}).QUEUE_ENGINE == QueueEngine.PGQUEUER
