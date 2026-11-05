@@ -28,6 +28,11 @@ class ServiceSettings(BaseSettings):
     ### OUTBOX — where a tool's output files land, content-addressed: inside a root, so an output is the next input.
     ORGANON_OUTBOX: Path = Path("~/.config/memory/workflow/organon")
 
+    ##### JOBS #####
+
+    ### SLOTS — how many jobs of a section run at once, fleet-wide on the durable queue; one per section that has jobs.
+    ORGANON_SLOTS_DOC: PositiveInt = 2
+
     ##### TEKTON #####
 
     ### PROFILES — the nomos of the bridge, a YAML book read once at startup: what a caller may make a coder do, by name.

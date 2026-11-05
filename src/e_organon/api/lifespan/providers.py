@@ -33,6 +33,7 @@ from e_organon.providers.adapters.pdf.pikepdf import PikepdfAdapter
 from e_organon.providers.adapters.render.pdfium import PdfiumAdapter
 from e_organon.providers.drivers.auth.postgres import PostgresAuthDriver
 from e_organon.providers.drivers.coder.claude import ClaudeDriver
+from e_organon.providers.drivers.database.asyncpg import AsyncpgDriver
 from e_organon.providers.drivers.database.psqlpy import PsqlpyDriver
 from e_organon.providers.drivers.documents.docling import DoclingDriver
 from e_organon.providers.drivers.http.wreq import WreqDriver
@@ -48,7 +49,8 @@ class ProvidersState:
     """The typed providers section: fields named by role, typed by the port the role speaks.
 
     `store` is the KV edge the app's records live on; `auth` is where accounts and keys live, over `database`, the
-    service's one SQL pool; `queue` is the pool of the queue's own database; `coder` is the engineer harness the tekton
+    service's one SQL pool; `queue` is the pool of the queue's own database, asyncpg — PgQueuer's catalog queries return
+    `name[]`, which psqlpy cannot decode: on it the schema never installs and the queue falls to memory; `coder` is the engineer harness the tekton
     tools drive; any further field is an optional provider the export may drop. The providers are singletons —
     factory machinery comes later."""
 
@@ -136,7 +138,9 @@ async def lifespan(app: Litestar) -> AsyncGenerator[None]:
             WreqDriver(base_url=st.HTTP_BASE_URL, timeout=st.HTTP_TIMEOUT, agent=st.HTTP_AGENT, headers=st.HTTP_HEADERS)
         )
         database = await enter(PsqlpyDriver(dsn=st.POSTGRES_DSN, pool=st.POSTGRES_POOL, timeout=st.POSTGRES_TIMEOUT))
-        queue = await enter(PsqlpyDriver(dsn=st.QUEUE_DSN, pool=st.QUEUE_POOL, timeout=st.QUEUE_TIMEOUT))
+        queue = await enter(
+            AsyncpgDriver(dsn=st.QUEUE_DSN, pool_min=st.ASYNCPG_POOL_MIN, pool=st.QUEUE_POOL, timeout=st.QUEUE_TIMEOUT)
+        )
         auth = await enter(PostgresAuthDriver(database))
         markdown = await enter(anytomd())
         pages = await enter(liteparse())

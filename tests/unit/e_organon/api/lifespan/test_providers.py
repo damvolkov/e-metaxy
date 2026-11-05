@@ -51,7 +51,7 @@ async def test_providers_section_is_typed_and_ported(client: TestClient) -> None
     assert isinstance(section.auth, AuthPort)
     assert isinstance(section.coder, CoderPort)
     assert section.store.spec.name == "sqlite"
-    assert section.queue.spec.name == "psqlpy"
+    assert section.queue.spec.name == "fake-queue-database"
     assert not hasattr(section, "redis")
     assert section.http.spec.name == "wreq"
     assert section.database.spec.name == "psqlpy"

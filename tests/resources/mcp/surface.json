@@ -135,6 +135,41 @@
     ]
   },
   {
+    "name": "organon_job",
+    "title": "Check a job",
+    "description": "A job — a tool run in the background — by `job`: its `state` (available, running, completed, failed, cancelled), its `progress` (`steps` entered so far; at the end `done`, the tool's answer, or `failed`) and its `errors`. `wait`: seconds to hold the answer until it settles (0-25; 0 answers at once).",
+    "access": "user",
+    "annotations": {
+      "destructive_hint": false,
+      "open_world_hint": false,
+      "read_only_hint": true
+    },
+    "arguments": [
+      "job",
+      "wait"
+    ],
+    "required": [
+      "job"
+    ]
+  },
+  {
+    "name": "organon_cancel",
+    "title": "Cancel a job",
+    "description": "A job by `job`, stopped where it awaits; one already settled comes back as it is.",
+    "access": "user",
+    "annotations": {
+      "destructive_hint": true,
+      "open_world_hint": false,
+      "read_only_hint": false
+    },
+    "arguments": [
+      "job"
+    ],
+    "required": [
+      "job"
+    ]
+  },
+  {
     "name": "tekton_eng",
     "title": "Run an eng order",
     "description": "Pass the user's `eng` message exactly as typed, prefix included; the grammar is parsed here, never by you. `project`: the project the conversation is about, for an order that names none; `profile`: what a new run may do. Grammar: `eng [project:] <order>` new session · `eng @ref: <order>` continue · `eng @ref+: <order>` branch · `eng @ref?` where it stopped · `eng @ref = <title>` rename · `eng ls [project]` sessions · `eng ps` tasks · `eng stop <task>`. `ref` is a session id, its first 8 characters or its exact title. Answers `verb` and `result`.",

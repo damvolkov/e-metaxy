@@ -12,6 +12,13 @@ class OutsideRootsError(OrganonError):
     """The path sits under none of ORGANON_ROOTS, or does not exist."""
 
 
+class UnknownJobError(OrganonError, LookupError):
+    """No job under that id: never submitted, or long settled and gone."""
+
+    def __init__(self, job: str) -> None:
+        super().__init__(f"unknown job {job!r}")
+
+
 class FlowError(Exception):
     """A batch run whose workflow ended in `Failed`: carries it, so the batch answer is the streamed one."""
 

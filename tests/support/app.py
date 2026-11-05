@@ -14,7 +14,7 @@ from e_organon.providers.drivers.database import psqlpy as psqlpy_module
 from support.auth import FakeAuth
 from support.coder import ScriptedCoder
 from support.psqlpy import FakePsqlpyServer
-from support.queue import FakeQueue
+from support.queue import FakeQueue, FakeQueueDatabase
 
 
 @pytest.fixture(autouse=True)
@@ -50,3 +50,10 @@ def queue(monkeypatch: pytest.MonkeyPatch) -> FakeQueue:
     held = FakeQueue()
     monkeypatch.setattr(engines_module, "QUEUES", MappingProxyType({QueueEngine.PGQUEUER: lambda _database: held}))
     return held
+
+
+@pytest.fixture(autouse=True)
+def queue_database(monkeypatch: pytest.MonkeyPatch) -> type[FakeQueueDatabase]:
+    """The queue's database where the lifespan would connect asyncpg: one that opens and answers, holding nothing."""
+    monkeypatch.setattr(providers_module, "AsyncpgDriver", FakeQueueDatabase)
+    return FakeQueueDatabase
