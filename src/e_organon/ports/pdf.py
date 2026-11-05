@@ -1,4 +1,5 @@
-"""ports/pdf: a PDF's structure — what it holds (pages, metadata, form fields) and the edits that keep it a PDF.
+"""ports/pdf: a PDF's structure — what it holds (pages, metadata, form fields) and the edits that keep it a PDF: merge,
+split, fill, stamp (an image — a PNG, its transparency kept — or a text drawn on a page, opaque or not).
 
 Coordinates are PDF points, origin at the page's bottom-left, as the file stores them; pages count from 0."""
 
@@ -24,6 +25,16 @@ class PdfField(msgspec.Struct, frozen=True, kw_only=True):
     value: str = ""
 
 
+class PdfBox(msgspec.Struct, frozen=True, kw_only=True):
+    """Where a stamp goes on a page: the bottom-left corner `x`, `y` and a `width`; the `height` when given, else the one
+    that keeps the image's aspect ratio. An image given both is fitted inside, centred; a text is that high."""
+
+    x: float
+    y: float
+    width: float
+    height: float | None = None
+
+
 class PdfInfo(msgspec.Struct, frozen=True, kw_only=True):
     """A PDF at a glance: each page's size in points, its metadata, its form fields."""
 
@@ -44,3 +55,7 @@ class PdfPort(Provider, Protocol):
     async def split(self, data: bytes, ranges: Sequence[tuple[int, int]]) -> tuple[bytes, ...]: ...
 
     async def fill(self, data: bytes, values: Mapping[str, str]) -> bytes: ...
+
+    async def stamp(
+        self, data: bytes, page: int, box: PdfBox, *, image: bytes | None, text: str | None, opacity: float
+    ) -> bytes: ...

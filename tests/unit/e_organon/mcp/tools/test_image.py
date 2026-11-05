@@ -18,3 +18,21 @@ async def test_image_cutout_answers_the_pngs_path(vault: Path, connect: Connect,
 
 async def test_image_cutout_refuses_outside_the_roots(connect: Connect, ana_key: dict[str, str]) -> None:
     assert "OutsideRootsError" in await refused(connect, "image_cutout", {"path": "/etc/hostname"}, ana_key)
+
+
+async def test_doc_stamp_and_signature_as_tools(vault: Path, connect: Connect, ana_key: dict[str, str]) -> None:
+    at = {"type": "field", "field": "nope"}
+    assert "FieldNotFoundError" in await refused(
+        connect, "doc_stamp", {"path": str(vault / "labelled.pdf"), "text": "x", "at": at}, ana_key
+    )
+    signed = await call(
+        connect,
+        "doc_signature",
+        {
+            "path": str(vault / "labelled.pdf"),
+            "photo": str(vault / "firma.jpg"),
+            "at": {"type": "anchor", "anchor": "firma:"},
+        },
+        ana_key,
+    )
+    assert signed["path"].endswith(".pdf")

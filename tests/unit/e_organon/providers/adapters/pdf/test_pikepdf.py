@@ -1,11 +1,17 @@
 """tests/unit/e_organon/providers/adapters/pdf/pikepdf: a PDF's structure read and edited in memory — every field kind
 named, merge and split by page, a form filled with its appearances, and a broken file as `ParseError`."""
 
+import io
+
+import pikepdf
 import pytest
 
 from e_organon.infra.errors import ParseError
+from e_organon.ports.pdf import PdfBox
 from e_organon.providers.adapters.pdf.pikepdf import PikepdfAdapter
-from support.pdf import A4, blank, form
+from e_organon.providers.adapters.render.pdfium import PdfiumAdapter
+from support.ink import ink_png
+from support.pdf import A4, blank, form, placements
 
 
 @pytest.fixture
@@ -74,3 +80,43 @@ async def test_pikepdf_fill_a_document_without_a_form(pdf: PikepdfAdapter) -> No
 async def test_pikepdf_refuses_what_is_not_a_pdf(pdf: PikepdfAdapter) -> None:
     with pytest.raises(ParseError, match="not a readable PDF"):
         await pdf.info(b"hello")
+
+
+async def test_pikepdf_stamps_an_image_fitted_in_its_box(pdf: PikepdfAdapter) -> None:
+    """A 2:1 image in a 100x100 box: 100 wide, 50 high, centred; the page's own content untouched."""
+    out = await pdf.stamp(blank(1), 0, PdfBox(x=50, y=60, width=100, height=100), image=ink_png(), text=None, opacity=1)
+    assert placements(out) == [(100.0, 0.0, 0.0, 50.0, 50.0, 85.0)]
+
+
+async def test_pikepdf_stamps_an_image_by_width_and_keeps_its_aspect(pdf: PikepdfAdapter) -> None:
+    out = await pdf.stamp(blank(1), 0, PdfBox(x=10, y=20, width=80), image=ink_png(), text=None, opacity=1)
+    assert placements(out) == [(80.0, 0.0, 0.0, 40.0, 10.0, 20.0)]
+
+
+async def test_pikepdf_stamps_on_the_page_asked(pdf: PikepdfAdapter) -> None:
+    out = await pdf.stamp(blank(2), 1, PdfBox(x=0, y=0, width=10), image=ink_png(), text=None, opacity=1)
+    with pikepdf.open(io.BytesIO(out)) as opened:
+        assert [len(page.get_images()) for page in opened.pages] == [0, 1]
+
+
+async def test_pikepdf_stamps_a_text_and_an_opacity(pdf: PikepdfAdapter) -> None:
+    out = await pdf.stamp(
+        blank(1), 0, PdfBox(x=100, y=100, width=200, height=12), image=None, text="Aprobado €", opacity=0.5
+    )
+    with pikepdf.open(io.BytesIO(out)) as opened:
+        page = opened.pages[0]
+        ops = [str(operator) for _, operator in pikepdf.parse_content_stream(page)]
+        alpha = float(page.Resources.ExtGState[next(iter(page.Resources.ExtGState.keys()))].ca)
+    assert (ops.count("Tj"), alpha) == (1, 0.5)
+    hits = await PdfiumAdapter().find(out, "Aprobado")
+    assert [(hit.page, round(hit.rect[0])) for hit in hits] == [(0, 100)]
+
+
+async def test_pikepdf_refuses_a_page_outside(pdf: PikepdfAdapter) -> None:
+    with pytest.raises(ParseError, match="outside"):
+        await pdf.stamp(blank(1), 3, PdfBox(x=0, y=0, width=10), image=ink_png(), text=None, opacity=1)
+
+
+async def test_pikepdf_refuses_what_is_not_an_image(pdf: PikepdfAdapter) -> None:
+    with pytest.raises(ParseError, match="not a readable image"):
+        await pdf.stamp(blank(1), 0, PdfBox(x=0, y=0, width=10), image=b"hello", text=None, opacity=1)

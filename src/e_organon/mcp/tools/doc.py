@@ -64,6 +64,25 @@ RENDER: Final = MCPTool(
     read_only=False,
 )
 
+STAMP: Final = MCPTool(
+    name="doc_stamp",
+    title="Stamp a PDF",
+    description=(
+        "An `image` (a PNG path, its transparency kept) or a `text` drawn on a PDF by `path`, `at` a form field, a text "
+        "anchor or a box (PDF points, bottom-left origin). The image keeps its aspect ratio. Returns the copy's `path`."
+    ),
+    read_only=False,
+)
+SIGNATURE: Final = MCPTool(
+    name="doc_signature",
+    title="Sign a PDF with a photo",
+    description=(
+        "A photo of a handwritten signature (`photo`) cut out and placed on a PDF (`path`) `at` as doc_stamp's. Visual "
+        "only, not a cryptographic signature. Returns the copy's `path`."
+    ),
+    read_only=False,
+)
+
 ##### ROUTES #####
 ROUTES: tuple[HTTPRouteHandler, ...] = tuple(
     tool.route(Access.USER, dependencies=router.TOOL_DEPS, exception_handlers=REFUSALS)(handler)
@@ -74,5 +93,7 @@ ROUTES: tuple[HTTPRouteHandler, ...] = tuple(
         (SPLIT, router.split),
         (FILL, router.fill),
         (RENDER, router.render),
+        (STAMP, router.stamp),
+        (SIGNATURE, router.signature),
     )
 )

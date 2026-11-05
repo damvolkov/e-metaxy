@@ -3,6 +3,13 @@
 ## [Unreleased]
 
 ### Added
+- `doc/stamp` and `doc/signature` (`TODO_jobs` step 5): an image (PNG, transparency kept) or a text drawn on a PDF page
+  `at` a form field, a text anchor (found by pdfium's text search, `occurrence`, `offset`, `width`) or a box — a tagged
+  union in the request; `doc/signature` is `image/cutout` then `doc/stamp`, one stream (`cutout.*`, `stamp.*`). Ports:
+  `PdfPort.stamp`, `RenderPort.find`; REST, MCP `doc_stamp`/`doc_signature`, job kinds. Visual only, not PAdES.
+  Placement tested against the page's own `cm` matrix (field, anchor ± 3 pt, box). The stamp tools' schema took the
+  tool list to 5 669 tokens with the bridge (25 tools, 2.8 % of 200 k): profiles still not needed, budget test now
+  8 000. `make check`: 505 passed, coverage 100 %.
 - `image/cutout` (`TODO_jobs` step 4): the ink of a photographed signature as a transparent PNG in the outbox
   (`POST /image/cutout`, MCP `image_cutout`, a job kind on the `image` queue, `ORGANON_SLOTS_IMAGE`). `CutoutPort` +
   `OpencvAdapter` (flat-field by closing, Sauvola, darkness gate, specks dropped; soft alpha); the photo's pixels are read

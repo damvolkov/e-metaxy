@@ -16,6 +16,14 @@ class ImageTooLargeError(OrganonError):
     """The image has more pixels than the service decodes: refused from its header, before a pixel is read."""
 
 
+class FieldNotFoundError(OrganonError, LookupError):
+    """The PDF has no form field of that full name."""
+
+
+class AnchorNotFoundError(OrganonError, LookupError):
+    """The text is on no page of the PDF — or not that many times."""
+
+
 class UnknownJobError(OrganonError, LookupError):
     """No job under that id: never submitted, or long settled and gone."""
 

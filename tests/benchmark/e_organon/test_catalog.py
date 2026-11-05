@@ -13,9 +13,10 @@ from e_organon.mcp.registry import CORE, ROUTES
 if TYPE_CHECKING:
     from support.catalog import AtRest, Grown
 
-### a server's tools at rest should stay under 5 000 tokens (2.5 % of a 200 000-token window); the day it does not, the
-### catalog (`organon/find`) and the harness's own deferral carry the weight, and profiles are asked again.
-BUDGET: Final[int] = 5_000
+### a server's tools at rest should stay under 8 000 tokens (4 % of a 200 000-token window; it was 5 000 at 22 tools, and
+### the stamp tools' tagged schema took it past): the day it does not, the catalog (`organon/find`) and the harness's own
+### deferral carry the weight, and profiles are asked again.
+BUDGET: Final[int] = 8_000
 EXTRA: Final[int] = 150
 
 

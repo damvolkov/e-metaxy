@@ -12,6 +12,7 @@ import pytest
 from litestar.testing import TestClient
 
 from e_organon.api import middlewares as middlewares_module
+from e_organon.api.lifespan import engines as engines_module
 from e_organon.api.lifespan import services as services_module
 from e_organon.engines.bridge import BridgeEngine, Task, TaskOrder
 from e_organon.infra.settings import settings as st
@@ -19,6 +20,8 @@ from e_organon.main import create_app
 from e_organon.ops.projects import NamedProjects
 from e_organon.ports.coder import Profile
 from e_organon.providers.drivers.store.sqlite import SqliteDriver
+from support.ink import ink_png
+from support.pdf import labelled
 from support.photo import photo
 
 if TYPE_CHECKING:
@@ -66,11 +69,16 @@ def client() -> Iterator[TestClient]:
 
 @pytest.fixture
 def vault(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
-    """A vault of the test's own as the tools' only root, a `plan.md` in it — request it before `client`, which starts
+    """A vault of the test's own as the tools' only root, its outbox inside, a `plan.md` in it — request it before `client`, which starts
     the app on the roots the settings say then."""
     (tmp_path / "plan.md").write_text("# Plan\n\nStep one.\n")
     (tmp_path / "firma.jpg").write_bytes(photo()[0])
-    monkeypatch.setattr(services_module, "st", st.model_copy(update={"ORGANON_ROOTS": (tmp_path,)}))
+    (tmp_path / "labelled.pdf").write_bytes(labelled())
+    (tmp_path / "ink.png").write_bytes(ink_png())
+    ### the outbox inside the root, as in the house: an output is the next tool's input — and never lands in the real vault.
+    on = st.model_copy(update={"ORGANON_ROOTS": (tmp_path,), "ORGANON_OUTBOX": tmp_path / "outbox"})
+    monkeypatch.setattr(services_module, "st", on)
+    monkeypatch.setattr(engines_module, "st", on)
     return tmp_path
 
 

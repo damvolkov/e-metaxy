@@ -135,6 +135,50 @@
     ]
   },
   {
+    "name": "doc_stamp",
+    "title": "Stamp a PDF",
+    "description": "An `image` (a PNG path, its transparency kept) or a `text` drawn on a PDF by `path`, `at` a form field, a text anchor or a box (PDF points, bottom-left origin). The image keeps its aspect ratio. Returns the copy's `path`.",
+    "access": "user",
+    "annotations": {
+      "destructive_hint": false,
+      "open_world_hint": false,
+      "read_only_hint": false
+    },
+    "arguments": [
+      "at",
+      "image",
+      "opacity",
+      "path",
+      "text"
+    ],
+    "required": [
+      "at",
+      "path"
+    ]
+  },
+  {
+    "name": "doc_signature",
+    "title": "Sign a PDF with a photo",
+    "description": "A photo of a handwritten signature (`photo`) cut out and placed on a PDF (`path`) `at` as doc_stamp's. Visual only, not a cryptographic signature. Returns the copy's `path`.",
+    "access": "user",
+    "annotations": {
+      "destructive_hint": false,
+      "open_world_hint": false,
+      "read_only_hint": false
+    },
+    "arguments": [
+      "at",
+      "color",
+      "path",
+      "photo"
+    ],
+    "required": [
+      "at",
+      "path",
+      "photo"
+    ]
+  },
+  {
     "name": "image_cutout",
     "title": "Cut ink out of a photo",
     "description": "A photo of ink on paper (a signature) by `path`, as a transparent PNG of the ink alone: paper tint, uneven light and shadows gone, soft edges. `color` keeps the ink's own colour (default; off, black); `crop` cuts to the ink (default). Returns the PNG's `path`, the next tool's input (doc_stamp).",

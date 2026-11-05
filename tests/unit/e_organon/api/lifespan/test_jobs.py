@@ -11,7 +11,9 @@ from e_organon.services.jobs import JobsService
 if TYPE_CHECKING:
     from support.queue import FakeQueue
 
-DOC_KINDS = {f"doc/{word}": "doc" for word in ("convert", "inspect", "merge", "split", "fill", "render")}
+DOC_KINDS = {
+    f"doc/{word}": "doc" for word in ("convert", "inspect", "merge", "split", "fill", "render", "stamp", "signature")
+}
 KINDS = DOC_KINDS | {"image/cutout": "image"}
 
 
