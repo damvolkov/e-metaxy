@@ -1,8 +1,12 @@
 """tests/support/ink: a signature already cut out — a transparent PNG with a black stroke — the stamp tools place."""
 
 import io
+from pathlib import Path
 
 from PIL import Image, ImageDraw, ImageFont
+
+### a font with Spanish glyphs that every CI runner has: shipped, not looked up on the system (macOS has no DejaVu).
+FONT = Path(__file__).resolve().parents[1] / "resources" / "fonts" / "DejaVuSans.ttf"
 
 
 def ink_png(width: int = 200, height: int = 100) -> bytes:
@@ -41,7 +45,7 @@ def red_png(width: int = 100, height: int = 50) -> bytes:
 def text_png(text: str = "La factura número 42 está pagada.", size: int = 32) -> bytes:
     """An opaque white PNG with `text` in black at (20, 20), in a font the OCR tests share: a scan, made small."""
     image = Image.new("RGB", (900, 120), "white")
-    ImageDraw.Draw(image).text((20, 20), text, font=ImageFont.truetype("DejaVuSans.ttf", size), fill="black")
+    ImageDraw.Draw(image).text((20, 20), text, font=ImageFont.truetype(FONT, size), fill="black")
     sink = io.BytesIO()
     image.save(sink, format="PNG")
     return sink.getvalue()
