@@ -66,7 +66,12 @@ async def test_compose_the_shipped_invoice_is_the_golden_text(
     golden = (resources.path / "golden" / "invoice.txt").read_bytes().decode()
     with pikepdf.open(io.BytesIO(pdf)) as opened:
         pdfa = str(opened.open_metadata()["pdfaid:part"])
-    assert ("\f".join(text_of(pdf)), len(text_of(pdf)), pdfa) == (golden, 2, "2")
+    ### pdfium ends lines with CRLF; git may keep the golden with LF: the lines are what is compared.
+    assert ("\f".join(text_of(pdf)).replace("\r\n", "\n"), len(text_of(pdf)), pdfa) == (
+        golden.replace("\r\n", "\n"),
+        2,
+        "2",
+    )
 
 
 @pytest.mark.parametrize(
