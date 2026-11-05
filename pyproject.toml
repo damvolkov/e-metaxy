@@ -102,6 +102,7 @@ test = [
     "httpx2>=2.13",
     ### no [serde] extra: it pins e-serde<0.6 and the main dependency (ops/registry) needs >=0.6.1, which the plugin loads through.
     "pytest-resources>=0.3.2",
+    "tiktoken>=0.14.0",
 ]
 docs = [
     "mkdocstrings[python]>=1.0.7",

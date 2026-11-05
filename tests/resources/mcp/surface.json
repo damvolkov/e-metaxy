@@ -135,6 +135,24 @@
     ]
   },
   {
+    "name": "organon_find",
+    "title": "Find a tool",
+    "description": "The tools that answer a need, best first (at most 5): `query` in words, `section` (doc, tekton…) to narrow. Each comes with its description and its arguments' JSON Schema.",
+    "access": "user",
+    "annotations": {
+      "destructive_hint": false,
+      "open_world_hint": false,
+      "read_only_hint": true
+    },
+    "arguments": [
+      "query",
+      "section"
+    ],
+    "required": [
+      "query"
+    ]
+  },
+  {
     "name": "organon_job",
     "title": "Check a job",
     "description": "A job — a tool run in the background — by `job`: its `state` (available, running, completed, failed, cancelled), its `progress` (`steps` entered so far; at the end `done`, the tool's answer, or `failed`) and its `errors`. `wait`: seconds to hold the answer until it settles (0-25; 0 answers at once).",

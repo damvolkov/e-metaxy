@@ -66,7 +66,7 @@ depends_on = ["e_organon.ports", "e_organon.infra", "e_organon.infra.errors"]
 ### Services name no concretion — the lifespans hand them what meets each port.
 [[modules]]
 path = "e_organon.services"
-depends_on = ["e_organon.models", "e_organon.engines", "e_organon.processors", "e_organon.ports", "e_organon.infra", "e_organon.infra.errors", "e_organon.ops"]
+depends_on = ["e_organon.models", "e_organon.engines", "e_organon.processors", "e_organon.ports", "e_organon.infra", "e_organon.infra.mcp", "e_organon.infra.errors", "e_organon.ops"]
 
 ##### MATERIALIZED #####
 ### engines, processors, drivers and adapters are the execution level: each stands on ports, infra and ops, and none

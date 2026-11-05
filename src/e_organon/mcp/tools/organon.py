@@ -1,4 +1,7 @@
-"""e_organon.mcp.tools.organon: organon itself as tools — the jobs a tool made when asked to answer later.
+"""e_organon.mcp.tools.organon: organon itself as tools — the catalog of its tools, and the jobs a tool made when asked
+to answer later.
+
+`organon_find` is the twin of `api/router/organon`, whose very handler it is: the tools that answer a need, ranked.
 
 A tool queued over REST with `Prefer: respond-async` answers `202` with its job — a header an MCP call cannot carry, so
 the door only reads jobs, it does not make them; `organon_job` reads that job, held up to
@@ -11,7 +14,7 @@ from litestar.di import NamedDependency
 from litestar.handlers import HTTPRouteHandler
 from litestar.params import JSONBody
 
-from e_organon.api.router import doc as router
+from e_organon.api.router import organon as router
 from e_organon.infra.auth.models import Access
 from e_organon.infra.mcp.models import MCPTool
 from e_organon.infra.state import State
@@ -19,6 +22,14 @@ from e_organon.mcp.refusals import REFUSALS
 from e_organon.models.job import CancelJobIn, Job, StatusJobIn
 
 ##### TOOLS — what a client is told #####
+FIND: Final = MCPTool(
+    name="organon_find",
+    title="Find a tool",
+    description=(
+        "The tools that answer a need, best first (at most 5): `query` in words, `section` (doc, tekton…) to narrow. "
+        "Each comes with its description and its arguments' JSON Schema."
+    ),
+)
 JOB: Final = MCPTool(
     name="organon_job",
     title="Check a job",
@@ -49,5 +60,5 @@ async def cancel(data: JSONBody[CancelJobIn], graph: NamedDependency[State]) -> 
 ##### ROUTES #####
 ROUTES: tuple[HTTPRouteHandler, ...] = tuple(
     tool.route(Access.USER, dependencies=router.TOOL_DEPS, exception_handlers=REFUSALS)(handler)
-    for tool, handler in ((JOB, job), (CANCEL, cancel))
+    for tool, handler in ((FIND, router.find), (JOB, job), (CANCEL, cancel))
 )

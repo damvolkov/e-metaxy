@@ -46,6 +46,7 @@ async def test_health_status_lists_the_tools(connect: Connect) -> None:
         "doc_render",
         "doc_split",
         "organon_cancel",
+        "organon_find",
         "organon_job",
         "tekton_cancel",
         "tekton_catalog",

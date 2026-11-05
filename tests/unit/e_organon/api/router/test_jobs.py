@@ -1,7 +1,6 @@
 """tests/unit/e_organon/api/router/jobs: a tool asked to answer later is a job — taken on with 202 and a `Location`, read
 at `/jobs/{id}`, followed by server-sent events until it settles, stopped by a DELETE; the same answer as the batch."""
 
-import json
 from typing import TYPE_CHECKING
 
 import pytest
@@ -11,31 +10,21 @@ if TYPE_CHECKING:
 
     from litestar.testing import TestClient
 
+    from support.sse import Told
+
 ASYNC = {"prefer": "respond-async"}
 SSE = {"accept": "text/event-stream"}
 
 
-def events(body: str) -> list[tuple[str, dict]]:
-    """A server-sent body as its (event, data) pairs, the keep-alive comments left out."""
-    blocks = [block for block in body.replace("\r\n", "\n").split("\n\n") if "event:" in block]
-    return [
-        (
-            next(line.removeprefix("event: ") for line in block.splitlines() if line.startswith("event: ")),
-            json.loads(next(line.removeprefix("data: ") for line in block.splitlines() if line.startswith("data: "))),
-        )
-        for block in blocks
-    ]
-
-
 def test_jobs_convert_in_the_background_is_the_batch_answer(
-    vault: Path, client: TestClient, root_key: dict[str, str]
+    vault: Path, client: TestClient, root_key: dict[str, str], told: Told
 ) -> None:
     body = {"path": str(vault / "plan.md")}
     batch = client.post("/doc/convert", json=body, headers=root_key)
     taken = client.post("/doc/convert", json=body, headers=root_key | ASYNC)
     job = taken.json()["job"]
     with client.stream("GET", f"/jobs/{job}/events", headers=root_key) as response:
-        told = events("".join(response.iter_text()))
+        seen = told("".join(response.iter_text()))
     settled = client.get(f"/jobs/{job}", headers=root_key).json()
     assert (batch.status_code, taken.status_code, taken.headers["location"], taken.json()["state"]) == (
         200,
@@ -44,8 +33,8 @@ def test_jobs_convert_in_the_background_is_the_batch_answer(
         "available",
     )
     assert taken.headers["preference-applied"] == "respond-async"
-    assert [(name, data.get("name")) for name, data in told[:-1]] == [("step", "resolve"), ("step", "read")]
-    assert told[-1] == ("done", {"type": "done", "result": batch.json()})
+    assert [(name, data.get("name")) for name, data in seen[:-1]] == [("step", "resolve"), ("step", "read")]
+    assert seen[-1] == ("done", {"type": "done", "result": batch.json()})
     assert (settled["state"], settled["kind"], settled["errors"], settled["progress"]["done"]) == (
         "completed",
         "doc/convert",
@@ -54,12 +43,12 @@ def test_jobs_convert_in_the_background_is_the_batch_answer(
     )
 
 
-def test_jobs_failed_in_the_background_says_why(client: TestClient, root_key: dict[str, str]) -> None:
+def test_jobs_failed_in_the_background_says_why(client: TestClient, root_key: dict[str, str], told: Told) -> None:
     job = client.post("/doc/convert", json={"path": "/etc/hostname"}, headers=root_key | ASYNC).json()["job"]
     with client.stream("GET", f"/jobs/{job}/events", headers=root_key) as response:
-        told = events("".join(response.iter_text()))
+        seen = told("".join(response.iter_text()))
     settled = client.get(f"/jobs/{job}", headers=root_key).json()
-    assert (told[-1][0], told[-1][1]["kind"]) == ("failed", "OutsideRootsError")
+    assert (seen[-1][0], seen[-1][1]["kind"]) == ("failed", "OutsideRootsError")
     assert (settled["state"], settled["progress"]["failed"]["kind"]) == ("failed", "OutsideRootsError")
 
 

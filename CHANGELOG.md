@@ -3,6 +3,11 @@
 ## [Unreleased]
 
 ### Added
+- Catalog (`TODO_jobs` step 3): `organon/find {query, section?}` (REST and MCP `organon_find`) ranks the MCP registry's
+  tools by name 4 / title 2 / description 1 over lower-cased words, five at most, ties by name — no model
+  (`docs/catalog.md`). Tools at rest, measured (tiktoken cl100k_base as proxy): 11 tools 2 209 tokens, 22 with the
+  bridge 4 167 (2.1 % of 200 k), +150 synthetic 32 683 — about 190 a tool. Verdict: no per-section MCP profiles (a
+  tenth of 200 k comes at ~105 tools); a 5 000-token budget test guards it. `make check`: 440 passed, coverage 100 %.
 - Jobs (`TODO_jobs` step 2): every tool but tekton's is a kind `<section>/<word>` on its section's queue
   (`ORGANON_SLOTS_DOC`, default 2). `Prefer: respond-async` (RFC 7240) on a tool route answers `202 {job, state}` with
   `Location: /jobs/{id}`; `GET /jobs/{id}`, `GET /jobs/{id}/events` (SSE, polled until settled: `step`…, then `done` or
