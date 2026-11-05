@@ -2,7 +2,7 @@
 
 Decision record for `image/cutout` (2026-11-05). Raw samples, generator and arm scripts are in
 [`cutout/`](cutout/): `gen.py.txt` (the synthetic photos), `base.py.txt`, `a.py.txt`, `c.py.txt` (the arms), `run.py.txt` (the
-interleaved runner) — the scripts verbatim as they ran, kept as text so the linters leave them be —, `test.tsv` and `dev.tsv` (one row per image and arm: `image, arm, ms, F, IoU`).
+interleaved runner), `port.py.txt` (the equivalence check of the port below) — the scripts verbatim as they ran, kept as text so the linters leave them be —, `test.tsv` and `dev.tsv` (one row per image and arm: `image, arm, ms, F, IoU`).
 
 ## Hypothesis
 
@@ -46,6 +46,25 @@ stroke, which is what costs it IoU. The interval clears the 0.03 threshold.
 **Adopt A.** It is better by +0.100 F (CI above 0.03), 18× faster at the median, in-process, with no model to download.
 It is what `providers/adapters/cutout/opencv.py` runs. The alpha channel (soft edges from the flattened darkness) is the
 adapter's, not part of this bench.
+
+## Port: scikit-image out (2026-11-05)
+
+The adapter keeps arm A's method and drops its dependency: Sauvola's threshold is `cv2.boxFilter` on the grey and its
+square (float64, `BORDER_REFLECT_101`, which is scikit-image's `reflect` padding), `T = m * (1 + k * (s / R - 1))` with
+the window 25 and k 0.2. `R` is **1.0**, not 127.5: scikit-image sets it to half of the *dtype's* range, and for the float32
+image the bench handed it that range is [-1, 1] whatever the pixel values (`threshold_sauvola` with `r=None`,
+`dtype_limits`) — the bench's numbers are of that R, so the port keeps it. scikit-image, scipy, imageio, tifffile and
+lazy-loader leave the image: 2 371 → 2 161 MB (`docker build`).
+
+Equivalence, not a new bench: on the 80 bench images (20 dev, 60 test) the ink mask of the port against the skimage one
+(`cutout/port.py.txt`):
+
+| | pixel IoU old vs new | F median on test, against the exact masks |
+|---|---|---|
+| min / median over 80 images | 1.000000 / 1.000000 | skimage 0.9094, port 0.9094 |
+
+The masks are identical on every image; the benchmarked 0.909 stands. The adapter's own test holds the formula against
+`numpy`'s reflect padding on random data.
 
 ## Limits
 

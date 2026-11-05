@@ -48,6 +48,11 @@
   reused after: first start 2.5 s (eng+spa, 29 MB), second 0.25 s.
 
 ### Changed
+- `image/cutout` without scikit-image: Sauvola ported to `cv2.boxFilter` (float64, reflect-101 borders, R = 1.0 as
+  scikit-image sets it for a float image), dropping scikit-image, scipy, imageio, tifffile and lazy-loader. Equivalence
+  on the 80 bench images: ink masks identical (pixel IoU min 1.000000, median 1.000000), F median on test 0.9094 both
+  ways (`docs/bench/cutout.md`, "Port"). Image: 2 371 → 2 161 MB (−210 MB; +299 MB over the
+  1 862 MB before the image tools, all of it opencv-headless and numpy).
 - Flaky test fixed: `test_organon_another_accounts_job_is_unknown_the_admin_reads_it[organon_cancel]` hung once in a
   hundred runs under load. Cause (found by logging the tool's path): the in-process MCP client runs a tool on the test's
   loop while the dispatch and its jobs' `anyio.Event`s live on the REST client's loop, and `organon_cancel` awaits the

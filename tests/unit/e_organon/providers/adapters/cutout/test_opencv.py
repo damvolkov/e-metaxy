@@ -8,7 +8,7 @@ import pytest
 from PIL import Image
 
 from e_organon.infra.errors import ParseError
-from e_organon.providers.adapters.cutout.opencv import PADDING, OpencvAdapter
+from e_organon.providers.adapters.cutout.opencv import PADDING, WINDOW, K, OpencvAdapter
 from support.photo import INK, H, W, photo
 
 
@@ -74,3 +74,17 @@ async def test_opencv_size_of_what_is_not_an_image_is_refused(cutout: OpencvAdap
 async def test_opencv_cut_of_what_is_not_an_image_is_refused(cutout: OpencvAdapter) -> None:
     with pytest.raises(ParseError, match="not a readable image"):
         await cutout.cut(b"hello", color=True, crop=True)
+
+
+async def test_opencv_sauvola_is_the_definition_with_reflected_borders() -> None:
+    """The port of scikit-image's threshold, against the formula spelled out over `numpy`'s own reflect padding: the
+    window's mean and deviation, `m * (1 + k * (s / R - 1))`, R = 1 as scikit-image sets it for a float image."""
+    rng = np.random.default_rng(3)
+    flat = rng.uniform(0, 255, (40, 50)).astype(np.float32)
+    half = WINDOW // 2
+    windows = np.lib.stride_tricks.sliding_window_view(
+        np.pad(flat.astype(np.float64), half, mode="reflect"), (WINDOW, WINDOW)
+    )
+    mean, deviation = windows.mean(axis=(2, 3)), windows.std(axis=(2, 3))
+    expected = mean * (1 + K * (deviation / 1.0 - 1))
+    assert np.allclose(OpencvAdapter._cut_sauvola(flat), expected, rtol=1e-9)
