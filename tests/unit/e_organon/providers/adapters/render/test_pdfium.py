@@ -50,3 +50,8 @@ async def test_pdfium_finds_a_text_in_page_order(render: PdfiumAdapter) -> None:
 
 async def test_pdfium_finds_nothing_where_the_text_is_not(render: PdfiumAdapter) -> None:
     assert await render.find(labelled(), "nowhere") == ()
+
+
+async def test_pdfium_refuses_more_pages_than_its_budget() -> None:
+    with pytest.raises(ParseError, match=r"2 pages; the limit is 1"):
+        await PdfiumAdapter(max_pages=1).count(blank(2))

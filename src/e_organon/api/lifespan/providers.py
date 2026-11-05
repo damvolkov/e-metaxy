@@ -147,8 +147,8 @@ async def lifespan(app: Litestar) -> AsyncGenerator[None]:
         auth = await enter(PostgresAuthDriver(database))
         markdown = await enter(anytomd())
         pages = await enter(liteparse())
-        pdf = await enter(PikepdfAdapter())
-        render = await enter(PdfiumAdapter())
+        pdf = await enter(PikepdfAdapter(max_pages=st.ORGANON_MAX_PAGES, max_pixels=st.ORGANON_MAX_PIXELS))
+        render = await enter(PdfiumAdapter(max_pages=st.ORGANON_MAX_PAGES))
         cutout = await enter(OpencvAdapter())
         coder = await enter(ClaudeDriver(st.TEKTON_CLAUDE)) if st.TEKTON_PROFILES else None
         docling = await enter(docling_driver(http)) if st.DOCLING_URL else None

@@ -28,6 +28,12 @@ class ServiceSettings(BaseSettings):
     ### OUTBOX — where a tool's output files land, content-addressed: inside a root, so an output is the next input.
     ORGANON_OUTBOX: Path = Path("~/.config/memory/workflow/organon")
 
+    ##### LIMITS #####
+
+    ### MAX_PAGES — the most pages a PDF may have before a tool opens it: a page tree can name one page twenty thousand
+    ### times in a few hundred kilobytes, and render, merge and split walk it page by page.
+    ORGANON_MAX_PAGES: PositiveInt = 5_000
+
     ##### IMAGES #####
 
     ### MAX_PIXELS — the most pixels an image tool decodes (width x height, read from the header first): decoding

@@ -10,6 +10,7 @@ refuse a huge image before `cut` decodes it. Everything runs off the loop, in a 
 the GIL."""
 
 import io
+import warnings
 from typing import ClassVar, Final, Self
 
 import anyio
@@ -43,8 +44,12 @@ class OpencvAdapter:
     @staticmethod
     def _size_read(data: bytes) -> tuple[int, int]:
         try:
-            with Image.open(io.BytesIO(data)) as image:
-                return image.size
+            ### Pillow warns above 89 MP and refuses above 179 MP; the service's budget is the limit that counts, so only its
+            ### refusal is let through: a warning here would be noise before the same verdict.
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore", Image.DecompressionBombWarning)
+                with Image.open(io.BytesIO(data)) as image:
+                    return image.size
         except (UnidentifiedImageError, OSError, Image.DecompressionBombError) as error:
             msg = f"not a readable image: {error}"
             raise ParseError(msg) from error

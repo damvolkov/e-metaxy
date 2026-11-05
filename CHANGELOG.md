@@ -3,6 +3,13 @@
 ## [Unreleased]
 
 ### Added
+- Quality (`TODO_jobs` step 6): a hostile corpus (`tests/resources/hostile/`: pixel bombs, a bad-CRC PNG, a PDF with
+  JavaScript, one of 20 000 pages, truncated and garbage files, a symlink out of the roots) run through every doc/ and
+  image/ tool on the whole stack — always a clean 200 or 422, under 10 s (125 cases) — and goldens for the new tools
+  (cutout IoU ≥ 0.99 against a stored mask; stamp's matrix and pdfium's rendered pixels; signature's ink in the stamp).
+  Limits added where the corpus found none: `ORGANON_MAX_PAGES` (5 000; a merge of 20 000 pages took 52 s, render
+  drew them all) in the pikepdf and pdfium adapters, and `ORGANON_MAX_PIXELS` on a stamp's image. `make check`: 674
+  passed, coverage 100 %.
 - `doc/stamp` and `doc/signature` (`TODO_jobs` step 5): an image (PNG, transparency kept) or a text drawn on a PDF page
   `at` a form field, a text anchor (found by pdfium's text search, `occurrence`, `offset`, `width`) or a box — a tagged
   union in the request; `doc/signature` is `image/cutout` then `doc/stamp`, one stream (`cutout.*`, `stamp.*`). Ports:

@@ -12,6 +12,7 @@ width; an opacity below 1 is an `ExtGState`. The box is *as displayed*: the page
 (`PageGeometry`), so the stamp stands upright on a rotated page and lands where a person's coordinates say on a cropped one."""
 
 import io
+import warnings
 from contextlib import ExitStack
 from functools import partial
 from types import MappingProxyType
@@ -37,6 +38,10 @@ CHECKED: Final[frozenset[str]] = frozenset({"1", "true", "on", "yes", "x"})
 DEFAULT_SIZE: Final[float] = 12.0
 EM: Final[float] = 0.5
 BASELINE: Final[float] = 0.25
+### what a document may hold before any tool walks it: pages of a PDF (a page tree can name one page twenty thousand times in a
+### few hundred kilobytes), pixels of a stamped image (decoding allocates in proportion). The root sets both from the settings.
+PAGES: Final[int] = 5_000
+PIXELS: Final[int] = 40_000_000
 
 
 ##### ADAPTER #####
@@ -44,6 +49,11 @@ class PikepdfAdapter:
     """In-process PDF editing; nothing to open, nothing to close."""
 
     spec: ClassVar[ProviderSpec] = ProviderSpec("pikepdf", Locality.EMBEDDED, Workload.CPU_BOUND, Isolation.THREAD)
+
+    __slots__ = ("_max_pages", "_max_pixels")
+
+    def __init__(self, *, max_pages: int = PAGES, max_pixels: int = PIXELS) -> None:
+        self._max_pages, self._max_pixels = max_pages, max_pixels
 
     ##### PRIVATE — reading #####
 
@@ -82,9 +92,9 @@ class PikepdfAdapter:
             value=value,
         )
 
-    @classmethod
-    def _info_read(cls, data: bytes) -> PdfInfo:
-        with cls._common_open(data) as pdf:
+    def _info_read(self, data: bytes) -> PdfInfo:
+        cls = type(self)
+        with self._common_open(data) as pdf:
             annots = {
                 annot.objgen: index for index, page in enumerate(pdf.pages) for annot in page.obj.get("/Annots", ())
             }
@@ -98,25 +108,24 @@ class PikepdfAdapter:
                 fields=tuple(field for root in roots for field in cls._info_walk(root, "", "", annots)),
             )
 
-    @classmethod
-    def _geometry_read(cls, data: bytes) -> tuple[PageGeometry, ...]:
-        with cls._common_open(data) as pdf:
-            return tuple(cls._geometry_of(page) for page in pdf.pages)
+    def _geometry_read(self, data: bytes) -> tuple[PageGeometry, ...]:
+        with self._common_open(data) as pdf:
+            return tuple(self._geometry_of(page) for page in pdf.pages)
 
     ##### PRIVATE — editing #####
 
-    @staticmethod
-    def _merge_join(parts: Sequence[bytes]) -> bytes:
+    def _merge_join(self, parts: Sequence[bytes]) -> bytes:
         with ExitStack() as stack:
             merged = stack.enter_context(pikepdf.new())
-            sources = [stack.enter_context(PikepdfAdapter._common_open(part)) for part in parts]
+            sources = [stack.enter_context(self._common_open(part)) for part in parts]
+            ### the parts are each within the budget, the whole is not: a merge of many is as heavy as one that is many.
+            _ = self._common_pages(sum(len(source.pages) for source in sources))
             ### add_pages_from carries the AcroForm with the pages (and renames colliding fields): extend() would drop it.
             _ = [merged.add_pages_from(source) for source in sources]
             return PikepdfAdapter._common_save(merged)
 
-    @staticmethod
-    def _split_cut(data: bytes, ranges: Sequence[tuple[int, int]]) -> tuple[bytes, ...]:
-        with PikepdfAdapter._common_open(data) as pdf:
+    def _split_cut(self, data: bytes, ranges: Sequence[tuple[int, int]]) -> tuple[bytes, ...]:
+        with self._common_open(data) as pdf:
             return tuple(PikepdfAdapter._split_part(pdf, first, last) for first, last in ranges)
 
     @staticmethod
@@ -145,9 +154,8 @@ class PikepdfAdapter:
     def _fill_set(form: Any, field: Any, value: str) -> None:
         field.set_value(PikepdfAdapter._fill_state(form, field, value) if field.is_checkbox else pikepdf.String(value))
 
-    @staticmethod
-    def _fill_write(data: bytes, values: Mapping[str, str]) -> bytes:
-        with PikepdfAdapter._common_open(data) as pdf:
+    def _fill_write(self, data: bytes, values: Mapping[str, str]) -> bytes:
+        with self._common_open(data) as pdf:
             form = pdf.acroform
             found = {name: form.get_fields_with_qualified_name(name) for name in values}
             unknown = sorted(name for name, fields in found.items() if not fields)
@@ -197,12 +205,19 @@ class PikepdfAdapter:
                 drawn_w, drawn_h = width * scale, height * scale
                 return box.x + (box.width - drawn_w) / 2, box.y + (tall - drawn_h) / 2, drawn_w, drawn_h
 
-    @staticmethod
-    def _stamp_image(pdf: pikepdf.Pdf, data: bytes) -> tuple[pikepdf.Object, int, int]:
-        """The image XObject of a PNG (RGB, its alpha an SMask), and its pixel size."""
+    def _stamp_image(self, pdf: pikepdf.Pdf, data: bytes) -> tuple[pikepdf.Object, int, int]:
+        """The image XObject of a PNG (RGB, its alpha an SMask), and its pixel size; the pixels are counted from the header
+        first and a picture over the budget is refused unread."""
         try:
-            picture = Image.open(io.BytesIO(data)).convert("RGBA")
-        except (UnidentifiedImageError, OSError) as error:
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore", Image.DecompressionBombWarning)
+                opened = Image.open(io.BytesIO(data))
+            match opened.width * opened.height <= self._max_pixels:
+                case False:
+                    msg = f"{opened.width}x{opened.height} is {opened.width * opened.height} pixels; the limit is {self._max_pixels}"
+                    raise ParseError(msg)
+            picture = opened.convert("RGBA")
+        except (UnidentifiedImageError, OSError, Image.DecompressionBombError) as error:
             msg = f"not a readable image: {error}"
             raise ParseError(msg) from error
         base = {"/Type": pikepdf.Name.XObject, "/Subtype": pikepdf.Name.Image, "/BitsPerComponent": 8}
@@ -244,9 +259,8 @@ class PikepdfAdapter:
             ([], pikepdf.Operator("ET")),
         ]
 
-    @staticmethod
     def _stamp_draw(
-        pdf: pikepdf.Pdf, index: int, box: PdfBox, *, image: bytes | None, text: str | None, opacity: float
+        self, pdf: pikepdf.Pdf, index: int, box: PdfBox, *, image: bytes | None, text: str | None, opacity: float
     ) -> None:
         count = len(pdf.pages)
         match 0 <= index < count:
@@ -258,7 +272,7 @@ class PikepdfAdapter:
         drawn: list[Any] = []
         match (image, text):
             case (bytes() as picture, _):
-                xobject, width, height = PikepdfAdapter._stamp_image(pdf, picture)
+                xobject, width, height = self._stamp_image(pdf, picture)
                 x, y, w, h = PikepdfAdapter._stamp_fit(box, width, height)
                 name = page.add_resource(xobject, pikepdf.Name.XObject, prefix="Org")
                 drawn = [
@@ -277,23 +291,35 @@ class PikepdfAdapter:
         page.contents_add(pdf.make_stream(pikepdf.unparse_content_stream([([], pikepdf.Operator("q"))])), prepend=True)
         page.contents_add(pdf.make_stream(pikepdf.unparse_content_stream([([], pikepdf.Operator("Q")), *wrap])))
 
-    @staticmethod
     def _stamp_write(
-        data: bytes, index: int, box: PdfBox, *, image: bytes | None, text: str | None, opacity: float
+        self, data: bytes, index: int, box: PdfBox, *, image: bytes | None, text: str | None, opacity: float
     ) -> bytes:
-        with PikepdfAdapter._common_open(data) as pdf:
-            PikepdfAdapter._stamp_draw(pdf, index, box, image=image, text=text, opacity=opacity)
+        with self._common_open(data) as pdf:
+            self._stamp_draw(pdf, index, box, image=image, text=text, opacity=opacity)
             return PikepdfAdapter._common_save(pdf)
 
     ##### PRIVATE — common #####
 
-    @staticmethod
-    def _common_open(data: bytes) -> pikepdf.Pdf:
+    def _common_pages(self, count: int) -> int:
+        """`count` pages when within the budget, else a `ParseError`: a page tree is walked page by page by every tool."""
+        match count <= self._max_pages:
+            case False:
+                msg = f"{count} pages; the limit is {self._max_pages}"
+                raise ParseError(msg)
+        return count
+
+    def _common_open(self, data: bytes) -> pikepdf.Pdf:
         try:
-            return pikepdf.open(io.BytesIO(data))
+            pdf = pikepdf.open(io.BytesIO(data))
         except pikepdf.PdfError as error:
             msg = f"not a readable PDF: {error}"
             raise ParseError(msg) from error
+        try:
+            _ = self._common_pages(len(pdf.pages))
+        except ParseError:
+            pdf.close()
+            raise
+        return pdf
 
     @staticmethod
     def _common_save(pdf: pikepdf.Pdf) -> bytes:

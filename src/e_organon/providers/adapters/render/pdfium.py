@@ -16,6 +16,8 @@ from e_organon.ports.render import TextHit
 
 ### PDF user space is 72 points per inch.
 POINTS: Final[float] = 72.0
+### the most pages a document may have before any is read: a page tree can name one page twenty thousand times cheaply.
+PAGES: Final[int] = 5_000
 
 
 ##### ADAPTER #####
@@ -24,19 +26,25 @@ class PdfiumAdapter:
 
     spec: ClassVar[ProviderSpec] = ProviderSpec("pdfium", Locality.EMBEDDED, Workload.CPU_BOUND, Isolation.SERIAL)
 
-    __slots__ = ("_lock",)
+    __slots__ = ("_lock", "_max_pages")
 
-    def __init__(self) -> None:
+    def __init__(self, *, max_pages: int = PAGES) -> None:
         self._lock = threading.Lock()
+        self._max_pages = max_pages
 
     ##### PRIVATE #####
 
     def _common_open(self, data: bytes) -> pdfium.PdfDocument:
         try:
-            return pdfium.PdfDocument(data)
+            document = pdfium.PdfDocument(data)
         except pdfium.PdfiumError as error:
             msg = f"not a readable PDF: {error}"
             raise ParseError(msg) from error
+        match len(document) <= self._max_pages:
+            case False:
+                msg = f"{len(document)} pages; the limit is {self._max_pages}"
+                raise ParseError(msg)
+        return document
 
     def _count_read(self, data: bytes) -> int:
         with self._lock:

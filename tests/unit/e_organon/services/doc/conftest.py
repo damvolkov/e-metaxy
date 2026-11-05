@@ -16,12 +16,14 @@ from e_organon.services.doc.signature import SignatureDocService
 from e_organon.services.doc.stamp import StampDocService
 from e_organon.services.files import AllowedFiles
 from e_organon.services.image.cutout import CutoutImageService
-from support.ink import ink_png
+from support.ink import ink_png, red_png
 from support.pdf import blank, form, labelled
 from support.photo import photo
 
 if TYPE_CHECKING:
     from pathlib import Path
+
+    from pytest_resources import Resources
 
     from support.stamp import Refusal, Stamped
 
@@ -97,3 +99,17 @@ def refused(stamper: StampDocService) -> Refusal:
         return events[-1]
 
     return run
+
+
+@pytest.fixture
+def cutter(files: AllowedFiles, artifacts: ArtifactEngine) -> CutoutImageService:
+    return CutoutImageService(OpencvAdapter(), files, artifacts, max_pixels=1_000_000)
+
+
+@pytest.fixture
+def golden(vault: Path, resources: Resources) -> Path:
+    """The goldens' inputs (`tests/resources/golden`: a signature photo, its mask, a contract) in the vault, with a red 2:1 stamp."""
+    for name in ("signature.jpg", "signature.mask.png", "contract.pdf"):
+        (vault / name).write_bytes((resources.path / "golden" / name).read_bytes())
+    (vault / "red.png").write_bytes(red_png())
+    return vault

@@ -10,6 +10,7 @@ from e_organon.infra.errors import ParseError
 from e_organon.ports.pdf import PageGeometry, PdfBox
 from e_organon.providers.adapters.pdf.pikepdf import PikepdfAdapter
 from e_organon.providers.adapters.render.pdfium import PdfiumAdapter
+from support.hostile import pixel_bomb_png
 from support.ink import ink_png
 from support.pdf import A4, blank, form, placements
 
@@ -134,3 +135,22 @@ async def test_pikepdf_geometry_reads_the_crop_box_and_an_inherited_turn(pdf: Pi
         PageGeometry(left=0, bottom=0, right=595, top=842, rotate=270),
         PageGeometry(left=10, bottom=20, right=300, top=400, rotate=270),
     )
+
+
+async def test_pikepdf_refuses_more_pages_than_its_budget() -> None:
+    with pytest.raises(ParseError, match=r"3 pages; the limit is 2"):
+        await PikepdfAdapter(max_pages=2).info(blank(3))
+
+
+async def test_pikepdf_merge_counts_the_pages_of_the_whole() -> None:
+    """Each part is within the budget, the merge of them is not."""
+    with pytest.raises(ParseError, match=r"4 pages; the limit is 3"):
+        await PikepdfAdapter(max_pages=3).merge([blank(2), blank(2)])
+
+
+@pytest.mark.parametrize("picture", [ink_png(), pixel_bomb_png()], ids=["over-the-budget", "a-bomb"])
+async def test_pikepdf_refuses_an_image_over_its_pixel_budget_unread(picture: bytes) -> None:
+    with pytest.raises(ParseError, match=r"pixels|decompression"):
+        await PikepdfAdapter(max_pixels=1000).stamp(
+            blank(1), 0, PdfBox(x=0, y=0, width=10), image=picture, text=None, opacity=1
+        )

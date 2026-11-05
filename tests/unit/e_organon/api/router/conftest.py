@@ -1,11 +1,16 @@
 """tests/unit/e_organon/api/router: what a route's server-sent body is read with — `told`, a body as its (event, data) pairs."""
 
 import json
+import shutil
 from typing import TYPE_CHECKING
 
 import pytest
 
 if TYPE_CHECKING:
+    from pathlib import Path
+
+    from pytest_resources import Resources
+
     from support.sse import Told
 
 
@@ -26,3 +31,11 @@ def told() -> Told:
         ]
 
     return read
+
+
+@pytest.fixture
+def hostile(vault: Path, resources: Resources) -> Path:
+    """The hostile corpus (`tests/resources/hostile`, made by `support.hostile`) copied into the vault, its symlink kept as a
+    symlink — out of the roots — : the folder every hostile test points a tool into."""
+    shutil.copytree(resources.path / "hostile", vault / "hostile", symlinks=True)
+    return vault / "hostile"
