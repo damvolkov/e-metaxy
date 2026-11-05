@@ -92,7 +92,12 @@ async def lifespan(app: Litestar) -> AsyncGenerator[None]:
     doc.render = RenderDocService(found.render, files, artifacts)
     doc.stamp = StampDocService(found.pdf, found.render, files, artifacts)
     doc.compose = ComposeDocService(
-        found.compose, files, artifacts, folders=(st.ORGANON_DATA / "doc" / "templates", TEMPLATES)
+        found.compose,
+        found.pdf,
+        files,
+        artifacts,
+        folders=(st.ORGANON_DATA / "doc" / "templates", TEMPLATES),
+        max_pages=st.ORGANON_MAX_PAGES,
     )
     image = system.services.image
     image.cutout = CutoutImageService(found.cutout, files, artifacts, max_pixels=st.ORGANON_MAX_PIXELS)

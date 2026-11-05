@@ -47,12 +47,15 @@ async def test_sign_with_a_text_draws_it_then_seals_it(
     assert (len(await render.find(pdf, "aprobado")), status.bottom_line) == (1, True)
 
 
-@pytest.mark.parametrize("appearance", [{"image": "ink.png"}, {"photo": "firma.jpg"}], ids=["image", "photo"])
+@pytest.mark.parametrize(("image", "photo"), [("ink.png", None), (None, "firma.jpg")], ids=["image", "photo"])
 async def test_sign_with_a_picture_draws_it_then_seals_it(
-    sealer: SignDocService, vault: Path, pki: Pki, appearance: dict[str, str]
+    sealer: SignDocService, vault: Path, pki: Pki, image: str | None, photo: str | None
 ) -> None:
     order = SignIn(
-        path=str(vault / "labelled.pdf"), at=BOX, **{key: str(vault / name) for key, name in appearance.items()}
+        path=str(vault / "labelled.pdf"),
+        at=BOX,
+        image=None if image is None else str(vault / image),
+        photo=None if photo is None else str(vault / photo),
     )
     pdf = await signed(sealer, order)
     _, status = await validated(pdf, pki)
@@ -85,3 +88,13 @@ async def test_sign_a_failed_appearance_is_the_runs_failure(sealer: SignDocServi
     events = [event async for event in sealer.events(order)]
     assert isinstance(events[-1], Failed)
     assert events[-1].kind == "OutsideRootsError"
+
+
+async def test_sign_lines_reach_the_photos_cutout(sealer: SignDocService, vault: Path) -> None:
+    ### the appearance differs with the line step on or off, and both signatures are good ones.
+    async def pdf(lines: bool) -> bytes:
+        order = SignIn(path=str(vault / "labelled.pdf"), at=BOX, photo=str(vault / "underlined.jpg"), lines=lines)
+        return await signed(sealer, order)
+
+    kept, dropped = await pdf(False), await pdf(True)
+    assert kept != dropped

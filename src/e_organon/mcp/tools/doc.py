@@ -79,7 +79,7 @@ SIGNATURE: Final = MCPTool(
     title="Sign a PDF with a photo",
     description=(
         "A photo of a handwritten signature (`photo`) cut out and placed on a PDF (`path`) `at` as doc_stamp's. Visual "
-        "only, not a cryptographic signature. Returns the copy's `path`."
+        "only, not a cryptographic signature; `lines` (default) drops printed lines — off if the signature has its own straight underline. Returns the copy's `path`."
     ),
     read_only=False,
 )
@@ -109,7 +109,7 @@ SIGN: Final = MCPTool(
     description=(
         "A PDF by `path` signed in PAdES with the key this server holds — who sealed it and that it was not changed "
         "since; a viewer validates it. Invisible; with `at` (as doc_stamp's) and one of `image`, `text` or `photo` its "
-        "appearance is drawn there first. Returns the signed copy's `path`. Any later edit breaks it."
+        "appearance is drawn there first (`lines` as doc_signature's). Returns the signed copy's `path`. Any later edit breaks it."
     ),
     read_only=False,
 )

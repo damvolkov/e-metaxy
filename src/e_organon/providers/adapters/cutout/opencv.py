@@ -93,15 +93,15 @@ class OpencvAdapter:
         return rest | (line & (cv2.morphologyEx(rest.astype(np.uint8), cv2.MORPH_CLOSE, bridge) > 0))
 
     @staticmethod
-    def _cut_ink(image: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
-        """The flattened grey and the ink's mask (bool) of a BGR photo."""
+    def _cut_ink(image: np.ndarray, *, lines: bool) -> tuple[np.ndarray, np.ndarray]:
+        """The flattened grey and the ink's mask (bool) of a BGR photo; `lines` takes the printed lines off it."""
         gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
         background = cv2.morphologyEx(
             gray, cv2.MORPH_CLOSE, cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (CLOSE, CLOSE))
         )
         flat = np.clip(gray.astype(np.float32) / np.maximum(background, 1) * 255, 0, 255)
         dark = (flat < OpencvAdapter._cut_sauvola(flat)) & (flat < GATE)
-        ink = OpencvAdapter._cut_lines(dark)
+        ink = OpencvAdapter._cut_lines(dark) if lines else dark
         count, labels, stats, _ = cv2.connectedComponentsWithStats(ink.astype(np.uint8), connectivity=8)
         keep = np.zeros(count, bool)
         keep[1:] = stats[1:, cv2.CC_STAT_AREA] >= SPECK
@@ -114,13 +114,13 @@ class OpencvAdapter:
         top, left = max(ys.min() - PADDING, 0), max(xs.min() - PADDING, 0)
         return rgba[top : ys.max() + PADDING + 1, left : xs.max() + PADDING + 1]
 
-    def _cut_run(self, data: bytes, *, color: bool, crop: bool) -> bytes:
+    def _cut_run(self, data: bytes, *, color: bool, crop: bool, lines: bool) -> bytes:
         image = cv2.imdecode(np.frombuffer(data, np.uint8), cv2.IMREAD_COLOR)
         match image:
             case None:
                 msg = "not a readable image: no decoder took it"
                 raise ParseError(msg)
-        flat, ink = self._cut_ink(image)
+        flat, ink = self._cut_ink(image, lines=lines)
         match bool(ink.any()):
             case False:
                 msg = "no ink found: the sheet is clear"
@@ -149,5 +149,5 @@ class OpencvAdapter:
     async def size(self, data: bytes) -> tuple[int, int]:
         return await anyio.to_thread.run_sync(self._size_read, data)
 
-    async def cut(self, data: bytes, *, color: bool, crop: bool) -> bytes:
-        return await anyio.to_thread.run_sync(lambda: self._cut_run(data, color=color, crop=crop))
+    async def cut(self, data: bytes, *, color: bool, crop: bool, lines: bool) -> bytes:
+        return await anyio.to_thread.run_sync(lambda: self._cut_run(data, color=color, crop=crop, lines=lines))

@@ -212,6 +212,9 @@ class ProviderSettings(BaseSettings):
     DOC_TESSDATA: Path | None = None
     DOC_OCR_LANGUAGE: str = "eng"
 
+    ### TYPST — the `doc/compose` sandbox: a template is a caller's code, each compile its own process, stopped after this long.
+    COMPOSE_TIMEOUT: timedelta = timedelta(seconds=5)
+
     ### RAPIDOCR — the `doc/ocr` tool: off, no tool and no models; on, its models are fetched into `<ORGANON_DATA>/doc/models`.
     OCR_ENABLED: bool = False
 

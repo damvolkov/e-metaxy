@@ -46,6 +46,7 @@ def vault(tmp_path: Path) -> Path:
     (tmp_path / "sideways.pdf").write_bytes(rotated(90))
     (tmp_path / "ink.png").write_bytes(ink_png())
     (tmp_path / "firma.jpg").write_bytes(photo()[0])
+    (tmp_path / "underlined.jpg").write_bytes(photo(underline=True)[0])
     return tmp_path
 
 
@@ -171,6 +172,8 @@ def templates(vault: Path) -> Path:
 
 
 @pytest.fixture
-def composer(files: AllowedFiles, artifacts: ArtifactEngine, templates: Path) -> ComposeDocService:
+def composer(pdf: PikepdfAdapter, files: AllowedFiles, artifacts: ArtifactEngine, templates: Path) -> ComposeDocService:
     """The tool over the real typst adapter, the vault's templates first and the shipped ones after."""
-    return ComposeDocService(TypstAdapter(), files, artifacts, folders=(templates, TEMPLATES))
+    return ComposeDocService(
+        TypstAdapter(timeout=10.0), pdf, files, artifacts, folders=(templates, TEMPLATES), max_pages=50
+    )

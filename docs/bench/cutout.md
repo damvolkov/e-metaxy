@@ -107,7 +107,8 @@ plain and flourish) the ink mask of the adapter against the bench arm L has pixe
 3 px, in the mask) is read by L as a printed line and erased: F 0.958 -> 0.819, **-0.143 [-0.155, -0.130]**, A better on 58
 of 60. The gate cannot tell a printed line from a straight flourish: both are long, thin, dark and straight. Landed anyway
 because a form line is the common case (and the live failure), a straight 300 px flourish is the rarer one; the cost is
-named here, not hidden.
+named here, not hidden. Since then `lines: false` (on `image/cutout`, `doc/signature`, `doc/sign`) is the pre-line arm A, for a signature
+with such a flourish; `true` stays the default.
 
 ## Limits
 

@@ -59,3 +59,18 @@ async def test_signature_an_anchor_that_is_not_there_fails_in_the_stamp(
         "AnchorNotFoundError",
         "stamp.locate",
     )
+
+
+async def test_signature_lines_reach_the_cutout(signer: SignatureDocService, vault: Path) -> None:
+    ### the photo's straight underline is stamped only when `lines` is off: the two PDFs differ.
+    async def pdf(lines: bool) -> bytes:
+        order = SignatureIn(
+            path=str(vault / "labelled.pdf"),
+            photo=str(vault / "underlined.jpg"),
+            at=AtAnchor(anchor="firma:", width=80),
+            lines=lines,
+        )
+        out = await signer.run(order)
+        return await anyio.Path(out.path).read_bytes()
+
+    assert await pdf(True) != await pdf(False)

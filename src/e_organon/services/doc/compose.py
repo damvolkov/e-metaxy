@@ -11,7 +11,7 @@ from typing import TYPE_CHECKING, Final
 import anyio
 
 from e_organon.models.doc import ComposeIn, FileOut
-from e_organon.models.error import TemplateNotFoundError
+from e_organon.models.error import PageBudgetError, TemplateNotFoundError
 from e_organon.models.flow import Done, Event, Step
 from e_organon.services.flow import ToolFlow
 
@@ -21,6 +21,7 @@ if TYPE_CHECKING:
 
     from e_organon.engines.artifact import ArtifactEngine
     from e_organon.ports.compose import ComposePort
+    from e_organon.ports.pdf import PdfPort
     from e_organon.services.files import AllowedFiles
 
 STEPS: tuple[str, ...] = ("resolve", "compose", "keep")
@@ -32,12 +33,20 @@ NAME: Final[re.Pattern[str]] = re.compile(r"[A-Za-z0-9_-]+")
 class ComposeDocService(ToolFlow[ComposeIn, FileOut]):
     """doc/compose: a PDF from a template and its data."""
 
-    __slots__ = ("_artifacts", "_compose", "_files", "_folders")
+    __slots__ = ("_artifacts", "_compose", "_files", "_folders", "_max_pages", "_pdf")
 
     def __init__(
-        self, compose: ComposePort, files: AllowedFiles, artifacts: ArtifactEngine, *, folders: tuple[Path, ...]
+        self,
+        compose: ComposePort,
+        pdf: PdfPort,
+        files: AllowedFiles,
+        artifacts: ArtifactEngine,
+        *,
+        folders: tuple[Path, ...],
+        max_pages: int,
     ) -> None:
-        self._compose = compose
+        self._compose, self._pdf = compose, pdf
+        self._max_pages = max_pages
         self._files = files
         self._artifacts = artifacts
         self._folders = folders
@@ -63,6 +72,11 @@ class ComposeDocService(ToolFlow[ComposeIn, FileOut]):
         path, source = await self._events_template(data.template)
         yield Step(name=STEPS[1], index=1, total=len(STEPS))
         pdf = await self._compose.compose(source, data.data, path.parent)
+        pages = len(await self._pdf.geometry(pdf))
+        match pages <= self._max_pages:
+            case False:
+                msg = f"the PDF has {pages} pages; the limit is {self._max_pages}"
+                raise PageBudgetError(msg)
         yield Step(name=STEPS[2], index=2, total=len(STEPS))
         kept = await self._artifacts.keep(pdf, path.stem, ".pdf")
         yield Done(result=FileOut(path=str(kept), size=len(pdf)))

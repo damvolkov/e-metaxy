@@ -159,7 +159,7 @@
   {
     "name": "doc_signature",
     "title": "Sign a PDF with a photo",
-    "description": "A photo of a handwritten signature (`photo`) cut out and placed on a PDF (`path`) `at` as doc_stamp's. Visual only, not a cryptographic signature. Returns the copy's `path`.",
+    "description": "A photo of a handwritten signature (`photo`) cut out and placed on a PDF (`path`) `at` as doc_stamp's. Visual only, not a cryptographic signature; `lines` (default) drops printed lines — off if the signature has its own straight underline. Returns the copy's `path`.",
     "access": "user",
     "annotations": {
       "destructive_hint": false,
@@ -169,6 +169,7 @@
     "arguments": [
       "at",
       "color",
+      "lines",
       "path",
       "photo"
     ],
@@ -181,7 +182,7 @@
   {
     "name": "image_cutout",
     "title": "Cut ink out of a photo",
-    "description": "A photo of ink on paper (a signature) by `path`, as a transparent PNG of the ink alone: paper tint, uneven light and shadows gone, soft edges. `color` keeps the ink's own colour (default; off, black); `crop` cuts to the ink (default). Returns the PNG's `path`, the next tool's input (doc_stamp).",
+    "description": "A photo of ink on paper (a signature) by `path`, as a transparent PNG of the ink alone: paper tint, uneven light and shadows gone, soft edges. `color` keeps the ink's own colour (default; off, black); `crop` cuts to the ink (default); `lines` (default) drops printed lines — turn it off if the signature has its own straight underline. Returns the PNG's `path`, the next tool's input (doc_stamp).",
     "access": "user",
     "annotations": {
       "destructive_hint": false,
@@ -191,6 +192,7 @@
     "arguments": [
       "color",
       "crop",
+      "lines",
       "path"
     ],
     "required": [
@@ -485,7 +487,7 @@
   {
     "name": "doc_sign",
     "title": "Sign a PDF cryptographically",
-    "description": "A PDF by `path` signed in PAdES with the key this server holds — who sealed it and that it was not changed since; a viewer validates it. Invisible; with `at` (as doc_stamp's) and one of `image`, `text` or `photo` its appearance is drawn there first. Returns the signed copy's `path`. Any later edit breaks it.",
+    "description": "A PDF by `path` signed in PAdES with the key this server holds — who sealed it and that it was not changed since; a viewer validates it. Invisible; with `at` (as doc_stamp's) and one of `image`, `text` or `photo` its appearance is drawn there first (`lines` as doc_signature's). Returns the signed copy's `path`. Any later edit breaks it.",
     "access": "user",
     "annotations": {
       "destructive_hint": false,
@@ -495,6 +497,7 @@
     "arguments": [
       "at",
       "image",
+      "lines",
       "path",
       "photo",
       "text"

@@ -54,7 +54,9 @@ class SignDocService(ToolFlow[SignIn, FileOut]):
             case at:
                 match data.photo:
                     case str() as photo:
-                        return await self._signature.run(SignatureIn(path=data.path, photo=photo, at=at))
+                        return await self._signature.run(
+                            SignatureIn(path=data.path, photo=photo, at=at, lines=data.lines)
+                        )
                     case _:
                         return await self._stamp.run(StampIn(path=data.path, at=at, image=data.image, text=data.text))
 

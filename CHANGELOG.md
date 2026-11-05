@@ -2,6 +2,19 @@
 
 ## [Unreleased]
 
+### Security
+- **`doc/compose` is a sandbox** (TODO_doc follow-up): each compile runs in its own process with a dead proxy, no `HOME` and a 2 GiB
+  address-space ceiling, stopped after `COMPOSE_TIMEOUT` (default 5 s) from outside — a thread cannot be killed — and its PDF held to
+  `ORGANON_MAX_PAGES`. The binding cannot disable package downloads: a literal `"@ns/name"` is refused before compiling, one
+  built at run time fails to connect. Reads stay in the template's folder (`/etc/passwd`, `../`: refused, tested). Cost: p50 16 ms
+  in-process, 45 ms sandboxed on the golden invoice (`docs/bench/compose.md`). Tests: a long loop cut at the timeout with a clean
+  `Failed` and the next compose fine, packages refused (static and built), reads refused, memory ceiling clean, page budget.
+
+### Added
+- **`lines` on `image/cutout`, `doc/signature` and `doc/sign`**: default on; off keeps every stroke (the pre-line arm), for a signature
+  with its own straight underline (the −0.143 F loss of the form-lines bench). Tested on both settings at the adapter and through
+  the three services; one clause in each tool description. Catalog 7 180 tokens with everything on, under the 8 000 budget.
+
 ### Added
 - **`doc/ocr` (TODO_doc, 3)**: the words of a scanned PDF or an image, each with its box in points on the displayed page
   (origin bottom-left, as `doc/stamp`), and each page's text. Behind `OcrPort`; adapter `RapidocrAdapter` (PP-OCRv5 mobile

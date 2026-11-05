@@ -5,6 +5,7 @@ import io
 from typing import TYPE_CHECKING
 
 import anyio
+import numpy as np
 from PIL import Image
 
 from e_organon.models.doc import FileOut
@@ -49,3 +50,16 @@ async def test_cutout_refuses_outside_the_roots(cutter: CutoutImageService) -> N
     events = [event async for event in cutter.events(CutoutIn(path="/etc/hostname"))]
     assert events[0] == Step(name="resolve", index=0, total=4)
     assert events[1:] == [Failed(kind="OutsideRootsError", reason=getattr(events[1], "reason", ""))]
+
+
+async def test_cutout_lines_off_keeps_a_straight_underline(cutter: CutoutImageService, pictures: Path) -> None:
+    ### the underline is ink of the signature's own: the line step erases it, `lines: false` leaves it.
+    async def alpha(lines: bool) -> int:
+        done = [
+            e async for e in cutter.events(CutoutIn(path=str(pictures / "underlined.jpg"), crop=False, lines=lines))
+        ][-1]
+        assert isinstance(done, Done)
+        image = Image.open(io.BytesIO(await anyio.Path(done.result.path).read_bytes()))
+        return int((np.asarray(image)[222:234, 200:400, 3] > 200).sum())
+
+    assert (await alpha(True), await alpha(False) > 400) == (0, True)

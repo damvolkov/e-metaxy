@@ -1,6 +1,6 @@
 """tests/support/photo: a phone photo of a signature, made small — blue-black strokes with a known mask, on tinted paper
 lit unevenly, a lighter printed form line under them, blurred and JPEG-compressed: the bench's generator, cut down. With
-`lined`, printed lines darker than the ink gate too — one tilted across the strokes, one vertical beside them."""
+`underline`, the signature's own straight stroke under it (350 px, ink); with `lined`, printed lines darker than the ink gate too — one tilted across the strokes, one vertical beside them."""
 
 import cv2
 import numpy as np
@@ -22,10 +22,11 @@ def strokes() -> np.ndarray:
     return mask
 
 
-def photo(*, lined: bool = False) -> tuple[bytes, np.ndarray]:
+def photo(*, lined: bool = False, underline: bool = False) -> tuple[bytes, np.ndarray]:
     """The JPEG bytes of the photo, and the exact mask of its ink — the printed lines are no ink."""
     rng = np.random.default_rng(7)
     mask = strokes()
+    _ = underline and cv2.line(mask, (120, 225), (470, 230), 255, 3, cv2.LINE_AA)
     paper = np.array([215, 232, 240], np.float32)
     img = np.ones((H, W, 3), np.float32) * paper + rng.normal(0, 3, (H, W, 3))
     cv2.line(img, (40, 250), (W - 40, 250), tuple(float(v) for v in paper * 0.7), 2)

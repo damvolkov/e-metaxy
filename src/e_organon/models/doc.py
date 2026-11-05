@@ -145,12 +145,13 @@ class StampIn(msgspec.Struct, frozen=True, kw_only=True):
 ##### SIGNATURE #####
 class SignatureIn(msgspec.Struct, frozen=True, kw_only=True):
     """`path`: the PDF to sign. `photo`: the signature on paper. `at`: where, as `doc/stamp`'s. `color`: the ink's own
-    colour (off, black)."""
+    colour (off, black). `lines`: printed lines are not ink (off, a straight underline of the signature is kept)."""
 
     path: str
     photo: str
     at: At
     color: bool = True
+    lines: bool = True
 
 
 ##### OCR #####
@@ -190,13 +191,14 @@ class OcrOut(msgspec.Struct, frozen=True, kw_only=True):
 ##### SIGN #####
 class SignIn(msgspec.Struct, frozen=True, kw_only=True):
     """`path`: the PDF to sign. Invisible by default; give `at` (as `doc/stamp`'s) and one of `image` (a PNG path), `text`
-    or `photo` (a signature on paper, cut out as `doc/signature` does) and its appearance is drawn there first."""
+    or `photo` (a signature on paper, cut out as `doc/signature` does, `lines` as there) and its appearance is drawn there first."""
 
     path: str
     at: At | None = None
     image: str | None = None
     text: str | None = None
     photo: str | None = None
+    lines: bool = True
 
     def __post_init__(self) -> None:
         match (self.at is None, sum(each is not None for each in (self.image, self.text, self.photo))):

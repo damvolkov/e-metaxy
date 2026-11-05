@@ -12,13 +12,17 @@ import pytest
 
 from e_organon.models.doc import ComposeIn
 from e_organon.models.flow import Done, Failed, Step
+from e_organon.providers.adapters.compose.typst import TypstAdapter
+from e_organon.services.doc.compose import ComposeDocService
 
 if TYPE_CHECKING:
     from pathlib import Path
 
     from pytest_resources import Resources
 
-    from e_organon.services.doc.compose import ComposeDocService
+    from e_organon.engines.artifact import ArtifactEngine
+    from e_organon.providers.adapters.pdf.pikepdf import PikepdfAdapter
+    from e_organon.services.files import AllowedFiles
 
 
 async def pdf_of(composer: ComposeDocService, order: ComposeIn) -> bytes:
@@ -94,3 +98,34 @@ async def test_compose_a_template_that_does_not_compile_fails_the_run(
     events = [event async for event in composer.events(ComposeIn(template="broken"))]
     assert isinstance(events[-1], Failed)
     assert (events[-1].kind, "unknown variable" in events[-1].reason) == ("ParseError", True)
+
+
+async def test_compose_a_pdf_over_the_page_budget_fails_the_run(
+    pdf: PikepdfAdapter, files: AllowedFiles, artifacts: ArtifactEngine, templates: Path
+) -> None:
+    (templates / "long.typ").write_bytes(b"#for i in range(8) [#pagebreak() x]")
+    tight = ComposeDocService(TypstAdapter(timeout=10.0), pdf, files, artifacts, folders=(templates,), max_pages=5)
+    events = [event async for event in tight.events(ComposeIn(template="long"))]
+    assert events[-1] == Failed(kind="PageBudgetError", reason="the PDF has 9 pages; the limit is 5")
+
+
+async def test_compose_a_template_that_does_not_end_fails_the_run_cleanly(
+    pdf: PikepdfAdapter, files: AllowedFiles, artifacts: ArtifactEngine, templates: Path
+) -> None:
+    (templates / "forever.typ").write_bytes(b"#for i in range(30000) { for j in range(30000) { } }")
+    quick = ComposeDocService(TypstAdapter(timeout=0.5), pdf, files, artifacts, folders=(templates,), max_pages=50)
+    events = [event async for event in quick.events(ComposeIn(template="forever"))]
+    assert isinstance(events[-1], Failed)
+    assert (events[-1].kind, "longer than 0.5" in events[-1].reason) == ("ParseError", True)
+
+
+@pytest.mark.parametrize(
+    "template", ['#import "@preview/cetz:0.3.0"', '#read("../../etc/passwd")'], ids=["package", "read"]
+)
+async def test_compose_a_package_or_a_read_outside_fails_the_run(
+    composer: ComposeDocService, templates: Path, template: str
+) -> None:
+    (templates / "bad.typ").write_bytes(template.encode())
+    events = [event async for event in composer.events(ComposeIn(template="bad"))]
+    assert isinstance(events[-1], Failed)
+    assert events[-1].kind == "ParseError"

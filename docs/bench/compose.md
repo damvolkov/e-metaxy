@@ -59,5 +59,11 @@ larger (it embeds whole fonts).
   magnitude.
 - Latency is the render call alone, warm; the first call of a process is slower for both (typst 17 ms, WeasyPrint 170 ms
   in the probe).
-- A typst template may import a package (`@preview/...`), which typst fetches from its registry on first use: a template is
-  code, and trusted as such.
+- **The sandbox** (added after the bench): a template is a caller's code, so each compile runs in its own process
+  (`python -I`, no `HOME`, a dead proxy), stopped after `COMPOSE_TIMEOUT` (default 5 s) from outside, under a 2 GiB address-space
+  ceiling, and its PDF held to `ORGANON_MAX_PAGES`. It reads its own folder only (an absolute path is read from that folder, `../`
+  escapes the project root: both refused). The binding cannot switch package downloads off, so a literal `"@ns/name"` is refused
+  before compiling and one built at run time (`"@pre" + "view/..."`) meets the dead proxy and fails to connect; that last
+  defence relies on typst honouring the proxy variables, tested against the registry, not proven for every network setup.
+  Cost, 30 renders of the 2-page golden invoice: in-process p50 15.9 ms (p95 27.9), sandboxed p50 44.7 ms (p95 50.2) — about 29 ms
+  for the process. The bench numbers above are in-process; sandboxed typst is still about 3.5 x faster than WeasyPrint.
