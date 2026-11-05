@@ -39,6 +39,22 @@ async def test_opencv_cuts_the_ink_as_the_mask_says(cutout: OpencvAdapter) -> No
     assert (out.shape[:2], iou > 0.8) == ((H, W), True)
 
 
+async def test_opencv_printed_lines_darker_than_the_gate_are_no_ink(cutout: OpencvAdapter) -> None:
+    data, mask = photo(lined=True)
+    out = rgba(await cutout.cut(data, color=True, crop=False))
+    found, truth = out[..., 3] > 200, mask > 127
+    iou = (found & truth).sum() / (found | truth).sum()
+    ### the vertical line and the stretch of the tilted one left of the strokes hold no ink at all.
+    assert (iou > 0.8, int(found[:, 55:66].sum()), int(found[160:185, 45:100].sum())) == (True, 0, 0)
+
+
+async def test_opencv_a_lined_sheet_and_a_clear_one_give_the_same_ink(cutout: OpencvAdapter) -> None:
+    ### the lines subtracted leave the strokes as the line-free photo's, give or take a crossing's bridge.
+    lined = rgba(await cutout.cut(photo(lined=True)[0], color=True, crop=False))[..., 3] > 200
+    clear = rgba(await cutout.cut(photo()[0], color=True, crop=False))[..., 3] > 200
+    assert (lined & clear).sum() / (lined | clear).sum() > 0.85
+
+
 async def test_opencv_keeps_the_inks_colour_or_makes_it_black(cutout: OpencvAdapter) -> None:
     data, _ = photo()
     kept = rgba(await cutout.cut(data, color=True, crop=False))

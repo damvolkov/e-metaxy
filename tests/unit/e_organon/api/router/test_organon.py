@@ -32,7 +32,7 @@ def test_organon_find_is_no_job_and_ignores_the_preference(client: TestClient, a
 
 
 def test_organon_submit_queues_the_tool_and_answers_its_job(
-    client: TestClient, ana_key: dict[str, str], vault: Path
+    vault: Path, client: TestClient, ana_key: dict[str, str]
 ) -> None:
     response = client.post(
         "/organon/submit", json={"tool": "doc/convert", "input": {"path": str(vault / "plan.md")}}, headers=ana_key

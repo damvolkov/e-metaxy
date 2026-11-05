@@ -2,6 +2,13 @@
 
 ## [Unreleased]
 
+### Changed
+- **`image/cutout` drops printed form lines (TODO_doc, 2)**: long straight runs of the ink mask (probabilistic Hough, tilt
+  allowed) are taken off, and a stroke crossing one is bridged. Benched pre-registered, A against A + lines, paired BCa on
+  60 test images (`docs/bench/cutout.md`, "Form lines"): lined photos F 0.686 -> 0.929 (+0.236, CI [+0.214, +0.259], 60/60),
+  line-free photos identical (0.953), +5 ms. Adapter = bench arm, mask IoU 1.0 on 220 images. Known loss, measured and
+  not hidden: a signature with a 300-600 px straight underline loses it (F -0.143).
+
 ### Added
 - **`organon/submit` (TODO_doc, 1)**: REST `POST /organon/submit` (202, `Location: /jobs/{id}`) and MCP `organon_submit`
   queue any doc/ or image/ tool by `<section>/<word>` with an `input` checked by `msgspec.convert` into the tool's own

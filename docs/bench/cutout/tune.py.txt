@@ -1,0 +1,21 @@
+import itertools, sys
+from pathlib import Path
+import cv2, numpy as np
+sys.path.insert(0, "/tmp/bench-cutout/scripts")
+import l, a2
+
+def f(pred, truth):
+    p, t = pred > 127, truth > 127
+    tp = float((p & t).sum()); pr, rc = tp / max(p.sum(), 1), tp / max(t.sum(), 1)
+    return 2 * pr * rc / max(pr + rc, 1e-9)
+
+sets = {}
+for s in ("dev-lined", "dev-plain"):
+    d = Path("/tmp/bench-cutout/data") / s
+    sets[s] = [(cv2.imread(str(p)), cv2.imread(str(p.with_suffix("").with_suffix(".mask.png")), 0)) for p in sorted(d.glob("*.jpg"))]
+base = {s: np.median([f(a2.cut(i), m) for i, m in v]) for s, v in sets.items()}
+print("A", base)
+for length, votes, gap, band, bridge in itertools.product([0.15, 0.25, 0.35], [100, 200], [6], [5, 7], [7, 9]):
+    l.LENGTH, l.VOTES, l.GAP, l.BAND, l.BRIDGE = length, votes, gap, band, bridge
+    r = {s: np.median([f(l.cut(i), m) for i, m in v]) for s, v in sets.items()}
+    print(length, votes, gap, band, bridge, {s: round(r[s] - base[s], 4) for s in r}, {s: round(r[s], 3) for s in r})
