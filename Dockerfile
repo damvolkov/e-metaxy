@@ -8,11 +8,13 @@ COPY src /app/src
 RUN uv sync --frozen --no-dev --no-editable
 
 ##### DEPLOY #####
-FROM python:3.15-slim-trixie AS deploy
+FROM python:3.14-slim-trixie AS deploy
 WORKDIR /app
 ### ORGANON_DATA: one volume, a subtree per section; the store beside them.
 ENV PATH="/app/.venv/bin:$PATH" PYTHONUNBUFFERED=1 ORGANON_DATA=/data DB_PATH=/data/store/app.db
 COPY --from=builder /app/.venv .venv
+### the venv was built for the builder's Python: a deploy stage on another minor would ship an image that cannot import.
+RUN python -c "import e_organon"
 RUN mkdir -p /data && chown -R nobody /data
 VOLUME /data
 USER nobody
