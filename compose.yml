@@ -7,7 +7,7 @@ services:
     container_name: eorganon
     hostname: eorganon
     restart: unless-stopped
-    ### the house's services answer on the host's loopback (paradedb, redis, docling, TEI, gliner): host network.
+    ### the house's services answer on the host's loopback (paradedb, docling, TEI, gliner): host network.
     network_mode: host
     env_file:
       - path: .env

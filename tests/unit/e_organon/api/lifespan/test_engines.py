@@ -2,25 +2,29 @@
 admin's account made there, never a key."""
 
 from dataclasses import fields
-from typing import TYPE_CHECKING, Final
+from typing import TYPE_CHECKING, Final, cast
 
 from litestar.testing import TestClient
 
 from e_organon.api.lifespan import engines
-from e_organon.api.lifespan.engines import EnginesState
+from e_organon.api.lifespan.engines import QUEUES, EnginesState
 from e_organon.api.lifespan.providers import OPTIONAL, ProvidersState
 from e_organon.engines.auth import AuthEngine
 from e_organon.engines.bridge import BridgeEngine
+from e_organon.engines.dispatch import DispatchEngine
 from e_organon.infra.auth.models import Role
+from e_organon.infra.config.engines import QueueEngine
 from e_organon.infra.settings import Settings
 from e_organon.infra.settings import settings as st
 from e_organon.main import create_app
 from e_organon.ops.crypto import Crypto
+from e_organon.providers.drivers.queue.pgqueuer import PgqueuerDriver
 from e_organon.providers.drivers.store.sqlite import SqliteDriver
 
 if TYPE_CHECKING:
     import pytest
 
+    from e_organon.ports.database import DatabaseListenPort
     from support.auth import FakeAuth
     from support.coder import ScriptedCoder
 
@@ -34,6 +38,7 @@ async def test_engines_section_is_typed(client: TestClient) -> None:
     assert isinstance(section, EnginesState)
     assert isinstance(section.auth, AuthEngine)
     assert isinstance(section.bridge, BridgeEngine)
+    assert isinstance(section.dispatch, DispatchEngine)
 
 
 async def test_engines_health_surveys_every_provider(client: TestClient) -> None:
@@ -98,3 +103,8 @@ def test_engines_bridge_cancels_what_runs_when_the_app_stops(ana_key: dict[str, 
     with TestClient(create_app()) as second:
         after = second.post("/tekton/status", json={"task": task["id"]}, headers=ana_key).json()
     assert after["state"] == "cancelled"
+
+
+def test_engines_queue_row_is_pgqueuer() -> None:
+    """The default engine is PgQueuer, built from the QUEUE_* settings over the queue's database."""
+    assert isinstance(QUEUES[QueueEngine.PGQUEUER](cast("DatabaseListenPort", object())), PgqueuerDriver)

@@ -15,7 +15,7 @@ from e_organon.infra.settings import settings as st
 from e_organon.main import create_app
 from e_organon.ports.auth import AuthPort
 from e_organon.ports.coder import CoderPort
-from e_organon.ports.database import DatabasePort
+from e_organon.ports.database import DatabaseListenPort, DatabasePort
 from e_organon.ports.http import HTTPPort
 from e_organon.ports.provider import Provider
 from e_organon.ports.store import StorePort
@@ -45,13 +45,14 @@ async def test_providers_section_is_typed_and_ported(client: TestClient) -> None
     section = client.app.state.system.providers
     assert isinstance(section, ProvidersState)
     assert isinstance(section.store, StorePort)
-    assert isinstance(section.redis, StorePort)
+    assert isinstance(section.queue, DatabaseListenPort)
     assert isinstance(section.http, HTTPPort)
     assert isinstance(section.database, DatabasePort)
     assert isinstance(section.auth, AuthPort)
     assert isinstance(section.coder, CoderPort)
     assert section.store.spec.name == "sqlite"
-    assert section.redis.spec.name == "redis"
+    assert section.queue.spec.name == "psqlpy"
+    assert not hasattr(section, "redis")
     assert section.http.spec.name == "wreq"
     assert section.database.spec.name == "psqlpy"
 

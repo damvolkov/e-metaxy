@@ -47,6 +47,15 @@ async def test_db_failure_warns(fake: type[FakeDriver]) -> None:
     assert await db.provision("app", Secret(PostgresDsn("postgresql://h:1/up"))) is True
 
 
-def test_db_rows_are_the_service_database() -> None:
-    """The template's one database is the service's own, the psqlpy scope POSTGRES_DSN configures."""
-    assert list(db.databases()) == ["app"]
+def test_db_rows_are_the_service_and_its_queue() -> None:
+    """The service's own database (POSTGRES_DSN) and the queue's, apart (QUEUE_DSN): one row each."""
+    assert list(db.databases()) == ["app", "queue"]
+
+
+def test_db_defaults_name_the_organon_databases() -> None:
+    """Organon's data in `organon`, its jobs in `organon_background` on the local ParadeDB."""
+    named = {concern: str(dsn.get_secret_value()) for concern, dsn in db.databases().items()}
+    assert (named["app"], named["queue"]) == (
+        "postgresql://postgres:postgres@127.0.0.1:45011/organon",
+        "postgresql://postgres:postgres@127.0.0.1:45011/organon_background",
+    )

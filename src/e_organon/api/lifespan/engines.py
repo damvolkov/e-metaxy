@@ -6,12 +6,16 @@ and every run still going is cancelled when the app stops. `auth` is the engine 
 token middleware reads it off the sealed graph); with a secret set its admin account is made here, no key issued. `health` surveys every provider at once (each under PING_TIMEOUT, so the whole takes the slowest): right
 after they open — one log event each, never a failed start — and on every `GET /ready`. Required are `store`, the
 provider the app's records live on, and `auth`, without which no key resolves; every other provider is reported, never
-blocking."""
+blocking.
 
-from collections.abc import AsyncGenerator
+`dispatch` is the background work: PgQueuer on the queue's database (QUEUE_ENGINE picks the row of `QUEUES`), memory
+behind it. It is built here and left open to registration; `api/lifespan/jobs` registers every kind and enters it."""
+
+from collections.abc import AsyncGenerator, Callable, Mapping
 from contextlib import AsyncExitStack, asynccontextmanager
 from dataclasses import dataclass
 from pathlib import Path
+from types import MappingProxyType
 from typing import Final
 
 import anyio
@@ -22,14 +26,35 @@ from e_organon.api.state import AppState
 from e_organon.engines.artifact import ArtifactEngine
 from e_organon.engines.auth import AuthEngine
 from e_organon.engines.bridge import BridgeEngine
+from e_organon.engines.dispatch import DispatchEngine
 from e_organon.engines.health import HealthEngine
+from e_organon.infra.background import Background
+from e_organon.infra.config.engines import QueueEngine
 from e_organon.infra.logger import logger
 from e_organon.infra.settings import settings as st
 from e_organon.ops.projects import NamedProjects
 from e_organon.ports.coder import CoderPort, Profile
+from e_organon.ports.database import DatabaseListenPort
+from e_organon.ports.queue import QueuePort
+from e_organon.providers.drivers.queue.pgqueuer import PgqueuerDriver
 
 ### the providers a ready service cannot do without; a role not here is optional.
 REQUIRED: Final[frozenset[str]] = frozenset({"store", "auth"})
+
+### the durable queue by engine: changing the backend is one row here, no client of the dispatch notices.
+QUEUES: Final[Mapping[QueueEngine, Callable[[DatabaseListenPort], QueuePort]]] = MappingProxyType(
+    {
+        QueueEngine.PGQUEUER: lambda database: PgqueuerDriver(
+            database,
+            database,
+            timeout=st.QUEUE_TIMEOUT,
+            poll=st.QUEUE_POLL,
+            drain=st.QUEUE_DRAIN,
+            heartbeat=st.QUEUE_HEARTBEAT,
+            restart=st.QUEUE_RESTART,
+        )
+    }
+)
 
 
 ##### SECTION #####
@@ -41,6 +66,8 @@ class EnginesState:
     auth: AuthEngine
     health: HealthEngine
     artifact: ArtifactEngine
+    ### built here, entered by `api/lifespan/jobs` once every kind is registered.
+    dispatch: DispatchEngine
     ### present only with the bridge on: the coder it drives opened (TEKTON_PROFILES set).
     bridge: BridgeEngine | None
 
@@ -70,6 +97,9 @@ async def lifespan(app: Litestar) -> AsyncGenerator[None]:
             auth=AuthEngine(providers.auth, secret=st.AUTH_SECRET, ttl=st.AUTH_TTL, admin=st.AUTH_ADMIN),
             health=HealthEngine(providers.named, REQUIRED, st.PING_TIMEOUT),
             artifact=ArtifactEngine(st.ORGANON_OUTBOX),
+            dispatch=DispatchEngine(
+                QUEUES[st.QUEUE_ENGINE](providers.queue), Background(), {}, throttle=st.QUEUE_THROTTLE.total_seconds()
+            ),
             bridge=bridge,
         )
         system.engines = engines

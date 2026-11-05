@@ -15,6 +15,11 @@
   reused after: first start 2.5 s (eng+spa, 29 MB), second 0.25 s.
 
 ### Changed
+- One base (`TODO_jobs` step 1): redis is out of organon (provider, state, tests, `fakeredis`); the queue lives in
+  ParadeDB — a second `PsqlpyDriver` on `QUEUE_DSN` (`organon_background`, created by `api/lifespan/db` beside
+  `organon`), `PgqueuerDriver` on it, `DispatchEngine` over memory as fallback, entered by `api/lifespan/jobs`; `queue`
+  is a provider in `/ready` (optional). Defaults now name `organon` / `organon_background`. `make check`: 385 passed,
+  coverage 100 %.
 - Settings as category clusters (e-nous settings law, e-arkhetypo #109): `infra/config/{infra,providers,engines,
   processors,services,api,mcp,cli,…}.py` hold UPPERCASE typed fields named as their env variables; one `Settings`,
   `settings = Settings()`, read only by the composition root, which passes keyword arguments to every provider, engine,

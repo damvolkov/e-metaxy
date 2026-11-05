@@ -80,15 +80,15 @@ class ProviderSettings(BaseSettings):
     ASYNCPG_TIMEOUT: timedelta = timedelta(seconds=30)
 
     ### PSQLPY
-    ### the service's database on the local ParadeDB, created at startup when missing.
-    POSTGRES_DSN: Secret[PostgresDsn] = Secret(PostgresDsn("postgresql://postgres:postgres@127.0.0.1:45011/app"))
+    ### the service's database on the local ParadeDB, created at startup when missing: organon's own is `organon`.
+    POSTGRES_DSN: Secret[PostgresDsn] = Secret(PostgresDsn("postgresql://postgres:postgres@127.0.0.1:45011/organon"))
     POSTGRES_POOL: PositiveInt = 8
     POSTGRES_TIMEOUT: timedelta = timedelta(seconds=30)
 
     ### AWA AND PGQUEUER
     ### the queue's dedicated database, `<service>_background`: one per service, two sharing one would share queue names.
     QUEUE_DSN: Secret[PostgresDsn] = Secret(
-        PostgresDsn("postgresql://postgres:postgres@127.0.0.1:45011/app_background")
+        PostgresDsn("postgresql://postgres:postgres@127.0.0.1:45011/organon_background")
     )
     ### awa opens every connection at connect, and below six a started runtime deadlocks on shutdown.
     QUEUE_POOL: Annotated[int, Field(ge=6)] = 10

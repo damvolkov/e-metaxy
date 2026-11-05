@@ -60,3 +60,8 @@ class ListenPort(Protocol):
     async def listen(self, channel: str, callback: Notify) -> None: ...
 
     async def unlisten(self, channel: str, callback: Notify) -> None: ...
+
+
+@runtime_checkable
+class DatabaseListenPort(DatabasePort, ListenPort, Protocol):
+    """A database that listens too: what a consumer needing both — the durable queue — is handed."""
