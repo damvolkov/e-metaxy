@@ -3,6 +3,7 @@ same bytes every time; the template reads its own folder and nothing outside it;
 
 import hashlib
 import io
+import sys
 import time
 from typing import TYPE_CHECKING
 
@@ -108,6 +109,7 @@ async def test_typst_after_a_cut_the_next_template_composes(tmp_path: Path) -> N
     assert (await adapter.compose(HELLO, DATA, tmp_path))[:5] == b"%PDF-"
 
 
+@pytest.mark.skipif(sys.platform == "darwin", reason="macOS does not enforce RLIMIT_AS; the image runs Linux")
 async def test_typst_a_template_that_asks_for_too_much_memory_fails_cleanly(tmp_path: Path) -> None:
     with pytest.raises(ParseError, match=r"memory allocation"):
         await TypstAdapter(timeout=10.0).compose(b"#for i in range(2000000000) { }", {}, tmp_path)

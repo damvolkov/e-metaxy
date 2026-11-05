@@ -9,6 +9,7 @@ reproducible: a fixed creation time, only the fonts typst embeds. The same input
 (`docs/bench/compose.md`)."""
 
 import base64
+import contextlib
 import json
 import re
 import resource
@@ -110,7 +111,9 @@ class TypstAdapter:
     @classmethod
     def work(cls) -> None:
         """The sandboxed process: one order on stdin (source, data, root), the PDF on stdout, the reason on stderr."""
-        resource.setrlimit(resource.RLIMIT_AS, (MEMORY, MEMORY))
+        ### macOS refuses an address-space limit (the image runs Linux, where it holds); the timeout bounds both.
+        with contextlib.suppress(ValueError, OSError):
+            resource.setrlimit(resource.RLIMIT_AS, (MEMORY, MEMORY))
         order = json.loads(sys.stdin.buffer.read())
         try:
             pdf = cls._compose_run(base64.b64decode(order["source"]), order["data"], order["root"])
