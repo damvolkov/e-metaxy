@@ -154,3 +154,12 @@ async def test_pikepdf_refuses_an_image_over_its_pixel_budget_unread(picture: by
         await PikepdfAdapter(max_pixels=1000).stamp(
             blank(1), 0, PdfBox(x=0, y=0, width=10), image=picture, text=None, opacity=1
         )
+
+
+async def test_pikepdf_writes_the_same_bytes_for_the_same_input(pdf: PikepdfAdapter) -> None:
+    """The outbox names a file by its content: a random /ID would make every run of one request a new file."""
+    first, second = [
+        await pdf.stamp(blank(1), 0, PdfBox(x=10, y=20, width=80), image=ink_png(), text=None, opacity=1)
+        for _ in range(2)
+    ]
+    assert first == second
