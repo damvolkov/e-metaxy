@@ -47,9 +47,11 @@ compose.yml      # single e-organon service, host network, :45190
 ##### TAXONOMY #####
 
 Providers sit by capability — `e_organon/providers/<drivers|adapters>/<capability>/<name>.py`
-(`e_organon.providers.drivers.store.redis`, `e_organon.providers.drivers.http.wreq`) — and the settings mirror that tree:
-`st.providers.drivers.store.redis.url`, `st.app.port`. Every exception descends from `infra.errors.CoreError`; the
-service's own live in `e_organon` and stay out of that tree. Env variable names are unchanged (`REDIS_URL`, `POSTGRES_DSN`).
+(`e_organon.providers.drivers.store.redis`, `e_organon.providers.drivers.http.wreq`). The settings are one `Settings`
+over the category clusters of `infra/config/` (infra, providers, engines, processors, services, the doors): UPPERCASE
+fields named as their env variables — `st.REDIS_URL`, `st.APP_PORT` —, read by the composition root alone, which hands
+each provider, engine and service its values. Every exception descends from `infra.errors.CoreError`; the service's own
+live in `e_organon` and stay out of that tree.
 
 ##### USAGE #####
 

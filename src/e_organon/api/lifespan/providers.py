@@ -73,26 +73,77 @@ class ProvidersState:
         return {each.name: found for each in fields(self) if (found := getattr(self, each.name)) is not None}
 
 
+##### FACTORIES #####
+def anytomd() -> AnytomdAdapter:
+    """The any-format reader, MD_*."""
+    return AnytomdAdapter(
+        vision_base_url=st.MD_VISION_BASE_URL,
+        vision_api_key=st.MD_VISION_API_KEY,
+        vision_model=st.MD_VISION_MODEL,
+        vision_prompt=st.MD_VISION_PROMPT,
+        image_describe=st.MD_IMAGE_DESCRIBE,
+        max_input_bytes=st.MD_MAX_INPUT_BYTES,
+        pdf_workers=st.MD_PDF_WORKERS,
+        pdf_ocr=st.MD_PDF_OCR,
+        pdf_language=st.MD_PDF_LANGUAGE,
+        strict=st.MD_STRICT,
+        extract_comments=st.MD_EXTRACT_COMMENTS,
+    )
+
+
+def liteparse() -> LiteparseAdapter:
+    """The fast page reader, DOC_WORKERS / DOC_OCR / DOC_OCR_LANGUAGE; its OCR models in doc/'s subtree of ORGANON_DATA
+    unless DOC_TESSDATA names another place."""
+    tessdata = st.DOC_TESSDATA or st.ORGANON_DATA / "doc" / "models" / "tessdata"
+    return LiteparseAdapter(
+        workers=st.DOC_WORKERS, ocr=st.DOC_OCR, tessdata=tessdata.expanduser(), ocr_language=st.DOC_OCR_LANGUAGE
+    )
+
+
+def docling_driver(http: HTTPPort) -> DoclingDriver:
+    """The deep reader over docling-serve, DOCLING_*."""
+    return DoclingDriver(
+        http,
+        url=st.DOCLING_URL,
+        timeout=st.DOCLING_TIMEOUT,
+        deadline=st.DOCLING_DEADLINE,
+        poll=st.DOCLING_POLL,
+        page_timeout=st.DOCLING_PAGE_TIMEOUT,
+        formats=st.DOCLING_FORMATS,
+        images=st.DOCLING_IMAGES,
+        images_scale=st.DOCLING_IMAGES_SCALE,
+        tables=st.DOCLING_TABLES,
+        ocr=st.DOCLING_OCR,
+        force_ocr=st.DOCLING_FORCE_OCR,
+        ocr_engine=st.DOCLING_OCR_ENGINE,
+        ocr_lang=st.DOCLING_OCR_LANG,
+        backend=st.DOCLING_BACKEND,
+        formulas=st.DOCLING_FORMULAS,
+        pictures=st.DOCLING_PICTURES,
+        charts=st.DOCLING_CHARTS,
+        code=st.DOCLING_CODE,
+    )
+
+
 @asynccontextmanager
 async def lifespan(app: Litestar) -> AsyncGenerator[None]:
     """Open every provider on the exit stack, then mount the typed section under `system.providers`."""
     system = AppState.of(app).system
     async with AsyncExitStack() as stack:
         enter = stack.enter_async_context
-        store = await enter(SqliteDriver())
-        redis = await enter(RedisDriver())
-        http = await enter(WreqDriver())
-        database = await enter(PsqlpyDriver())
+        store = await enter(SqliteDriver(path=st.DB_PATH, timeout=st.DB_TIMEOUT))
+        redis = await enter(RedisDriver(url=st.REDIS_URL, pool=st.REDIS_POOL, timeout=st.REDIS_TIMEOUT))
+        http = await enter(
+            WreqDriver(base_url=st.HTTP_BASE_URL, timeout=st.HTTP_TIMEOUT, agent=st.HTTP_AGENT, headers=st.HTTP_HEADERS)
+        )
+        database = await enter(PsqlpyDriver(dsn=st.POSTGRES_DSN, pool=st.POSTGRES_POOL, timeout=st.POSTGRES_TIMEOUT))
         auth = await enter(PostgresAuthDriver(database))
-        markdown = await enter(AnytomdAdapter())
-        ### doc/'s OCR models live in its subtree of ORGANON_DATA unless DOC_TESSDATA names another place.
-        pages_conf = st.providers.adapters.pages.liteparse
-        tessdata = pages_conf.tessdata or st.services.ORGANON_DATA / "doc" / "models" / "tessdata"
-        pages = await enter(LiteparseAdapter(pages_conf.model_copy(update={"tessdata": tessdata.expanduser()})))
+        markdown = await enter(anytomd())
+        pages = await enter(liteparse())
         pdf = await enter(PikepdfAdapter())
         render = await enter(PdfiumAdapter())
-        coder = await enter(ClaudeDriver(st.services.TEKTON_CLAUDE)) if st.services.TEKTON_PROFILES else None
-        docling = await enter(DoclingDriver(http)) if st.providers.drivers.documents.docling.url else None
+        coder = await enter(ClaudeDriver(st.TEKTON_CLAUDE)) if st.TEKTON_PROFILES else None
+        docling = await enter(docling_driver(http)) if st.DOCLING_URL else None
         providers = ProvidersState(
             store=store,
             redis=redis,

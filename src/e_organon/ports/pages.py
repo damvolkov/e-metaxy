@@ -4,7 +4,7 @@ from typing import Protocol, runtime_checkable
 
 import msgspec
 
-from e_organon.infra.config.processors.doc import DocSignal
+from e_organon.infra.config.processors import DocSignal
 from e_organon.ports.provider import Provider
 
 

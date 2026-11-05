@@ -44,4 +44,4 @@ async def test_files_refuse_a_link_out(root: Path) -> None:
 
 
 async def test_files_roots_come_from_the_settings() -> None:
-    assert st.services.ORGANON_ROOTS
+    assert st.ORGANON_ROOTS

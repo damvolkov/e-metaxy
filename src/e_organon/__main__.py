@@ -9,20 +9,28 @@ from granian import Granian
 from granian.constants import Interfaces
 
 from e_organon.api.admin import mint
-from e_organon.infra.config.app import Env
+from e_organon.infra.config.infra import Env
 from e_organon.infra.settings import settings as st
 
 if __name__ == "__main__":
     match sys.argv[1:]:
         case ["admin"]:
-            sys.stdout.write(f"{asyncio.run(mint()).token}\n")
+            issued = mint(
+                dsn=st.POSTGRES_DSN,
+                pool=st.POSTGRES_POOL,
+                connect=st.POSTGRES_TIMEOUT,
+                secret=st.AUTH_SECRET,
+                ttl=st.AUTH_TTL,
+                admin=st.AUTH_ADMIN,
+            )
+            sys.stdout.write(f"{asyncio.run(issued).token}\n")
         case _:
             Granian(
                 target="e_organon.main:create_app",
-                address=st.app.host,
-                port=st.app.port,
+                address=st.APP_HOST,
+                port=st.APP_PORT,
                 interface=Interfaces.ASGI,
                 factory=True,
                 ### reload is a dev convenience only: prod and local never re-import modules behind the running server.
-                reload=st.app.env is Env.DEV,
+                reload=st.APP_ENV is Env.DEV,
             ).serve()

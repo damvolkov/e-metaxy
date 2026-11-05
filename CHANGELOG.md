@@ -14,5 +14,14 @@
   store (`store/app.db`). doc/'s OCR models land in `doc/models/tessdata`, fetched at open when `DOC_OCR` is on and
   reused after: first start 2.5 s (eng+spa, 29 MB), second 0.25 s.
 
+### Changed
+- Settings as category clusters (e-nous settings law, e-arkhetypo #109): `infra/config/{infra,providers,engines,
+  processors,services,api,mcp,cli,…}.py` hold UPPERCASE typed fields named as their env variables; one `Settings`,
+  `settings = Settings()`, read only by the composition root, which passes keyword arguments to every provider, engine,
+  processor and service (`api/admin.mint` too). The tree composer and the per-scope config tree are gone; the root
+  configures the logger with APP_ENV; liteparse keeps its OCR warm-up. Every env name of main held: 266 of 266
+  (`tests/resources/settings/env.json`); gates in `tests/unit/e_organon/infra/test_settings.py`. `make ci`: 381
+  passed, coverage 100 %.
+
 ### Removed
 - The OpenHuman legacy (PR #33).
