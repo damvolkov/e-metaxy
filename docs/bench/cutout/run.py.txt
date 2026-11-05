@@ -1,0 +1,59 @@
+"""Interleaved run: each image goes to every arm in a rotating order; warm-up images discarded.
+Usage: run.py SET WARMUP ARM... → out/<set>.tsv rows: image arm ms f iou"""
+
+import subprocess
+import sys
+from pathlib import Path
+
+import cv2
+import numpy as np
+
+B = Path("/tmp/bench-cutout")
+ENVS = {"base": "env-base", "a": "env-a", "c": "env-c"}
+
+
+def score(pred: np.ndarray, truth: np.ndarray) -> tuple[float, float]:
+    p, t = pred > 127, truth > 127
+    tp = float((p & t).sum())
+    precision, recall = tp / max(p.sum(), 1), tp / max(t.sum(), 1)
+    f = 2 * precision * recall / max(precision + recall, 1e-9)
+    iou = tp / max(float((p | t).sum()), 1)
+    return f, iou
+
+
+def main() -> None:
+    name, warmup, arms = sys.argv[1], int(sys.argv[2]), sys.argv[3:]
+    data = B / "data" / name
+    images = sorted(p for p in data.glob("*.jpg"))
+    procs = {
+        a: subprocess.Popen(
+            [str(B / ENVS[a] / "bin/python"), "-I", str(B / "scripts" / f"{a}.py")],
+            stdin=subprocess.PIPE, stdout=subprocess.PIPE, text=True, cwd=B / "out",
+            env={"U2NET_HOME": str(B / "models"), "PATH": "/usr/bin:/bin", "OMP_NUM_THREADS": "4"},
+        )
+        for a in arms
+    }
+    rows = []
+    for (a, _) in procs.items():
+        (B / "out" / name / a).mkdir(parents=True, exist_ok=True)
+    for warm in range(warmup):
+        for a, proc in procs.items():
+            proc.stdin.write(f"{images[warm]} {B / 'out' / 'warm.png'}\n"); proc.stdin.flush(); proc.stdout.readline()
+    for i, img in enumerate(images):
+        order = arms[i % len(arms):] + arms[: i % len(arms)]
+        truth = cv2.imread(str(img.with_suffix("").with_suffix(".mask.png")), cv2.IMREAD_GRAYSCALE)
+        for a in order:
+            dst = B / "out" / name / a / f"{img.stem}.png"
+            procs[a].stdin.write(f"{img} {dst}\n"); procs[a].stdin.flush()
+            ms = float(procs[a].stdout.readline())
+            f, iou = score(cv2.imread(str(dst), cv2.IMREAD_GRAYSCALE), truth)
+            rows.append(f"{img.stem}\t{a}\t{ms:.3f}\t{f:.4f}\t{iou:.4f}")
+    for proc in procs.values():
+        proc.stdin.close(); proc.wait()
+    (B / "out" / f"{name}.tsv").write_text("\n".join(rows) + "\n")
+    for a in arms:
+        vals = np.array([[float(x) for x in r.split("\t")[2:]] for r in rows if r.split("\t")[1] == a])
+        print(f"{a}: F median {np.median(vals[:, 1]):.3f}  IoU median {np.median(vals[:, 2]):.3f}  ms p50 {np.median(vals[:, 0]):.1f} p95 {np.percentile(vals[:, 0], 95):.1f}")
+
+
+main()

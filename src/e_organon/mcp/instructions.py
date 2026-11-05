@@ -9,7 +9,7 @@ INSTRUCTIONS: Final[str] = (
     "workspaces, with no model in the loop: doc_convert reads any document into Markdown; doc_inspect lists a PDF's "
     "pages, metadata and form fields; doc_fill writes those fields; doc_merge joins PDFs, doc_split cuts one into page "
     "ranges, doc_render draws pages as PNG — each written file lands in the outbox and its path is the next tool's "
-    "input. organon_find ranks these tools against a need, with their schemas. A doc tool queued over REST with `Prefer: respond-async` is a job: organon_job reads it (wait up to 25 s; its "
+    "input. image_cutout lifts the ink of a photographed signature into a transparent PNG. organon_find ranks these tools against a need, with their schemas. A doc tool queued over REST with `Prefer: respond-async` is a job: organon_job reads it (wait up to 25 s; its "
     "progress has the steps so far, then `done` or `failed`) and organon_cancel stops it. "
     "The tekton tools are the bridge to Claude Code on this machine: tekton_start runs a prompt in a project "
     "under a profile and answers at once with the task, tekton_status watches it (wait up to 25 s), tekton_tasks lists "

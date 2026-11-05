@@ -1,0 +1,13 @@
+"""Baseline arm: global Otsu on luminance."""
+import sys, time
+import cv2
+
+for line in sys.stdin:
+    src, dst = line.split()
+    img = cv2.imread(src)
+    t = time.perf_counter()
+    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    _, ink = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
+    ms = (time.perf_counter() - t) * 1000
+    cv2.imwrite(dst, ink)
+    print(f"{ms:.3f}", flush=True)

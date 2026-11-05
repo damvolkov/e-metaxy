@@ -6,8 +6,8 @@ from typing import Final
 
 from litestar.handlers import HTTPRouteHandler
 
-from e_organon.mcp.tools import doc, health, organon, tekton
+from e_organon.mcp.tools import doc, health, image, organon, tekton
 
 ### the tools every deployment serves; `ROUTES` adds the #tekton bridge, served only where it is configured.
-CORE: Final[tuple[HTTPRouteHandler, ...]] = (*health.ROUTES, *doc.ROUTES, *organon.ROUTES)
+CORE: Final[tuple[HTTPRouteHandler, ...]] = (*health.ROUTES, *doc.ROUTES, *image.ROUTES, *organon.ROUTES)
 ROUTES: Final[tuple[HTTPRouteHandler, ...]] = (*CORE, *tekton.ROUTES)

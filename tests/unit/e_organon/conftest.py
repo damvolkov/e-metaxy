@@ -19,6 +19,7 @@ from e_organon.main import create_app
 from e_organon.ops.projects import NamedProjects
 from e_organon.ports.coder import Profile
 from e_organon.providers.drivers.store.sqlite import SqliteDriver
+from support.photo import photo
 
 if TYPE_CHECKING:
     from collections.abc import AsyncIterator, Iterator, Mapping
@@ -68,6 +69,7 @@ def vault(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     """A vault of the test's own as the tools' only root, a `plan.md` in it — request it before `client`, which starts
     the app on the roots the settings say then."""
     (tmp_path / "plan.md").write_text("# Plan\n\nStep one.\n")
+    (tmp_path / "firma.jpg").write_bytes(photo()[0])
     monkeypatch.setattr(services_module, "st", st.model_copy(update={"ORGANON_ROOTS": (tmp_path,)}))
     return tmp_path
 

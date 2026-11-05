@@ -1,0 +1,76 @@
+"""tests/unit/e_organon/providers/adapters/cutout/opencv: a photo of ink cut out as a transparent PNG — the paper's tint and
+the uneven light gone, the ink's own colour kept, the sheet cropped to the ink."""
+
+import io
+
+import numpy as np
+import pytest
+from PIL import Image
+
+from e_organon.infra.errors import ParseError
+from e_organon.providers.adapters.cutout.opencv import PADDING, OpencvAdapter
+from support.photo import INK, H, W, photo
+
+
+@pytest.fixture
+async def cutout() -> OpencvAdapter:
+    async with OpencvAdapter() as opened:
+        return opened
+
+
+def rgba(png: bytes) -> np.ndarray:
+    return np.asarray(Image.open(io.BytesIO(png)).convert("RGBA"))
+
+
+async def test_opencv_health(cutout: OpencvAdapter) -> None:
+    assert await cutout.health()
+
+
+async def test_opencv_size_reads_the_header(cutout: OpencvAdapter) -> None:
+    data, _ = photo()
+    assert await cutout.size(data) == (W, H)
+
+
+async def test_opencv_cuts_the_ink_as_the_mask_says(cutout: OpencvAdapter) -> None:
+    data, mask = photo()
+    out = rgba(await cutout.cut(data, color=True, crop=False))
+    found, truth = out[..., 3] > 200, mask > 127
+    iou = (found & truth).sum() / (found | truth).sum()
+    assert (out.shape[:2], iou > 0.8) == ((H, W), True)
+
+
+async def test_opencv_keeps_the_inks_colour_or_makes_it_black(cutout: OpencvAdapter) -> None:
+    data, _ = photo()
+    kept = rgba(await cutout.cut(data, color=True, crop=False))
+    black = rgba(await cutout.cut(data, color=False, crop=False))
+    solid = kept[..., 3] == 255
+    blue = kept[solid][:, :3].mean(axis=0)
+    assert (blue[2] > blue[0], tuple(black[black[..., 3] > 0][:, :3].max(axis=0))) == (True, (0, 0, 0))
+    assert abs(float(blue[2]) - INK[0]) < 90
+
+
+async def test_opencv_crops_to_the_ink_with_a_margin(cutout: OpencvAdapter) -> None:
+    data, mask = photo()
+    out = rgba(await cutout.cut(data, color=True, crop=True))
+    ys, xs = np.nonzero(mask)
+    ### the ink's box plus the margin on each side, give or take the soft edge.
+    assert abs(out.shape[0] - (ys.max() - ys.min() + 1 + 2 * PADDING)) <= 4
+    assert abs(out.shape[1] - (xs.max() - xs.min() + 1 + 2 * PADDING)) <= 4
+    assert out[0, 0, 3] == 0
+
+
+async def test_opencv_a_sheet_without_ink_is_refused(cutout: OpencvAdapter) -> None:
+    blank = io.BytesIO()
+    Image.new("RGB", (200, 100), (235, 235, 235)).save(blank, format="PNG")
+    with pytest.raises(ParseError, match="no ink"):
+        await cutout.cut(blank.getvalue(), color=True, crop=True)
+
+
+async def test_opencv_size_of_what_is_not_an_image_is_refused(cutout: OpencvAdapter) -> None:
+    with pytest.raises(ParseError, match="not a readable image"):
+        await cutout.size(b"hello")
+
+
+async def test_opencv_cut_of_what_is_not_an_image_is_refused(cutout: OpencvAdapter) -> None:
+    with pytest.raises(ParseError, match="not a readable image"):
+        await cutout.cut(b"hello", color=True, crop=True)

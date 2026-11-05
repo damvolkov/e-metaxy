@@ -12,6 +12,10 @@ class OutsideRootsError(OrganonError):
     """The path sits under none of ORGANON_ROOTS, or does not exist."""
 
 
+class ImageTooLargeError(OrganonError):
+    """The image has more pixels than the service decodes: refused from its header, before a pixel is read."""
+
+
 class UnknownJobError(OrganonError, LookupError):
     """No job under that id: never submitted, or long settled and gone."""
 

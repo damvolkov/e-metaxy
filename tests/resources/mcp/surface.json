@@ -135,6 +135,25 @@
     ]
   },
   {
+    "name": "image_cutout",
+    "title": "Cut ink out of a photo",
+    "description": "A photo of ink on paper (a signature) by `path`, as a transparent PNG of the ink alone: paper tint, uneven light and shadows gone, soft edges. `color` keeps the ink's own colour (default; off, black); `crop` cuts to the ink (default). Returns the PNG's `path`, the next tool's input (doc_stamp).",
+    "access": "user",
+    "annotations": {
+      "destructive_hint": false,
+      "open_world_hint": false,
+      "read_only_hint": false
+    },
+    "arguments": [
+      "color",
+      "crop",
+      "path"
+    ],
+    "required": [
+      "path"
+    ]
+  },
+  {
     "name": "organon_find",
     "title": "Find a tool",
     "description": "The tools that answer a need, best first (at most 5): `query` in words, `section` (doc, tekton…) to narrow. Each comes with its description and its arguments' JSON Schema.",

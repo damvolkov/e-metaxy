@@ -3,6 +3,13 @@
 ## [Unreleased]
 
 ### Added
+- `image/cutout` (`TODO_jobs` step 4): the ink of a photographed signature as a transparent PNG in the outbox
+  (`POST /image/cutout`, MCP `image_cutout`, a job kind on the `image` queue, `ORGANON_SLOTS_IMAGE`). `CutoutPort` +
+  `OpencvAdapter` (flat-field by closing, Sauvola, darkness gate, specks dropped; soft alpha); the photo's pixels are read
+  from its header first and refused over `ORGANON_MAX_PIXELS` (40 MP). Bench (`docs/bench/cutout.md`, raw samples kept,
+  60 synthetic test images, interleaved, paired BCa bootstrap): A F 0.909 / IoU 0.834 / 50 ms p50 against rembg ISNet
+  F 0.816 / IoU 0.689 / 931 ms, A − C F +0.100 CI [0.075, 0.116] > 0.03 → OpenCV wins; synthetic data only. Image: +508 MB
+  (1 862 → 2 371 MB; opencv-headless, scikit-image, scipy, numpy). `make check`: 470 passed, coverage 100 %.
 - Job ownership and a closed queue setting (`TODO_jobs` follow-ups): a job records its caller's account (`owner`) and its
   tool input travels under one key (`input`), so no input field can meet the dispatch's own kwargs (`attempts`,
   `coalesce`, `_trace`); the dispatch engine is common and untouched. Another account's job is 404 on `GET /jobs/{id}`,

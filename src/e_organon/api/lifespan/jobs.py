@@ -38,7 +38,7 @@ def tools(services: State) -> dict[str, ToolFlow[Any, Any]]:
 
 def slots() -> Mapping[str, int]:
     """How many jobs of each section run at once: a row per section that has jobs."""
-    return {"doc": st.ORGANON_SLOTS_DOC}
+    return {"doc": st.ORGANON_SLOTS_DOC, "image": st.ORGANON_SLOTS_IMAGE}
 
 
 @asynccontextmanager

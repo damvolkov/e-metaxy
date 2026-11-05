@@ -74,6 +74,8 @@ dependencies = [
     "pillow>=13.0.0",
     ##### tekton — Claude Code as a coder: the Agent SDK runs a spec, a `claude mcp serve` child reaches live sessions #####
     "claude-agent-sdk>=0.2.164",
+    "opencv-python-headless>=5.0.0.93",
+    "scikit-image>=0.26.0",
 ]
 
 [project.urls]

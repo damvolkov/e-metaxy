@@ -45,6 +45,7 @@ async def test_health_status_lists_the_tools(connect: Connect) -> None:
         "doc_merge",
         "doc_render",
         "doc_split",
+        "image_cutout",
         "organon_cancel",
         "organon_find",
         "organon_job",

@@ -28,10 +28,17 @@ class ServiceSettings(BaseSettings):
     ### OUTBOX — where a tool's output files land, content-addressed: inside a root, so an output is the next input.
     ORGANON_OUTBOX: Path = Path("~/.config/memory/workflow/organon")
 
+    ##### IMAGES #####
+
+    ### MAX_PIXELS — the most pixels an image tool decodes (width x height, read from the header first): decoding
+    ### allocates in proportion, so a photo over it is refused unread. 40 MP: a 200 MP phone shot is not a signature.
+    ORGANON_MAX_PIXELS: PositiveInt = 40_000_000
+
     ##### JOBS #####
 
     ### SLOTS — how many jobs of a section run at once, fleet-wide on the durable queue; one per section that has jobs.
     ORGANON_SLOTS_DOC: PositiveInt = 2
+    ORGANON_SLOTS_IMAGE: PositiveInt = 2
 
     ##### TEKTON #####
 
