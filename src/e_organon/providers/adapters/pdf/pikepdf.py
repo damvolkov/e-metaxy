@@ -8,7 +8,8 @@ is the tree's `ParseError`.
 A stamp is drawn after the page's own content, which is wrapped in a saved graphics state so nothing it left open bends
 the stamp: an image is an image XObject (RGB, its alpha an `SMask`) painted through the matrix `(w 0 0 h x y)`; a text is
 Helvetica in WinAnsi, black, its size the box's height (12 without), shrunk so about half an em a character fits the
-width; an opacity below 1 is an `ExtGState`. The page's `/Rotate` and a crop box offset are not applied."""
+width; an opacity below 1 is an `ExtGState`. The box is *as displayed*: the page's `/Rotate` and its crop box are applied
+(`PageGeometry`), so the stamp stands upright on a rotated page and lands where a person's coordinates say on a cropped one."""
 
 import io
 from contextlib import ExitStack
@@ -21,7 +22,7 @@ import pikepdf
 from PIL import Image, UnidentifiedImageError
 
 from e_organon.infra.errors import ParseError
-from e_organon.ports.pdf import PdfBox, PdfField, PdfInfo
+from e_organon.ports.pdf import PageGeometry, PdfBox, PdfField, PdfInfo
 from e_organon.ports.provider import Isolation, Locality, ProviderSpec, Workload
 
 if TYPE_CHECKING:
@@ -97,6 +98,11 @@ class PikepdfAdapter:
                 fields=tuple(field for root in roots for field in cls._info_walk(root, "", "", annots)),
             )
 
+    @classmethod
+    def _geometry_read(cls, data: bytes) -> tuple[PageGeometry, ...]:
+        with cls._common_open(data) as pdf:
+            return tuple(cls._geometry_of(page) for page in pdf.pages)
+
     ##### PRIVATE — editing #####
 
     @staticmethod
@@ -159,6 +165,28 @@ class PikepdfAdapter:
             return PikepdfAdapter._common_save(pdf)
 
     @staticmethod
+    def _stamp_inherited(node: Any, key: str) -> Any:
+        """A page attribute, from the page or the nearest page tree node above it that has it."""
+        match node.get(key):
+            case None:
+                parent = node.get("/Parent")
+                return None if parent is None else PikepdfAdapter._stamp_inherited(parent, key)
+            case found:
+                return found
+
+    @staticmethod
+    def _geometry_of(page: pikepdf.Page) -> PageGeometry:
+        left, bottom, right, top = (float(edge) for edge in page.cropbox)
+        turn = PikepdfAdapter._stamp_inherited(page.obj, "/Rotate")
+        return PageGeometry(
+            left=min(left, right),
+            bottom=min(bottom, top),
+            right=max(left, right),
+            top=max(bottom, top),
+            rotate=int(turn or 0) % 360,
+        )
+
+    @staticmethod
     def _stamp_fit(box: PdfBox, width: int, height: int) -> tuple[float, float, float, float]:
         """The image's rectangle `(x, y, w, h)`: the box's width at the image's aspect, or the image fitted inside the box."""
         match box.height:
@@ -186,7 +214,15 @@ class PikepdfAdapter:
         return image, picture.width, picture.height
 
     @staticmethod
-    def _stamp_text(page: pikepdf.Page, pdf: pikepdf.Pdf, box: PdfBox, text: str) -> list[Any]:
+    def _stamp_matrix(geometry: PageGeometry, x: float, y: float, width: float, height: float) -> list[float]:
+        """The matrix that draws a `width` x `height` unit-square thing upright with its bottom-left at the displayed point
+        `x`, `y`: its axes are the page's displayed axes in user space, its origin that point in user space."""
+        (ax, ay), (bx, by) = geometry.axes
+        origin = geometry.user(x, y)
+        return [width * ax, width * ay, height * bx, height * by, origin[0], origin[1]]
+
+    @staticmethod
+    def _stamp_text(page: pikepdf.Page, pdf: pikepdf.Pdf, geometry: PageGeometry, box: PdfBox, text: str) -> list[Any]:
         """The operators that write `text` in Helvetica inside the box."""
         font = pdf.make_indirect(
             pikepdf.Dictionary(
@@ -203,7 +239,7 @@ class PikepdfAdapter:
             ([], pikepdf.Operator("BT")),
             ([name, size], pikepdf.Operator("Tf")),
             ([0], pikepdf.Operator("g")),
-            ([1, 0, 0, 1, box.x, box.y + BASELINE * size], pikepdf.Operator("Tm")),
+            (PikepdfAdapter._stamp_matrix(geometry, box.x, box.y + BASELINE * size, 1, 1), pikepdf.Operator("Tm")),
             ([shown], pikepdf.Operator("Tj")),
             ([], pikepdf.Operator("ET")),
         ]
@@ -218,15 +254,19 @@ class PikepdfAdapter:
                 msg = f"page {index} is outside 0-{count - 1}"
                 raise ParseError(msg)
         page = pdf.pages[index]
+        geometry = PikepdfAdapter._geometry_of(page)
         drawn: list[Any] = []
         match (image, text):
             case (bytes() as picture, _):
                 xobject, width, height = PikepdfAdapter._stamp_image(pdf, picture)
                 x, y, w, h = PikepdfAdapter._stamp_fit(box, width, height)
                 name = page.add_resource(xobject, pikepdf.Name.XObject, prefix="Org")
-                drawn = [([w, 0, 0, h, x, y], pikepdf.Operator("cm")), ([name], pikepdf.Operator("Do"))]
+                drawn = [
+                    (PikepdfAdapter._stamp_matrix(geometry, x, y, w, h), pikepdf.Operator("cm")),
+                    ([name], pikepdf.Operator("Do")),
+                ]
             case (_, str() as words):
-                drawn = PikepdfAdapter._stamp_text(page, pdf, box, words)
+                drawn = PikepdfAdapter._stamp_text(page, pdf, geometry, box, words)
         state = page.add_resource(
             pikepdf.Dictionary(Type=pikepdf.Name.ExtGState, ca=opacity, CA=opacity),
             pikepdf.Name.ExtGState,
@@ -285,6 +325,9 @@ class PikepdfAdapter:
 
     async def fill(self, data: bytes, values: Mapping[str, str]) -> bytes:
         return await anyio.to_thread.run_sync(self._fill_write, data, values)
+
+    async def geometry(self, data: bytes) -> tuple[PageGeometry, ...]:
+        return await anyio.to_thread.run_sync(self._geometry_read, data)
 
     async def stamp(
         self, data: bytes, page: int, box: PdfBox, *, image: bytes | None, text: str | None, opacity: float

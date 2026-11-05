@@ -48,6 +48,13 @@
   reused after: first start 2.5 s (eng+spa, 29 MB), second 0.25 s.
 
 ### Changed
+- `doc/stamp` honours the page's geometry: `/Rotate` (0/90/180/270, inherited too) and the crop box. `at.box` is in the page
+  *as displayed* (origin at the visible page's bottom-left after the turn); a field's and an anchor's rectangles are the
+  PDF's, user space, turned into displayed ones by `PageGeometry` (new, in `ports/pdf`, with `PdfPort.geometry`); the image
+  is drawn upright on a turned page. Tested on what pdfium renders, not on the matrix: a box's quadrants' colours at their
+  places and an anchor stamp centred on the text's ink, on 0/90/180/270, cropped, 90 + cropped, 270 + cropped. Red before
+  (6 of 14 failed on the old code). `occurrence` counts in pdfium's reading order, which follows the displayed page.
+  `make check`: 541 passed, coverage 100 %.
 - `image/cutout` without scikit-image: Sauvola ported to `cv2.boxFilter` (float64, reflect-101 borders, R = 1.0 as
   scikit-image sets it for a float image), dropping scikit-image, scipy, imageio, tifffile and lazy-loader. Equivalence
   on the 80 bench images: ink masks identical (pixel IoU min 1.000000, median 1.000000), F median on test 0.9094 both

@@ -7,7 +7,7 @@ import pikepdf
 import pytest
 
 from e_organon.infra.errors import ParseError
-from e_organon.ports.pdf import PdfBox
+from e_organon.ports.pdf import PageGeometry, PdfBox
 from e_organon.providers.adapters.pdf.pikepdf import PikepdfAdapter
 from e_organon.providers.adapters.render.pdfium import PdfiumAdapter
 from support.ink import ink_png
@@ -120,3 +120,17 @@ async def test_pikepdf_refuses_a_page_outside(pdf: PikepdfAdapter) -> None:
 async def test_pikepdf_refuses_what_is_not_an_image(pdf: PikepdfAdapter) -> None:
     with pytest.raises(ParseError, match="not a readable image"):
         await pdf.stamp(blank(1), 0, PdfBox(x=0, y=0, width=10), image=b"hello", text=None, opacity=1)
+
+
+async def test_pikepdf_geometry_reads_the_crop_box_and_an_inherited_turn(pdf: PikepdfAdapter) -> None:
+    data = io.BytesIO()
+    with pikepdf.new() as made:
+        _ = [made.add_blank_page(page_size=A4) for _ in range(2)]
+        made.pages[1].obj.CropBox = pikepdf.Array([10, 20, 300, 400])
+        made.Root.Pages.Rotate = 270
+        made.save(data)
+    first, second = await pdf.geometry(data.getvalue())
+    assert (first, second) == (
+        PageGeometry(left=0, bottom=0, right=595, top=842, rotate=270),
+        PageGeometry(left=10, bottom=20, right=300, top=400, rotate=270),
+    )

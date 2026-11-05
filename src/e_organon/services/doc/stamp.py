@@ -1,8 +1,10 @@
 """e_organon.services.doc.stamp — doc/stamp: an image or a text drawn on a PDF page, kept in the outbox.
 
-`at` says where, in one of three ways resolved here to a page and a box: a form field (its widget's page and rectangle,
-the image fitted inside), a text anchor (found by the render port: the stamp starts at its bottom-left corner moved by the
-offset, as wide as the anchor or as `width` says), or an explicit box. A field the form lacks, or an anchor the pages lack,
+`at` says where, in one of three ways resolved here to a page and a box *as displayed* (origin at the visible page's
+bottom-left after the page's rotation and crop box): a form field (its widget's rectangle, the image fitted inside), a text
+anchor (found by the render port: the stamp starts at its bottom-left corner moved by the offset, as wide as the anchor or
+as `width` says), or an explicit box, which is already in those terms. A field's and an anchor's rectangles are the PDF's, in
+user space: the page's geometry turns them into the displayed ones. A field the form lacks, or an anchor the pages lack,
 fails the run. Four steps: the files read, the place found, the stamp drawn, the PDF kept."""
 
 from typing import TYPE_CHECKING
@@ -10,7 +12,7 @@ from typing import TYPE_CHECKING
 from e_organon.models.doc import AtAnchor, AtField, FileOut, StampIn
 from e_organon.models.error import AnchorNotFoundError, FieldNotFoundError
 from e_organon.models.flow import Done, Event, Step
-from e_organon.ports.pdf import PdfBox
+from e_organon.ports.pdf import PageGeometry, PdfBox
 from e_organon.services.flow import ToolFlow
 
 if TYPE_CHECKING:
@@ -39,24 +41,33 @@ class StampDocService(ToolFlow[StampIn, FileOut]):
 
     ##### PRIVATE #####
 
+    @staticmethod
+    def _events_shown(
+        geometry: PageGeometry, rect: tuple[float, float, float, float]
+    ) -> tuple[float, float, float, float]:
+        """A user-space rectangle `(left, bottom, right, top)` as displayed: its corner and its size."""
+        (x0, y0), (x1, y1) = geometry.shown(rect[0], rect[1]), geometry.shown(rect[2], rect[3])
+        return min(x0, x1), min(y0, y1), abs(x1 - x0), abs(y1 - y0)
+
     async def _events_locate(self, raw: bytes, at: At) -> tuple[int, PdfBox]:
-        """The page and the box `at` names."""
+        """The page and the box `at` names, as displayed."""
         match at:
             case AtField(field=name):
                 match [found for found in (await self._pdf.info(raw)).fields if found.name == name]:
                     case [found, *_]:
-                        left, right = sorted((found.rect[0], found.rect[2]))
-                        bottom, top = sorted((found.rect[1], found.rect[3]))
-                        return found.page, PdfBox(x=left, y=bottom, width=right - left, height=top - bottom)
+                        geometry = (await self._pdf.geometry(raw))[found.page]
+                        x, y, width, height = self._events_shown(geometry, found.rect)
+                        return found.page, PdfBox(x=x, y=y, width=width, height=height)
                     case _:
                         msg = f"the PDF has no field {name!r}"
                         raise FieldNotFoundError(msg)
             case AtAnchor(anchor=text, occurrence=nth, offset=(dx, dy), width=width):
                 match (await self._render.find(raw, text))[nth - 1 : nth]:
                     case [hit]:
-                        left, bottom, right, top = hit.rect
-                        sized = (width, None) if width else (right - left, top - bottom)
-                        return hit.page, PdfBox(x=left + dx, y=bottom + dy, width=sized[0], height=sized[1])
+                        geometry = (await self._pdf.geometry(raw))[hit.page]
+                        x, y, w, h = self._events_shown(geometry, hit.rect)
+                        sized = (width, None) if width else (w, h)
+                        return hit.page, PdfBox(x=x + dx, y=y + dy, width=sized[0], height=sized[1])
                     case _:
                         msg = f"{text!r} is not on the PDF {nth} time(s)"
                         raise AnchorNotFoundError(msg)
