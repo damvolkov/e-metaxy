@@ -1,10 +1,11 @@
 """tests/unit/e_organon/api/lifespan/providers: every provider opened on one stack, in field order, by its role."""
 
 from dataclasses import fields
-from typing import TYPE_CHECKING, ClassVar, Final
+from typing import TYPE_CHECKING, ClassVar, Final, cast
 
 import pytest
 from litestar.testing import TestClient
+from pydantic import HttpUrl
 
 import e_organon.api.lifespan.providers as providers_lifespan
 import e_organon.providers.adapters.pages.liteparse as liteparse_module
@@ -18,6 +19,7 @@ from e_organon.ports.database import DatabasePort
 from e_organon.ports.http import HTTPPort
 from e_organon.ports.provider import Provider
 from e_organon.ports.store import StorePort
+from e_organon.providers.drivers.documents.docling import DoclingDriver
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -82,17 +84,7 @@ def test_providers_doc_ocr_models_live_and_warm_in_its_data_subtree(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
     """OCR on: tessdata is `<ORGANON_DATA>/doc/models/tessdata`, and one blank page is read at open to fetch it."""
-    pages = st.providers.adapters.pages.liteparse.model_copy(update={"ocr": True, "tessdata": None})
-    on = st.model_copy(
-        update={
-            "services": st.services.model_copy(update={"ORGANON_DATA": tmp_path}),
-            "providers": st.providers.model_copy(
-                update={"adapters": st.providers.adapters.model_copy(
-                    update={"pages": st.providers.adapters.pages.model_copy(update={"liteparse": pages})}
-                )}
-            ),
-        }
-    )  # fmt: skip
+    on = st.model_copy(update={"DOC_OCR": True, "DOC_TESSDATA": None, "ORGANON_DATA": tmp_path})
     monkeypatch.setattr(providers_lifespan, "st", on)
     monkeypatch.setattr(liteparse_module, "LiteParse", FakeLiteParse)
     FakeLiteParse.built.clear()
@@ -103,3 +95,11 @@ def test_providers_doc_ocr_models_live_and_warm_in_its_data_subtree(
         str(tmp_path / "doc" / "models" / "tessdata")
     ]
     assert [data[:8] for data in FakeLiteParse.reads] == [b"\x89PNG\r\n\x1a\n"]
+
+
+def test_providers_docling_reads_the_docling_settings(monkeypatch: pytest.MonkeyPatch) -> None:
+    """DOCLING_URL set: the driver is built on it, over the shared HTTP client."""
+    url = HttpUrl("http://docling.test:5001")
+    monkeypatch.setattr(providers_lifespan, "st", st.model_copy(update={"DOCLING_URL": url}))
+    driver = providers_lifespan.docling_driver(cast("HTTPPort", object()))
+    assert isinstance(driver, DoclingDriver)

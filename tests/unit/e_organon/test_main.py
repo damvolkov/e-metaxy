@@ -63,7 +63,7 @@ def test_create_app_openapi_contract_comes_from_its_owners(client: TestClient) -
 @pytest.fixture
 def bare(monkeypatch: pytest.MonkeyPatch) -> Iterator[TestClient]:
     """The app as the public image runs it: TEKTON_PROFILES unset, so no coder, no bridge, no `tekton/` tools."""
-    off = st.model_copy(update={"services": st.services.model_copy(update={"TEKTON_PROFILES": None})})
+    off = st.model_copy(update={"TEKTON_PROFILES": None})
     _ = [monkeypatch.setattr(module, "st", off) for module in (entrypoint, providers, engines, services, mcp)]
     with TestClient(create_app()) as test_client:
         yield test_client

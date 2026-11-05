@@ -6,11 +6,9 @@ from typing import TYPE_CHECKING
 
 import pytest
 
+from e_organon.api.lifespan import providers, services
 from e_organon.models.doc import ConvertIn, ConvertOut
 from e_organon.models.flow import Done, Failed, Step
-from e_organon.processors.doc import DocProcessor
-from e_organon.providers.adapters.markdown.anytomd import AnytomdAdapter
-from e_organon.providers.adapters.pages.liteparse import LiteparseAdapter
 from e_organon.services.doc.convert import ConvertDocService
 from e_organon.services.files import AllowedFiles
 
@@ -22,9 +20,9 @@ if TYPE_CHECKING:
 @pytest.fixture
 async def service(tmp_path: Path) -> AsyncIterator[ConvertDocService]:
     async with AsyncExitStack() as stack:
-        markdown = await stack.enter_async_context(AnytomdAdapter())
-        pages = await stack.enter_async_context(LiteparseAdapter())
-        yield ConvertDocService(DocProcessor(markdown, pages), AllowedFiles((tmp_path,)))
+        markdown = await stack.enter_async_context(providers.anytomd())
+        pages = await stack.enter_async_context(providers.liteparse())
+        yield ConvertDocService(services.reader(markdown, pages, None), AllowedFiles((tmp_path,)))
 
 
 async def test_convert_reads_a_document(service: ConvertDocService, tmp_path: Path) -> None:

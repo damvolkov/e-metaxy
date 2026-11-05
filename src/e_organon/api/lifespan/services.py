@@ -13,8 +13,11 @@ from litestar import Litestar
 from e_organon.api.state import AppState
 from e_organon.infra.logger import logger
 from e_organon.infra.settings import settings as st
-from e_organon.ops.crypto import Crypto
+from e_organon.ops.crypto import Crypto, CryptoKeys
 from e_organon.ops.projects import NamedProjects
+from e_organon.ports.documents import DocumentPort
+from e_organon.ports.markdown import MarkdownPort
+from e_organon.ports.pages import PagesPort
 from e_organon.processors.doc import DocProcessor
 from e_organon.services.doc.convert import ConvertDocService
 from e_organon.services.doc.fill import FillDocService
@@ -36,15 +39,41 @@ from e_organon.services.tekton.tasks import TasksTektonService
 from e_organon.services.tekton.update import UpdateTektonService
 
 
+##### FACTORIES #####
+def reader(markdown: MarkdownPort, pages: PagesPort, docling: DocumentPort | None) -> DocProcessor:
+    """The document reader over its three providers, DOC_*."""
+    return DocProcessor(
+        markdown,
+        pages,
+        docling,
+        concurrency=st.DOC_CONCURRENCY,
+        span=st.DOC_SPAN,
+        gap=st.DOC_GAP,
+        mode=st.DOC_MODE,
+        route=st.DOC_ROUTE,
+        tables=st.DOC_TABLES,
+        max_input_bytes=st.DOC_MAX_INPUT_BYTES,
+    )
+
+
 @asynccontextmanager
 async def lifespan(app: Litestar) -> AsyncGenerator[None]:
     """Assemble what travels with the app: crypto, then each section's tools over the open providers."""
     system = AppState.of(app).system
-    system.crypto = Crypto(st.crypto)
-    found, files = system.providers, AllowedFiles(st.services.ORGANON_ROOTS)
+    system.crypto = Crypto(
+        CryptoKeys(
+            secret=st.CRYPTO__SECRET,
+            alg=st.CRYPTO__ALG,
+            enc=st.CRYPTO__ENC,
+            private_key=st.CRYPTO__PRIVATE_KEY.get_secret_value(),
+            hasher=st.CRYPTO__HASHER,
+            bcrypt_rounds=st.CRYPTO__BCRYPT_ROUNDS,
+        )
+    )
+    found, files = system.providers, AllowedFiles(st.ORGANON_ROOTS)
     artifacts = system.engines.artifact
     doc = system.services.doc
-    doc.convert = ConvertDocService(DocProcessor(found.markdown, found.pages, found.docling), files)
+    doc.convert = ConvertDocService(reader(found.markdown, found.pages, found.docling), files)
     doc.inspect = InspectDocService(found.pdf, files)
     doc.merge = MergeDocService(found.pdf, files, artifacts)
     doc.split = SplitDocService(found.pdf, files, artifacts)
@@ -56,7 +85,7 @@ async def lifespan(app: Litestar) -> AsyncGenerator[None]:
             pass
         case bridge:
             tekton = system.services.tekton
-            tekton.eng = EngTektonService(bridge, NamedProjects(st.services.TEKTON_WORKSPACES))
+            tekton.eng = EngTektonService(bridge, NamedProjects(st.TEKTON_WORKSPACES))
             tekton.start = StartTektonService(bridge)
             tekton.status = StatusTektonService(bridge)
             tekton.tasks = TasksTektonService(bridge)

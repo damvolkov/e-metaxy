@@ -50,10 +50,9 @@ async def lifespan(app: Litestar) -> AsyncGenerator[None]:
     """Build the engines over the mounted providers, mount them under `system.engines`, log the startup survey."""
     system = AppState.of(app).system
     providers: ProvidersState = system.providers
-    conf, services = st.engines.auth, st.services
     async with AsyncExitStack() as stack:
         ### the profile book is read once, here: a profile changes with a restart, never under a running task.
-        match providers.coder, services.TEKTON_PROFILES:
+        match providers.coder, st.TEKTON_PROFILES:
             case (CoderPort() as coder, Path() as profiles):
                 book = Profile.book(await (await anyio.Path(profiles).expanduser()).read_bytes())
                 bridge = await stack.enter_async_context(
@@ -61,21 +60,21 @@ async def lifespan(app: Litestar) -> AsyncGenerator[None]:
                         coders={coder.kind: coder},
                         ledger=providers.store,
                         profiles=book,
-                        projects=NamedProjects(services.TEKTON_WORKSPACES),
-                        limit=services.TEKTON_LIMIT,
+                        projects=NamedProjects(st.TEKTON_WORKSPACES),
+                        limit=st.TEKTON_LIMIT,
                     )
                 )
             case _:
                 bridge = None
         engines = EnginesState(
-            auth=AuthEngine(providers.auth, conf),
-            health=HealthEngine(providers.named, REQUIRED),
-            artifact=ArtifactEngine(services.ORGANON_OUTBOX),
+            auth=AuthEngine(providers.auth, secret=st.AUTH_SECRET, ttl=st.AUTH_TTL, admin=st.AUTH_ADMIN),
+            health=HealthEngine(providers.named, REQUIRED, st.PING_TIMEOUT),
+            artifact=ArtifactEngine(st.ORGANON_OUTBOX),
             bridge=bridge,
         )
         system.engines = engines
-        admin = (await engines.auth.ensure()).owner if conf.secret else "closed"
-        logger.info("auth ready", admin=admin, ttl=str(conf.ttl or "never"), step="START")
+        admin = (await engines.auth.ensure()).owner if st.AUTH_SECRET else "closed"
+        logger.info("auth ready", admin=admin, ttl=str(st.AUTH_TTL or "never"), step="START")
         _ = [
             (logger.info if verdict.ok else logger.warning)(
                 "provider health", provider=verdict.name, ok=verdict.ok, required=verdict.required,

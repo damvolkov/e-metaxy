@@ -4,6 +4,7 @@ the access log wrote, recorded; and what every tekton test runs on: `book`, the 
 on a temporary path; `bridge`, the engine over `coder` (the scripted one of `tests/conftest`), `wire` the builder of more,
 `settle` the wait that ends a task."""
 
+from datetime import timedelta
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -12,7 +13,6 @@ from litestar.testing import TestClient
 
 from e_organon.api import middlewares as middlewares_module
 from e_organon.engines.bridge import BridgeEngine, Task, TaskOrder
-from e_organon.infra.config.providers.drivers.store.sqlite import SqliteSettings
 from e_organon.main import create_app
 from e_organon.ops.projects import NamedProjects
 from e_organon.ports.coder import Profile
@@ -69,7 +69,7 @@ def book(resources: Resources) -> Mapping[str, Profile]:
 
 @pytest.fixture
 async def ledger(tmp_path: Path) -> AsyncIterator[SqliteDriver]:
-    async with SqliteDriver(SqliteSettings(path=tmp_path / "ledger.db")) as store:
+    async with SqliteDriver(path=tmp_path / "ledger.db", timeout=timedelta(seconds=5)) as store:
         yield store
 
 

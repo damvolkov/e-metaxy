@@ -1,8 +1,7 @@
 """infra/config/services: the services cluster — organon's own knobs, one `### NAME` block per service.
 
-The new settings doctrine (proj-py-layout `settings.md`): UPPERCASE typed fields, the field name the environment
-variable itself, read once at the composition root and handed down as plain arguments. The materialized common still
-reads its own scopes; it follows when e-arkhetypo's common migrates."""
+UPPERCASE typed fields, the field name the environment variable itself, read once at the composition root and handed
+down as plain arguments."""
 
 from pathlib import Path
 
