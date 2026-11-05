@@ -182,9 +182,6 @@ class JobsService:
 
     async def cancel(self, job: str, caller: Caller) -> Job:
         """The job stopped where it awaits; one already settled comes back as it is."""
-        _ = await self._status_read(job, caller)
-        match await self._dispatch.cancel(job):
-            case None:
-                raise UnknownJobError(job)
-            case found:
-                return Job.of(found)
+        held = await self._status_read(job, caller)
+        ### a job settled and gone between the check and the cancel comes back as the check found it.
+        return Job.of(await self._dispatch.cancel(job) or held)
