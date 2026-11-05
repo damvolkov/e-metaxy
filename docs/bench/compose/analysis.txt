@@ -1,0 +1,5 @@
+ty: ms p50 21.3 p95 32.0 | pdf bytes median 95066 | text ok 60/60 | PDF/A-2b declared 60/60 | pages equal to the other arm 60
+wp: ms p50 156.4 p95 205.1 | pdf bytes median 27566 | text ok 60/60 | PDF/A-2b declared 60/60 | pages equal to the other arm 40
+log(ms_ty/ms_wp): mean -1.969 CI [-2.001, -1.934]  => typst x7.2 faster (CI x6.9..x7.4); faster on 60/60
+determinism ty: 10/10 identical
+determinism wp: 10/10 identical

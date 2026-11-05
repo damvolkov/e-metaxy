@@ -78,6 +78,7 @@ dependencies = [
     "rapidocr>=3.10.0",
     "onnxruntime>=1.31.1",
     "pyhanko>=0.38.0",
+    "typst>=0.15.0",
 ]
 
 [project.urls]

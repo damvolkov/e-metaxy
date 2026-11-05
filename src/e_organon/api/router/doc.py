@@ -17,6 +17,7 @@ from e_organon.infra.auth.guard import OPT
 from e_organon.infra.auth.models import Access
 from e_organon.infra.state import State
 from e_organon.models.doc import (
+    ComposeIn,
     ConvertIn,
     FillIn,
     InspectIn,
@@ -83,6 +84,11 @@ async def sign(data: JSONBody[SignIn], request: Request[Any, Any, Any], graph: N
     return await answer(request, graph.services.doc.sign, data)
 
 
+async def compose(data: JSONBody[ComposeIn], request: Request[Any, Any, Any], graph: NamedDependency[State]) -> Any:
+    """doc/compose: a PDF from a typst template and its data."""
+    return await answer(request, graph.services.doc.compose, data)
+
+
 ##### ROUTES #####
 def routes(*handlers: Any) -> tuple[HTTPRouteHandler, ...]:
     """One `POST /doc/<name>` route for each handler."""
@@ -101,6 +107,6 @@ def routes(*handlers: Any) -> tuple[HTTPRouteHandler, ...]:
 
 
 ### the tools every deployment serves; `OCR` only where its engine is on (OCR_ENABLED), `SIGN` where a key is set (SIGN_P12).
-ROUTES: tuple[HTTPRouteHandler, ...] = routes(convert, inspect, merge, split, fill, render, stamp, signature)
+ROUTES: tuple[HTTPRouteHandler, ...] = routes(convert, inspect, merge, split, fill, render, stamp, signature, compose)
 OCR: tuple[HTTPRouteHandler, ...] = routes(ocr)
 SIGN: tuple[HTTPRouteHandler, ...] = routes(sign)

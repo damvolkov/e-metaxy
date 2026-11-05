@@ -21,6 +21,16 @@
   breaks it, a signed PDF takes a second signature. Not byte-deterministic by nature (the signature carries its time).
   Adds pyhanko, aiohttp and friends (~18 MB in a venv; docker image delta not measured, the daemon was down). No bench: pyHanko has no serious OSS rival in Python (endesive is the contrast, unmeasured) — the plan's own reasoning.
 
+- **`doc/compose` (TODO_doc, 5)**: a typst template and JSON data composed into a PDF/A-2b through the outbox — `template`
+  a name (`<ORGANON_DATA>/doc/templates/<name>.typ`, then the shipped ones: `invoice` ships in `src/e_organon/templates`) or a
+  path under the roots; the template reads its own folder and nothing else. Byte-deterministic: fixed creation time, only
+  typst's embedded fonts, sorted data; the same input is the same outbox file. Behind `ComposePort`; adapter `TypstAdapter`.
+  Benched pre-registered against WeasyPrint on 60 two-to-three-page invoices, interleaved, paired BCa (`docs/bench/compose.md`):
+  typst 21 ms p50 against 156 ms, log-ratio -1.969 [-2.001, -1.934] (7.2 x faster, 60/60), both declare PDF/A-2b and are
+  deterministic; typst weighs about 25-30 MB more (81 MB wheel against ~45 MB + ~8 MB of Debian libraries), so the "lighter
+  image" half of the hypothesis is false. PDF/A conformance not validated (no veraPDF). Golden: the invoice's text over
+  `tests/resources/golden/invoice.json`. Catalog re-measured: 7 047 tokens with everything on, under the 8 000 budget.
+
 ### Changed
 - **`image/cutout` drops printed form lines (TODO_doc, 2)**: long straight runs of the ink mask (probabilistic Hough, tilt
   allowed) are taken off, and a stroke crossing one is bridged. Benched pre-registered, A against A + lines, paired BCa on

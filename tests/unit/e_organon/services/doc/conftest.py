@@ -6,14 +6,17 @@ from typing import TYPE_CHECKING
 import anyio
 import pytest
 
+from e_organon.api.lifespan.services import TEMPLATES
 from e_organon.engines.artifact import ArtifactEngine
 from e_organon.models.doc import FileOut, StampIn
 from e_organon.models.flow import Done, Failed
 from e_organon.ports.ocr import OcrWord
+from e_organon.providers.adapters.compose.typst import TypstAdapter
 from e_organon.providers.adapters.cutout.opencv import OpencvAdapter
 from e_organon.providers.adapters.pdf.pikepdf import PikepdfAdapter
 from e_organon.providers.adapters.render.pdfium import PdfiumAdapter
 from e_organon.providers.adapters.sign.pyhanko import PyhankoAdapter
+from e_organon.services.doc.compose import ComposeDocService
 from e_organon.services.doc.ocr import OcrDocService
 from e_organon.services.doc.sign import SignDocService
 from e_organon.services.doc.signature import SignatureDocService
@@ -153,3 +156,21 @@ async def sealer(
 ) -> AsyncIterator[SignDocService]:
     async with PyhankoAdapter(p12=pki.p12, password=pki.password, tsa_url=None) as sign:
         yield SignDocService(sign, stamper, signer, files, artifacts)
+
+
+@pytest.fixture
+def templates(vault: Path) -> Path:
+    """The deployment's template folder inside the vault, with `hello` — a template that greets `data.name` — and `reads`,
+    one that reads `name.txt` beside it."""
+    folder = vault / "templates"
+    folder.mkdir()
+    (folder / "hello.typ").write_bytes(b"#let data = json(bytes(sys.inputs.data))\nHola, #data.name\n")
+    (folder / "reads.typ").write_bytes(b'#read("name.txt")')
+    (folder / "name.txt").write_text("desde el disco")
+    return folder
+
+
+@pytest.fixture
+def composer(files: AllowedFiles, artifacts: ArtifactEngine, templates: Path) -> ComposeDocService:
+    """The tool over the real typst adapter, the vault's templates first and the shipped ones after."""
+    return ComposeDocService(TypstAdapter(), files, artifacts, folders=(templates, TEMPLATES))

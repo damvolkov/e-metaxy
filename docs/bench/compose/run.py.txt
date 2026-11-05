@@ -1,0 +1,53 @@
+"""Interleaved run: each invoice goes to both arms in a rotating order; warm-ups discarded.
+Usage: run.py WARMUP → out/run.tsv rows: invoice arm ms bytes pages ok pdfa  (ok: every ref and the total are in the text, 2 pages)
+and out/determinism.tsv: invoice arm identical (the same invoice twice → the same bytes)"""
+import hashlib, json, subprocess, sys
+from pathlib import Path
+import pikepdf, pypdfium2 as pdfium
+
+B = Path("/tmp/bench-compose")
+ARMS = {"ty": ("env-typst", "typst_arm.py"), "wp": ("env-weasy", "weasy_arm.py")}
+
+
+def check(pdf: Path, data: dict) -> tuple[int, bool, bool]:
+    doc = pdfium.PdfDocument(str(pdf))
+    text = "".join(doc[i].get_textpage().get_text_range() for i in range(len(doc)))
+    ok = all(r["ref"] in text for r in data["items"]) and data["total"] in text and f"Factura {data['number']}" in text
+    with pikepdf.open(pdf) as p:
+        xmp = p.open_metadata()
+        pdfa = "pdfaid:part" in xmp and str(xmp["pdfaid:part"]) == "2" and "/OutputIntents" in p.Root
+    return len(doc), ok, pdfa
+
+
+def main() -> None:
+    warmup = int(sys.argv[1])
+    files = sorted((B / "data").glob("*.json"))
+    procs = {a: subprocess.Popen([str(B / env / "bin/python"), str(B / "scripts" / script)], stdin=subprocess.PIPE, stdout=subprocess.PIPE, text=True,
+                                 env={"PATH": "/usr/bin:/bin", "HOME": "/tmp/bench-compose/home", "OMP_NUM_THREADS": "4"}) for a, (env, script) in ARMS.items()}
+    def ask(a: str, src: Path, dst: Path) -> tuple[float, int]:
+        procs[a].stdin.write(f"{src} {dst}\n"); procs[a].stdin.flush()
+        ms, size = procs[a].stdout.readline().split()
+        return float(ms), int(size)
+    for w in range(warmup):
+        for a in ARMS:
+            ask(a, files[w], B / "out" / f"warm-{a}.pdf")
+    rows, det = [], []
+    order = list(ARMS)
+    for i, f in enumerate(files):
+        data = json.loads(f.read_text())
+        for a in order[i % 2:] + order[: i % 2]:
+            dst = B / "out" / f"{f.stem}-{a}.pdf"
+            ms, size = ask(a, f, dst)
+            pages, ok, pdfa = check(dst, data)
+            rows.append(f"{f.stem}\t{a}\t{ms:.2f}\t{size}\t{pages}\t{int(ok)}\t{int(pdfa)}")
+        if i < 10:
+            for a in ARMS:
+                again = B / "out" / "again.pdf"
+                ask(a, f, again)
+                det.append(f"{f.stem}\t{a}\t{int(hashlib.sha256(again.read_bytes()).digest() == hashlib.sha256((B / 'out' / f'{f.stem}-{a}.pdf').read_bytes()).digest())}")
+    for p in procs.values():
+        p.stdin.close(); p.wait()
+    (B / "out" / "run.tsv").write_text("\n".join(rows) + "\n"); (B / "out" / "determinism.tsv").write_text("\n".join(det) + "\n")
+
+
+main()

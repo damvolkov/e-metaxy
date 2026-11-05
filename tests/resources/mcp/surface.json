@@ -502,5 +502,23 @@
     "required": [
       "path"
     ]
+  },
+  {
+    "name": "doc_compose",
+    "title": "Compose a PDF from a template",
+    "description": "A PDF/A made from a typst `template` — a name (`invoice`, shipped; the deployment may keep others) or a path to a .typ file under the vault or the workspaces — and its `data` (JSON the template reads). The same input gives the same bytes. Returns the PDF's `path`.",
+    "access": "user",
+    "annotations": {
+      "destructive_hint": false,
+      "open_world_hint": false,
+      "read_only_hint": false
+    },
+    "arguments": [
+      "data",
+      "template"
+    ],
+    "required": [
+      "template"
+    ]
   }
 ]

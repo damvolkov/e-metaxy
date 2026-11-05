@@ -3,7 +3,7 @@
 Every path is under ORGANON_ROOTS; every file a tool writes lands in ORGANON_OUTBOX (inside a root), named by its
 content, so one tool's output is the next one's input."""
 
-from typing import Annotated
+from typing import Annotated, Any
 
 import msgspec
 
@@ -205,3 +205,12 @@ class SignIn(msgspec.Struct, frozen=True, kw_only=True):
             case _:
                 msg = "give `at` with exactly one of image, text or photo for a visible signature, or none of them"
                 raise ValueError(msg)
+
+
+##### COMPOSE #####
+class ComposeIn(msgspec.Struct, frozen=True, kw_only=True):
+    """`template`: a name (`invoice`: `<name>.typ` under `<ORGANON_DATA>/doc/templates`, else among the ones shipped) or a path
+    to a typst file under the roots. `data`: what the template reads, as JSON."""
+
+    template: str
+    data: dict[str, Any] = msgspec.field(default_factory=dict)

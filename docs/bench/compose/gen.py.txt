@@ -1,0 +1,29 @@
+"""Invoices as JSON: a customer, N line items (55-75: two pages), totals — Spanish text with accents. Usage: gen.py OUT N SEED"""
+import json, sys
+from pathlib import Path
+import numpy as np
+
+ITEMS = ["Tornillo hexagonal M8 inoxidable", "Pintura plástica blanca, bote de 15 l", "Servicio de instalación y puesta en marcha",
+         "Cable de cobre 2,5 mm², rollo de 100 m", "Tubería de PVC Ø 40, barra de 3 m", "Mano de obra: jornada de oficial primera",
+         "Transporte y descarga en obra", "Mortero cola flexible C2, saco 25 kg", "Ñandú de bronce decorativo (pieza única)",
+         "Cuadro eléctrico monofásico de 12 módulos", "Luminaria LED empotrable 18 W", "Revisión técnica anual de la instalación"]
+
+
+def main() -> None:
+    out, n, seed = Path(sys.argv[1]), int(sys.argv[2]), int(sys.argv[3])
+    out.mkdir(parents=True, exist_ok=True)
+    rng = np.random.default_rng(seed)
+    for i in range(n):
+        rows = []
+        for k in range(int(rng.integers(55, 76))):
+            qty, price = int(rng.integers(1, 40)), round(float(rng.uniform(1.5, 480)), 2)
+            rows.append({"ref": f"A-{int(rng.integers(1000, 9999))}", "description": ITEMS[int(rng.integers(0, len(ITEMS)))], "qty": qty,
+                         "price": f"{price:.2f}", "total": f"{qty * price:.2f}"})
+        subtotal = sum(float(r["total"]) for r in rows)
+        data = {"number": f"2027-{i + 1:04d}", "date": "5 de noviembre de 2027", "seller": {"name": "Aceros del Norte, S.L.", "nif": "B50123456", "address": "Calle Mayor, 25, 50001 Zaragoza"},
+                "customer": {"name": f"Cliente Número {i + 1}, S.A.", "nif": f"A{int(rng.integers(10000000, 99999999))}", "address": "Avenida de la Constitución, 3, 28001 Madrid"},
+                "items": rows, "subtotal": f"{subtotal:.2f}", "vat": f"{subtotal * 0.21:.2f}", "total": f"{subtotal * 1.21:.2f}"}
+        (out / f"{i:03d}.json").write_text(json.dumps(data, ensure_ascii=False))
+
+
+main()

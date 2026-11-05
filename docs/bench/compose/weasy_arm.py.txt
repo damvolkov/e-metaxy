@@ -1,0 +1,28 @@
+"""Arm WP: WeasyPrint (Python + pango). Same invoice as HTML/CSS. stdin: `data.json out.pdf` → stdout: ms, bytes."""
+import html, json, sys, time
+from weasyprint import HTML
+
+CSS = """@page { size: A4; margin: 2cm; @bottom-right { content: counter(page) " / " counter(pages); font-size: 10pt } }
+body { font-family: sans-serif; font-size: 10pt } .head { display: flex; justify-content: space-between } .r { text-align: right }
+table { width: 100%; border-collapse: collapse; margin-top: 1cm } th, td { border: 0.4pt solid gray; padding: 2pt 4pt; text-align: left } td.n, th.n { text-align: right }
+thead { display: table-header-group } tr { page-break-inside: avoid }"""
+
+
+def page(d: dict) -> str:
+    e = html.escape
+    rows = "".join(f"<tr><td>{e(r['ref'])}</td><td>{e(r['description'])}</td><td class=n>{r['qty']}</td><td class=n>{r['price']}</td><td class=n>{r['total']}</td></tr>" for r in d["items"])
+    return (f"<!doctype html><html lang=es><meta charset=utf-8><meta name=dcterms.created content=2000-01-01T00:00:00Z><meta name=dcterms.modified content=2000-01-01T00:00:00Z><style>{CSS}</style>"
+            f"<div class=head><div><b>{e(d['seller']['name'])}</b><br>NIF {d['seller']['nif']}<br>{e(d['seller']['address'])}</div><div class=r><b>Factura {d['number']}</b><br>{e(d['date'])}</div></div>"
+            f"<p style='margin-top:1cm'><b>Cliente:</b> {e(d['customer']['name'])}<br>NIF {d['customer']['nif']}<br>{e(d['customer']['address'])}</p>"
+            f"<table><thead><tr><th>Ref.</th><th>Descripción</th><th class=n>Cant.</th><th class=n>Precio</th><th class=n>Importe</th></tr></thead><tbody>{rows}</tbody></table>"
+            f"<p class=r style='margin-top:.6cm'>Subtotal: {d['subtotal']} €<br>IVA 21 %: {d['vat']} €<br><b>Total: {d['total']} €</b></p></html>")
+
+
+for line in sys.stdin:
+    src, dst = line.split()
+    d = json.load(open(src))
+    t = time.perf_counter()
+    pdf = HTML(string=page(d)).write_pdf(pdf_variant="pdf/a-2b", pdf_identifier=b"organon-bench")
+    ms = (time.perf_counter() - t) * 1000
+    open(dst, "wb").write(pdf)
+    print(f"{ms:.3f} {len(pdf)}", flush=True)

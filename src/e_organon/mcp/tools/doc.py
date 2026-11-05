@@ -84,6 +84,16 @@ SIGNATURE: Final = MCPTool(
     read_only=False,
 )
 
+COMPOSE: Final = MCPTool(
+    name="doc_compose",
+    title="Compose a PDF from a template",
+    description=(
+        "A PDF/A made from a typst `template` — a name (`invoice`, shipped; the deployment may keep others) or a path to a "
+        ".typ file under the vault or the workspaces — and its `data` (JSON the template reads). The same input gives the "
+        "same bytes. Returns the PDF's `path`."
+    ),
+    read_only=False,
+)
 OCR: Final = MCPTool(
     name="doc_ocr",
     title="Read a scan",
@@ -123,6 +133,7 @@ ROUTES: tuple[HTTPRouteHandler, ...] = routes(
     (RENDER, router.render),
     (STAMP, router.stamp),
     (SIGNATURE, router.signature),
+    (COMPOSE, router.compose),
 )
 ### served only where the engine is on (OCR_ENABLED).
 OCR_ROUTES: tuple[HTTPRouteHandler, ...] = routes((OCR, router.ocr))

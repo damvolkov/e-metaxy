@@ -39,6 +39,7 @@ async def test_health_status_lists_the_tools(connect: Connect) -> None:
     assert sorted(tools) == [
         "api_health",
         "api_status",
+        "doc_compose",
         "doc_convert",
         "doc_fill",
         "doc_inspect",

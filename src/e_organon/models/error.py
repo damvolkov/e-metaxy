@@ -24,6 +24,10 @@ class AnchorNotFoundError(OrganonError, LookupError):
     """The text is on no page of the PDF — or not that many times."""
 
 
+class TemplateNotFoundError(OrganonError, LookupError):
+    """No template of that name among the ones the deployment keeps and the ones shipped."""
+
+
 class PageNotFoundError(OrganonError, LookupError):
     """The PDF has no page of that number (from 0)."""
 

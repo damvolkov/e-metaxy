@@ -11,7 +11,8 @@ import warnings
 from typing import TYPE_CHECKING, ClassVar, Final, Self, cast
 
 import anyio
-from PIL import Image, UnidentifiedImageError
+import numpy as np
+from PIL import Image, ImageDraw, ImageFont, UnidentifiedImageError
 from rapidocr import LangDet, LangRec, ModelType, OCRVersion, RapidOCR
 
 from e_organon.infra.errors import ParseError, ProviderError
@@ -56,10 +57,21 @@ class RapidocrAdapter:
     def _enter_engine(self) -> RapidOCR:
         self._models.mkdir(parents=True, exist_ok=True)
         try:
-            return RapidOCR(params={**PARAMS, "Global.model_root_dir": str(self._models)})
+            engine = RapidOCR(params={**PARAMS, "Global.model_root_dir": str(self._models)})
+            ### the models load on the first read, the recogniser only when the detector finds text: one line of text now
+            ### fetches and loads all three, at the start.
+            engine(self._enter_probe())
+            return engine
         except Exception as error:
             msg = f"the OCR models could not be loaded into {self._models}: {error}"
             raise ProviderError(msg) from error
+
+    @staticmethod
+    def _enter_probe() -> np.ndarray:
+        """A white card with a word on it, for the engine to read once."""
+        card = Image.new("RGB", (240, 80), "white")
+        ImageDraw.Draw(card).text((20, 20), "Hola 42", font=ImageFont.load_default(size=36), fill="black")
+        return np.asarray(card)
 
     @staticmethod
     def _size_read(data: bytes) -> tuple[int, int]:

@@ -121,3 +121,14 @@ def test_doc_sign_a_visible_signature_without_an_appearance_is_422(
 ) -> None:
     order = {"path": str(vault / "labelled.pdf"), "at": {"type": "box", "page": 0, "x": 1, "y": 1, "width": 5}}
     assert client.post("/doc/sign", json=order, headers=ana_key).status_code == 400
+
+
+async def test_doc_compose_over_rest_and_queued_as_a_job(
+    vault: Path, client: TestClient, ana_key: dict[str, str], invoice_data: dict
+) -> None:
+    order = {"template": "invoice", "data": invoice_data}
+    batch = client.post("/doc/compose", json=order, headers=ana_key)
+    queued = client.post("/organon/submit", json={"tool": "doc/compose", "input": order}, headers=ana_key)
+    done = client.get(f"/jobs/{queued.json()['job']}/events", headers=ana_key)
+    pdf = await anyio.Path(batch.json()["path"]).read_bytes()
+    assert (batch.status_code, pdf[:5], queued.status_code, done.text.count("event: done")) == (200, b"%PDF-", 202, 1)

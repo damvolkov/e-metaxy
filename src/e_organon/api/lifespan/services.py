@@ -7,6 +7,8 @@ They are pure in-process objects over providers the providers concern closes, so
 
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
+from pathlib import Path
+from typing import Final
 
 from litestar import Litestar
 
@@ -19,6 +21,7 @@ from e_organon.ports.documents import DocumentPort
 from e_organon.ports.markdown import MarkdownPort
 from e_organon.ports.pages import PagesPort
 from e_organon.processors.doc import DocProcessor
+from e_organon.services.doc.compose import ComposeDocService
 from e_organon.services.doc.convert import ConvertDocService
 from e_organon.services.doc.fill import FillDocService
 from e_organon.services.doc.inspect import InspectDocService
@@ -42,6 +45,9 @@ from e_organon.services.tekton.start import StartTektonService
 from e_organon.services.tekton.status import StatusTektonService
 from e_organon.services.tekton.tasks import TasksTektonService
 from e_organon.services.tekton.update import UpdateTektonService
+
+### the templates shipped with the package (`doc/compose` names them after the deployment's own folder).
+TEMPLATES: Final[Path] = Path(__file__).resolve().parents[2] / "templates"
 
 
 ##### FACTORIES #####
@@ -85,6 +91,9 @@ async def lifespan(app: Litestar) -> AsyncGenerator[None]:
     doc.fill = FillDocService(found.pdf, files, artifacts)
     doc.render = RenderDocService(found.render, files, artifacts)
     doc.stamp = StampDocService(found.pdf, found.render, files, artifacts)
+    doc.compose = ComposeDocService(
+        found.compose, files, artifacts, folders=(st.ORGANON_DATA / "doc" / "templates", TEMPLATES)
+    )
     image = system.services.image
     image.cutout = CutoutImageService(found.cutout, files, artifacts, max_pixels=st.ORGANON_MAX_PIXELS)
     doc.signature = SignatureDocService(image.cutout, doc.stamp)

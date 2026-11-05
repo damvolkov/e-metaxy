@@ -19,6 +19,7 @@ from e_organon.infra.logger import logger
 from e_organon.infra.settings import settings as st
 from e_organon.ports.auth import AuthPort
 from e_organon.ports.coder import CoderPort
+from e_organon.ports.compose import ComposePort
 from e_organon.ports.cutout import CutoutPort
 from e_organon.ports.database import DatabaseListenPort, DatabasePort
 from e_organon.ports.documents import DocumentPort
@@ -31,6 +32,7 @@ from e_organon.ports.provider import Provider
 from e_organon.ports.render import RenderPort
 from e_organon.ports.sign import SignPort
 from e_organon.ports.store import StorePort
+from e_organon.providers.adapters.compose.typst import TypstAdapter
 from e_organon.providers.adapters.cutout.opencv import OpencvAdapter
 from e_organon.providers.adapters.markdown.anytomd import AnytomdAdapter
 from e_organon.providers.adapters.ocr.rapidocr import RapidocrAdapter
@@ -75,6 +77,7 @@ class ProvidersState:
     pdf: PdfPort
     render: RenderPort
     cutout: CutoutPort
+    compose: ComposePort
     ### the coder opens only with the bridge on (TEKTON_PROFILES): the public image carries no Claude CLI.
     coder: CoderPort | None
     ### docling-serve is optional: present only when DOCLING_URL is set — the doc tools read without it.
@@ -176,6 +179,7 @@ async def lifespan(app: Litestar) -> AsyncGenerator[None]:
         pdf = await enter(PikepdfAdapter(max_pages=st.ORGANON_MAX_PAGES, max_pixels=st.ORGANON_MAX_PIXELS))
         render = await enter(PdfiumAdapter(max_pages=st.ORGANON_MAX_PAGES))
         cutout = await enter(OpencvAdapter())
+        compose = await enter(TypstAdapter())
         coder = await enter(ClaudeDriver(st.TEKTON_CLAUDE)) if st.TEKTON_PROFILES else None
         docling = await enter(docling_driver(http)) if st.DOCLING_URL else None
         ocr = await enter(rapidocr()) if st.OCR_ENABLED else None
@@ -191,6 +195,7 @@ async def lifespan(app: Litestar) -> AsyncGenerator[None]:
             pdf=pdf,
             render=render,
             cutout=cutout,
+            compose=compose,
             coder=coder,
             docling=docling,
             ocr=ocr,

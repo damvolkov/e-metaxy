@@ -4,9 +4,10 @@ the access log wrote, recorded; and what every tekton test runs on: `book`, the 
 on a temporary path; `bridge`, the engine over `coder` (the scripted one of `tests/conftest`), `wire` the builder of more,
 `settle` the wait that ends a task."""
 
+import json
 from datetime import timedelta
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 import pytest
 from litestar.testing import TestClient
@@ -123,6 +124,12 @@ def sign_on(monkeypatch: pytest.MonkeyPatch, pki: Pki) -> Pki:
     monkeypatch.setattr(providers_module, "st", on)
     monkeypatch.setattr(mcp_lifespan_module, "st", on)
     return pki
+
+
+@pytest.fixture
+def invoice_data(resources: Resources) -> dict[str, Any]:
+    """The invoice the shipped template is held to (`tests/resources/golden/invoice.json`)."""
+    return json.loads((resources.path / "golden" / "invoice.json").read_text())
 
 
 @pytest.fixture

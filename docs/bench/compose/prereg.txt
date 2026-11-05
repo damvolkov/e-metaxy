@@ -1,0 +1,10 @@
+Pre-registration, written 2026-11-05 before the run.
+H: typst (Rust binding, PyPI) renders a two-page invoice faster than WeasyPrint (Python + pango) and writes PDF/A-2b with
+byte-deterministic output; it costs a smaller image.
+Data: 60 invoices (55-75 line items, Spanish, seed 1), the same content in a typst template and in HTML/CSS. Interleaved,
+3 warm-ups discarded. Primary metric: render latency per invoice; the paired log-ratio log(ms_typst / ms_weasy), BCa 95 %
+(20 000 resamples). Gates, all of them: (1) the interval's upper bound of the median-free mean log-ratio is below 0 (typst faster);
+(2) typst's PDF declares PDF/A-2b (XMP pdfaid:part 2 and an output intent) on every invoice — veraPDF is not available here, so the
+declaration is checked, not full conformance; (3) the same invoice twice gives the same bytes (10 invoices); (4) every reference
+and the total are in the extracted text, two pages. Else WeasyPrint if it passes (2)-(4). Secondary: p50/p95 latency, PDF size,
+the packages' weight (virtualenv; and for WeasyPrint the Debian libraries it needs and the slim image lacks).
