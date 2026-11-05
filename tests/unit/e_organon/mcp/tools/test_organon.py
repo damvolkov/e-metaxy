@@ -49,7 +49,7 @@ async def test_organon_another_accounts_job_is_unknown_the_admin_reads_it(
     queued: Queued, connect: Connect, keys: FakeAuth, ana_key: dict[str, str], root_key: dict[str, str], tool: str
 ) -> None:
     keys.key("t-bob", "bob")
-    job = await queued(ana_key)
+    job = await queued(ana_key, settled=True)
     refusal = await refused(connect, tool, {"job": job}, {"Authorization": "Bearer t-bob"})
     seen = await call(connect, tool, {"job": job}, root_key)
     assert (refusal, seen["id"]) == (f"unknown job '{job}'", job)

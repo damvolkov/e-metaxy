@@ -48,6 +48,12 @@
   reused after: first start 2.5 s (eng+spa, 29 MB), second 0.25 s.
 
 ### Changed
+- Flaky test fixed: `test_organon_another_accounts_job_is_unknown_the_admin_reads_it[organon_cancel]` hung once in a
+  hundred runs under load. Cause (found by logging the tool's path): the in-process MCP client runs a tool on the test's
+  loop while the dispatch and its jobs' `anyio.Event`s live on the REST client's loop, and `organon_cancel` awaits the
+  job's end across the two — an event set on one loop does not wake a waiter on the other. The test now cancels a
+  `settled` job (REST waits for its events first). 120 of 120 runs clean under 30 parallel processes; not a product
+  bug — a remote MCP client runs on the server's own loop.
 - One base (`TODO_jobs` step 1): redis is out of organon (provider, state, tests, `fakeredis`); the queue lives in
   ParadeDB — a second `PsqlpyDriver` on `QUEUE_DSN` (`organon_background`, created by `api/lifespan/db` beside
   `organon`), `PgqueuerDriver` on it, `DispatchEngine` over memory as fallback, entered by `api/lifespan/jobs`; `queue`

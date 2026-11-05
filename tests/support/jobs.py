@@ -1,5 +1,8 @@
-"""tests/support/jobs: the shape of the job fixtures — a conversion queued under a key, read as its job's id."""
+"""tests/support/jobs: the shape of the job fixtures — a conversion queued under a key (settled, when asked), read as its
+job's id."""
 
-from collections.abc import Awaitable, Callable
+from typing import Protocol
 
-type Queued = Callable[[dict[str, str]], Awaitable[str]]
+
+class Queued(Protocol):
+    async def __call__(self, key: dict[str, str], *, settled: bool = False) -> str: ...
