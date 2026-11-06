@@ -11,7 +11,7 @@ INSTRUCTIONS: Final[str] = (
     "ranges, doc_render draws pages as PNG, doc_stamp draws an image or a text on one (at a field, a text anchor or a box), "
     "doc_signature places a photographed signature, doc_compose makes a PDF/A from a typst template and its data, doc_ocr (where the engine is on) reads a scan into words with their boxes in the same points, doc_sign (where a key is set) signs a PDF in PAdES — each written file lands in the outbox and its path is the next tool's "
     "input. image_cutout lifts the ink of a photographed signature into a transparent PNG. organon_find ranks these tools against a need, with their schemas. "
-    "image_convert reshapes an image: format, size, crop, rotation, colour. "
+    "image_convert reshapes an image: format, size, crop, rotation, colour. image_barcode reads the barcodes of an image or writes one. "
     "A doc or image tool runs as a job with organon_submit (its name `doc/convert` and its input): organon_job reads it (wait up "
     "to 25 s; its progress has the steps so far, then `done` or `failed`) and organon_cancel stops it. "
     "The tekton tools are the bridge to Claude Code on this machine: tekton_start runs a prompt in a project "

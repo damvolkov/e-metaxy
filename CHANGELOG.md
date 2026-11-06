@@ -174,3 +174,10 @@
   cells): pyvips 3.2.0 / libvips 8.18 takes 0.567 of Pillow's time (95 % [0.427, 0.730]) but 1.63 times its peak RSS, its
   PNG is 17-54 % larger and the binding has no wheel (sdist); two of four adoption conditions fail, **Pillow stays**. Pixel budget
   checked from the header (`BudgetImage`, shared by the image tools that decode). MCP `image_convert`.
+- **`image/barcode` (TODO_image, 3)**: one tool, two directions — `path` reads every barcode of an image (QR, DataMatrix,
+  Aztec, PDF417, EAN, UPC, Code 128/39, ITF and the rest zxing-cpp knows; any orientation, light on dark too) with each
+  `text`, `format` and four `corners` in pixels of the picture as seen (EXIF orientation applied); `text` writes one
+  (`format`, `scale` pixels a module, `hrt` the readable line of a linear code) as a PNG in the outbox, byte-reproducible.
+  Behind `BarcodePort`; adapter `ZxingAdapter` over `zxing-cpp` 3.1.1 (C++, abi3/cp314 wheels for linux x86_64 and macOS arm64,
+  +~1 MB). Not benched against rivals: the plan named zxing-cpp and no other reader ships as a wheel with writing. UPC-A reads as
+  the EAN-13 it is (leading zero). MCP `image_barcode`.

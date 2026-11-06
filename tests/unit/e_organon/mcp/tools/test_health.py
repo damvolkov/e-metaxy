@@ -48,6 +48,7 @@ async def test_health_status_lists_the_tools(connect: Connect) -> None:
         "doc_signature",
         "doc_split",
         "doc_stamp",
+        "image_barcode",
         "image_convert",
         "image_cutout",
         "organon_cancel",

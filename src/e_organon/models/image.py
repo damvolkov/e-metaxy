@@ -3,6 +3,8 @@
 
 import msgspec
 
+from e_organon.models.doc import FileOut
+from e_organon.ports.barcode import SCALE, BarcodeFormat, BarcodeHit
 from e_organon.ports.raster import RasterSpec
 
 
@@ -26,3 +28,29 @@ class ConvertIn(RasterSpec, frozen=True, kw_only=True):
     EXIF and colour profile (stripped by default)."""
 
     path: str
+
+
+##### BARCODE #####
+class BarcodeIn(msgspec.Struct, frozen=True, kw_only=True):
+    """`path`: an image to read every barcode of; or `text`: a text to write as one, of `format` (qrcode by default), `scale`
+    pixels a module, `hrt` the human-readable line under a linear code. One of the two."""
+
+    path: str | None = None
+    text: str | None = None
+    format: BarcodeFormat = BarcodeFormat.QRCODE
+    scale: SCALE = 8
+    hrt: bool = True
+
+    def __post_init__(self) -> None:
+        match (self.path is None, self.text is None):
+            case (True, True) | (False, False):
+                msg = "give a path to read or a text to write, one of the two"
+                raise ValueError(msg)
+
+
+class BarcodeOut(msgspec.Struct, frozen=True, kw_only=True):
+    """What was read: the `codes` found, each with its text, format and four corners in pixels; or what was written: the PNG
+    as `file`."""
+
+    codes: list[BarcodeHit] = []
+    file: FileOut | None = None

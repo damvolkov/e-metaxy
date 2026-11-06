@@ -18,6 +18,7 @@ from e_organon.api.state import AppState
 from e_organon.infra.logger import logger
 from e_organon.infra.settings import settings as st
 from e_organon.ports.auth import AuthPort
+from e_organon.ports.barcode import BarcodePort
 from e_organon.ports.coder import CoderPort
 from e_organon.ports.compose import ComposePort
 from e_organon.ports.cutout import CutoutPort
@@ -33,6 +34,7 @@ from e_organon.ports.raster import RasterPort
 from e_organon.ports.render import RenderPort
 from e_organon.ports.sign import SignPort
 from e_organon.ports.store import StorePort
+from e_organon.providers.adapters.barcode.zxing import ZxingAdapter
 from e_organon.providers.adapters.compose.typst import TypstAdapter
 from e_organon.providers.adapters.cutout.opencv import OpencvAdapter
 from e_organon.providers.adapters.markdown.anytomd import AnytomdAdapter
@@ -80,6 +82,7 @@ class ProvidersState:
     render: RenderPort
     cutout: CutoutPort
     raster: RasterPort
+    barcode: BarcodePort
     compose: ComposePort
     ### the coder opens only with the bridge on (TEKTON_PROFILES): the public image carries no Claude CLI.
     coder: CoderPort | None
@@ -183,6 +186,7 @@ async def lifespan(app: Litestar) -> AsyncGenerator[None]:
         render = await enter(PdfiumAdapter(max_pages=st.ORGANON_MAX_PAGES))
         cutout = await enter(OpencvAdapter())
         raster = await enter(PillowAdapter())
+        barcode = await enter(ZxingAdapter())
         compose = await enter(TypstAdapter(timeout=st.COMPOSE_TIMEOUT.total_seconds()))
         coder = await enter(ClaudeDriver(st.TEKTON_CLAUDE)) if st.TEKTON_PROFILES else None
         docling = await enter(docling_driver(http)) if st.DOCLING_URL else None
@@ -200,6 +204,7 @@ async def lifespan(app: Litestar) -> AsyncGenerator[None]:
             render=render,
             cutout=cutout,
             raster=raster,
+            barcode=barcode,
             compose=compose,
             coder=coder,
             docling=docling,

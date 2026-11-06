@@ -8,24 +8,24 @@ from typing import TYPE_CHECKING
 from e_organon.models.error import ImageTooLargeError
 
 if TYPE_CHECKING:
-    from e_organon.ports.raster import RasterPort
+    from collections.abc import Awaitable, Callable
 
 
 ##### GUARD #####
 class BudgetImage:
-    """The header's width x height against `max_pixels`."""
+    """The header's width x height — `size`, a port's reading of it — against `max_pixels`."""
 
-    __slots__ = ("_max_pixels", "_raster")
+    __slots__ = ("_max_pixels", "_size")
 
-    def __init__(self, raster: RasterPort, *, max_pixels: int) -> None:
-        self._raster = raster
+    def __init__(self, size: Callable[[bytes], Awaitable[tuple[int, int]]], *, max_pixels: int) -> None:
+        self._size = size
         self._max_pixels = max_pixels
 
     ##### PUBLIC #####
 
     async def check(self, raw: bytes) -> tuple[int, int]:
         """The image's size, or `ImageTooLargeError`."""
-        width, height = await self._raster.size(raw)
+        width, height = await self._size(raw)
         match width * height <= self._max_pixels:
             case False:
                 msg = f"{width}x{height} is {width * height} pixels; the limit is {self._max_pixels}"

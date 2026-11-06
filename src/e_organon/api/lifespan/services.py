@@ -33,6 +33,7 @@ from e_organon.services.doc.signature import SignatureDocService
 from e_organon.services.doc.split import SplitDocService
 from e_organon.services.doc.stamp import StampDocService
 from e_organon.services.files import AllowedFiles
+from e_organon.services.image.barcode import BarcodeImageService
 from e_organon.services.image.budget import BudgetImage
 from e_organon.services.image.convert import ConvertImageService
 from e_organon.services.image.cutout import CutoutImageService
@@ -103,8 +104,9 @@ async def lifespan(app: Litestar) -> AsyncGenerator[None]:
     )
     image = system.services.image
     image.cutout = CutoutImageService(found.cutout, files, artifacts, max_pixels=st.ORGANON_MAX_PIXELS)
-    budget = BudgetImage(found.raster, max_pixels=st.ORGANON_MAX_PIXELS)
+    budget = BudgetImage(found.raster.size, max_pixels=st.ORGANON_MAX_PIXELS)
     image.convert = ConvertImageService(found.raster, files, artifacts, budget)
+    image.barcode = BarcodeImageService(found.barcode, files, artifacts, budget)
     doc.signature = SignatureDocService(image.cutout, doc.stamp)
     ### `doc/ocr` exists only with its engine open (OCR_ENABLED).
     match found.ocr:

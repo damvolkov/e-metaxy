@@ -226,6 +226,25 @@
     ]
   },
   {
+    "name": "image_barcode",
+    "title": "Read or write barcodes",
+    "description": "Give `path` to read every barcode of an image (QR, DataMatrix, Aztec, PDF417, EAN, UPC, Code 128/39, ITF…, any orientation): each `text`, `format` and four `corners` in pixels as the picture is seen. Give `text` to write one: `format` (qrcode by default), `scale` pixels a module, `hrt` the readable line of a linear code; returns the PNG as `file`. One of the two.",
+    "access": "user",
+    "annotations": {
+      "destructive_hint": false,
+      "open_world_hint": false,
+      "read_only_hint": false
+    },
+    "arguments": [
+      "format",
+      "hrt",
+      "path",
+      "scale",
+      "text"
+    ],
+    "required": []
+  },
+  {
     "name": "organon_find",
     "title": "Find a tool",
     "description": "The tools that answer a need, best first (at most 5): `query` in words, `section` (doc, tekton…) to narrow. Each comes with its description and its arguments' JSON Schema.",

@@ -95,3 +95,36 @@ def test_convert_in_the_background_settles_with_the_batch_answer(
         _ = "".join(response.iter_text())
     settled = client.get(f"/jobs/{job}", headers=ana_key).json()
     assert (settled["kind"], settled["state"], settled["progress"]["done"]) == ("image/convert", "completed", batch)
+
+
+def test_barcode_needs_a_key(client: TestClient) -> None:
+    assert client.post("/image/barcode", json={"text": "x"}).status_code == 401
+
+
+async def test_barcode_writes_then_reads_over_rest(vault: Path, client: TestClient, ana_key: dict[str, str]) -> None:
+    written = client.post("/image/barcode", json={"text": "hola", "format": "qrcode"}, headers=ana_key).json()
+    read = client.post("/image/barcode", json={"path": written["file"]["path"]}, headers=ana_key)
+    assert (read.status_code, [code["text"] for code in read.json()["codes"]]) == (200, ["hola"])
+
+
+def test_barcode_asks_for_one_of_path_and_text(vault: Path, client: TestClient, ana_key: dict[str, str]) -> None:
+    assert client.post("/image/barcode", json={}, headers=ana_key).status_code == 400
+
+
+def test_barcode_streams_its_steps(vault: Path, client: TestClient, ana_key: dict[str, str], told: Told) -> None:
+    with client.stream("POST", "/image/barcode", json={"text": "x"}, headers=ana_key | SSE) as response:
+        seen = told("".join(response.iter_text()))
+    assert [(name, data.get("name")) for name, data in seen[:-1]] == [("step", "write"), ("step", "keep")]
+    assert seen[-1][0] == "done"
+
+
+def test_barcode_in_the_background_settles_with_the_batch_answer(
+    vault: Path, client: TestClient, ana_key: dict[str, str]
+) -> None:
+    body = {"text": "y", "format": "code128"}
+    batch = client.post("/image/barcode", json=body, headers=ana_key).json()
+    job = client.post("/image/barcode", json=body, headers=ana_key | ASYNC).json()["job"]
+    with client.stream("GET", f"/jobs/{job}/events", headers=ana_key) as response:
+        _ = "".join(response.iter_text())
+    settled = client.get(f"/jobs/{job}", headers=ana_key).json()
+    assert (settled["kind"], settled["state"], settled["progress"]["done"]) == ("image/barcode", "completed", batch)

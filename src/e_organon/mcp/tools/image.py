@@ -34,9 +34,20 @@ CONVERT: Final = MCPTool(
     ),
     read_only=False,
 )
+BARCODE: Final = MCPTool(
+    name="image_barcode",
+    title="Read or write barcodes",
+    description=(
+        "Give `path` to read every barcode of an image (QR, DataMatrix, Aztec, PDF417, EAN, UPC, Code 128/39, ITF…, any "
+        "orientation): each `text`, `format` and four `corners` in pixels as the picture is seen. Give `text` to write one: "
+        "`format` (qrcode by default), `scale` pixels a module, `hrt` the readable line of a linear code; returns the PNG as "
+        "`file`. One of the two."
+    ),
+    read_only=False,
+)
 
 ##### ROUTES #####
 ROUTES: tuple[HTTPRouteHandler, ...] = tuple(
     tool.route(Access.USER, dependencies=router.TOOL_DEPS, exception_handlers=REFUSALS)(handler)
-    for tool, handler in ((CUTOUT, router.cutout), (CONVERT, router.convert))
+    for tool, handler in ((CUTOUT, router.cutout), (CONVERT, router.convert), (BARCODE, router.barcode))
 )

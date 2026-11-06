@@ -16,7 +16,7 @@ from e_organon.api.stream import answer
 from e_organon.infra.auth.guard import OPT
 from e_organon.infra.auth.models import Access
 from e_organon.infra.state import State
-from e_organon.models.image import ConvertIn, CutoutIn
+from e_organon.models.image import BarcodeIn, ConvertIn, CutoutIn
 
 TOOL_DEPS: Final[dict[str, Provide]] = {DepKey.GRAPH.value: Provide(graph, sync_to_thread=False)}
 
@@ -32,6 +32,11 @@ async def convert(data: JSONBody[ConvertIn], request: Request[Any, Any, Any], gr
     return await answer(request, graph.services.image.convert, data)
 
 
+async def barcode(data: JSONBody[BarcodeIn], request: Request[Any, Any, Any], graph: NamedDependency[State]) -> Any:
+    """image/barcode: the barcodes of an image read, or a text written as one."""
+    return await answer(request, graph.services.image.barcode, data)
+
+
 ##### ROUTES #####
 ROUTES: tuple[HTTPRouteHandler, ...] = tuple(
     post(
@@ -43,5 +48,5 @@ ROUTES: tuple[HTTPRouteHandler, ...] = tuple(
         security=SECURITY,
         dependencies=TOOL_DEPS,
     )(handler)
-    for handler in (cutout, convert)
+    for handler in (cutout, convert, barcode)
 )

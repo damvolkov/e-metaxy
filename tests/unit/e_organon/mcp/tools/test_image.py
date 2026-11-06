@@ -47,3 +47,15 @@ async def test_image_convert_answers_the_files_path(vault: Path, connect: Connec
 
 async def test_image_convert_refuses_outside_the_roots(connect: Connect, ana_key: dict[str, str]) -> None:
     assert "OutsideRootsError" in await refused(connect, "image_convert", {"path": "/etc/hostname"}, ana_key)
+
+
+async def test_image_barcode_writes_a_code_and_reads_it_back(
+    vault: Path, connect: Connect, ana_key: dict[str, str]
+) -> None:
+    written = await call(connect, "image_barcode", {"text": "https://example.org", "scale": 6}, ana_key)
+    read = await call(connect, "image_barcode", {"path": written["file"]["path"]}, ana_key)
+    assert [code["text"] for code in read["codes"]] == ["https://example.org"]
+
+
+async def test_image_barcode_refuses_a_call_with_neither(connect: Connect, ana_key: dict[str, str]) -> None:
+    assert "one of the two" in await refused(connect, "image_barcode", {}, ana_key)

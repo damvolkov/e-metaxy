@@ -15,7 +15,7 @@ DOC_KINDS = {
     f"doc/{word}": "doc"
     for word in ("convert", "inspect", "merge", "split", "fill", "render", "stamp", "signature", "compose")
 }
-KINDS = DOC_KINDS | {f"image/{word}": "image" for word in ("cutout", "convert")}
+KINDS = DOC_KINDS | {f"image/{word}": "image" for word in ("cutout", "convert", "barcode")}
 
 
 def test_jobs_dispatch_runs_in_memory_when_the_queue_is_down(client: TestClient) -> None:
