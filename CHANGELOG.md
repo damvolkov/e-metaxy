@@ -2,6 +2,62 @@
 
 ## [Unreleased]
 
+### Security
+- **`doc/compose` is a sandbox** (TODO_doc follow-up): each compile runs in its own process with a dead proxy, no `HOME` and a 2 GiB
+  address-space ceiling, stopped after `COMPOSE_TIMEOUT` (default 5 s) from outside — a thread cannot be killed — and its PDF held to
+  `ORGANON_MAX_PAGES`. The binding cannot disable package downloads: a literal `"@ns/name"` is refused before compiling, one
+  built at run time fails to connect. Reads stay in the template's folder (`/etc/passwd`, `../`: refused, tested). Cost: p50 16 ms
+  in-process, 45 ms sandboxed on the golden invoice (`docs/bench/compose.md`). Tests: a long loop cut at the timeout with a clean
+  `Failed` and the next compose fine, packages refused (static and built), reads refused, memory ceiling clean, page budget.
+
+### Added
+- **`lines` on `image/cutout`, `doc/signature` and `doc/sign`**: default on; off keeps every stroke (the pre-line arm), for a signature
+  with its own straight underline (the −0.143 F loss of the form-lines bench). Tested on both settings at the adapter and through
+  the three services; one clause in each tool description. Catalog 7 180 tokens with everything on, under the 8 000 budget.
+
+### Added
+- **`doc/ocr` (TODO_doc, 3)**: the words of a scanned PDF or an image, each with its box in points on the displayed page
+  (origin bottom-left, as `doc/stamp`), and each page's text. Behind `OcrPort`; adapter `RapidocrAdapter` (PP-OCRv5 mobile
+  detector + `latin` recogniser, onnxruntime). Off unless `OCR_ENABLED` (no route, no MCP tool, no models); on, models
+  are fetched into `<ORGANON_DATA>/doc/models/rapidocr` at start. Pixel budget checked before decoding, page budget by the
+  render port. Benched pre-registered against Tesseract (liteparse), 120 synthetic ES/EN pages, interleaved, paired BCa
+  (`docs/bench/ocr.md`): CER 0.299 -> 0.030, `CER_T - CER_r5` +0.269 [+0.193, +0.353], p95 4.1 s; Tesseract is better on
+  clean and lightly noisy pages (0.005 against 0.04) and collapses on bad scans. Adds rapidocr + onnxruntime (~120 MB in a
+  venv; docker image delta not measured, the daemon was down).
+
+- **`doc/sign` (TODO_doc, 4)**: a PDF signed in PAdES (`ETSI.CAdES.detached`, SHA-256, incremental, signable again) with
+  pyHanko 0.38, the key a PKCS#12 named by `SIGN_P12` + `SIGN_P12_PASSWORD` (a secret) and an optional `SIGN_TSA_URL`
+  (B-T). Without `SIGN_P12` there is no route, no MCP tool and no key read. Invisible by default; with `at` and one of
+  `image`, `text` or `photo` the appearance is drawn first by `doc/stamp` / `doc/signature` and the signature seals it.
+  Behind `SignPort`; adapter `PyhankoAdapter`. Evidence: tests mint a throwaway CA and PKCS#12 with `cryptography`; the
+  signed PDF validates with pyHanko's own validator (intact, valid, trusted under the CA), a one-byte change after signing
+  breaks it, a signed PDF takes a second signature. Not byte-deterministic by nature (the signature carries its time).
+  Adds pyhanko, aiohttp and friends (~18 MB in a venv; docker image delta not measured, the daemon was down). No bench: pyHanko has no serious OSS rival in Python (endesive is the contrast, unmeasured) — the plan's own reasoning.
+
+- **`doc/compose` (TODO_doc, 5)**: a typst template and JSON data composed into a PDF/A-2b through the outbox — `template`
+  a name (`<ORGANON_DATA>/doc/templates/<name>.typ`, then the shipped ones: `invoice` ships in `src/e_organon/templates`) or a
+  path under the roots; the template reads its own folder and nothing else. Byte-deterministic: fixed creation time, only
+  typst's embedded fonts, sorted data; the same input is the same outbox file. Behind `ComposePort`; adapter `TypstAdapter`.
+  Benched pre-registered against WeasyPrint on 60 two-to-three-page invoices, interleaved, paired BCa (`docs/bench/compose.md`):
+  typst 21 ms p50 against 156 ms, log-ratio -1.969 [-2.001, -1.934] (7.2 x faster, 60/60), both declare PDF/A-2b and are
+  deterministic; typst weighs about 25-30 MB more (81 MB wheel against ~45 MB + ~8 MB of Debian libraries), so the "lighter
+  image" half of the hypothesis is false. PDF/A conformance not validated (no veraPDF). Golden: the invoice's text over
+  `tests/resources/golden/invoice.json`. Catalog re-measured: 7 047 tokens with everything on, under the 8 000 budget.
+
+### Changed
+- **`image/cutout` drops printed form lines (TODO_doc, 2)**: long straight runs of the ink mask (probabilistic Hough, tilt
+  allowed) are taken off, and a stroke crossing one is bridged. Benched pre-registered, A against A + lines, paired BCa on
+  60 test images (`docs/bench/cutout.md`, "Form lines"): lined photos F 0.686 -> 0.929 (+0.236, CI [+0.214, +0.259], 60/60),
+  line-free photos identical (0.953), +5 ms. Adapter = bench arm, mask IoU 1.0 on 220 images. Known loss, measured and
+  not hidden: a signature with a 300-600 px straight underline loses it (F -0.143).
+
+### Added
+- **`organon/submit` (TODO_doc, 1)**: REST `POST /organon/submit` (202, `Location: /jobs/{id}`) and MCP `organon_submit`
+  queue any doc/ or image/ tool by `<section>/<word>` with an `input` checked by `msgspec.convert` into the tool's own
+  Struct; a tool that is no job (tekton, organon) or input that misses the Struct is a 422 before anything is queued.
+  Reuses `JobsService.submit` (`enqueue` only resolves and decodes). Evidence: an MCP client submits `doc/convert` and
+  polls `organon_job` to `completed`; 685 tests, coverage 100 %.
+
 ### Fixed
 - **PDF outputs are deterministic**: pikepdf drew a random `/ID` and random resource names (`prefix="Org"`), so one
   request wrote a new file each run and the content-addressed outbox never deduplicated (found live: the same

@@ -19,7 +19,7 @@ CUTOUT: Final = MCPTool(
     description=(
         "A photo of ink on paper (a signature) by `path`, as a transparent PNG of the ink alone: paper tint, uneven light "
         "and shadows gone, soft edges. `color` keeps the ink's own colour (default; off, black); `crop` cuts to the ink "
-        "(default). Returns the PNG's `path`, the next tool's input (doc_stamp)."
+        "(default); `lines` (default) drops printed lines — turn it off if the signature has its own straight underline. Returns the PNG's `path`, the next tool's input (doc_stamp)."
     ),
     read_only=False,
 )

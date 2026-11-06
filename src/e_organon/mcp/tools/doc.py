@@ -3,7 +3,8 @@
 The MCP engine asks for JSON, so a tool always answers in batch: the result, or the `Failed` reason as its error. Paths
 are under the vault or the workspaces; a written file lands in the outbox, content-named, and is the next tool's input."""
 
-from typing import Final
+from collections.abc import Callable
+from typing import Any, Final
 
 from litestar.handlers import HTTPRouteHandler
 
@@ -78,22 +79,63 @@ SIGNATURE: Final = MCPTool(
     title="Sign a PDF with a photo",
     description=(
         "A photo of a handwritten signature (`photo`) cut out and placed on a PDF (`path`) `at` as doc_stamp's. Visual "
-        "only, not a cryptographic signature. Returns the copy's `path`."
+        "only, not a cryptographic signature; `lines` (default) drops printed lines — off if the signature has its own straight underline. Returns the copy's `path`."
     ),
     read_only=False,
 )
 
-##### ROUTES #####
-ROUTES: tuple[HTTPRouteHandler, ...] = tuple(
-    tool.route(Access.USER, dependencies=router.TOOL_DEPS, exception_handlers=REFUSALS)(handler)
-    for tool, handler in (
-        (CONVERT, router.convert),
-        (INSPECT, router.inspect),
-        (MERGE, router.merge),
-        (SPLIT, router.split),
-        (FILL, router.fill),
-        (RENDER, router.render),
-        (STAMP, router.stamp),
-        (SIGNATURE, router.signature),
-    )
+COMPOSE: Final = MCPTool(
+    name="doc_compose",
+    title="Compose a PDF from a template",
+    description=(
+        "A PDF/A made from a typst `template` — a name (`invoice`, shipped; the deployment may keep others) or a path to a "
+        ".typ file under the vault or the workspaces — and its `data` (JSON the template reads). The same input gives the "
+        "same bytes. Returns the PDF's `path`."
+    ),
+    read_only=False,
 )
+OCR: Final = MCPTool(
+    name="doc_ocr",
+    title="Read a scan",
+    description=(
+        "The words of a scanned PDF or an image by `path` (`pages` from 0, all when empty; `dpi` a PDF page is drawn at, "
+        "72-300, default 150), each with its box `[left, bottom, right, top]` in points on the displayed page, origin "
+        "bottom-left — where doc_stamp places things —, and each page's `text`. An image is one page, a pixel a point."
+    ),
+)
+SIGN: Final = MCPTool(
+    name="doc_sign",
+    title="Sign a PDF cryptographically",
+    description=(
+        "A PDF by `path` signed in PAdES with the key this server holds — who sealed it and that it was not changed "
+        "since; a viewer validates it. Invisible; with `at` (as doc_stamp's) and one of `image`, `text` or `photo` its "
+        "appearance is drawn there first (`lines` as doc_signature's). Returns the signed copy's `path`. Any later edit breaks it."
+    ),
+    read_only=False,
+)
+
+
+##### ROUTES #####
+def routes(*tools: tuple[MCPTool, Callable[..., Any]]) -> tuple[HTTPRouteHandler, ...]:
+    """The route of each tool over its handler."""
+    return tuple(
+        tool.route(Access.USER, dependencies=router.TOOL_DEPS, exception_handlers=REFUSALS)(handler)
+        for tool, handler in tools
+    )
+
+
+ROUTES: tuple[HTTPRouteHandler, ...] = routes(
+    (CONVERT, router.convert),
+    (INSPECT, router.inspect),
+    (MERGE, router.merge),
+    (SPLIT, router.split),
+    (FILL, router.fill),
+    (RENDER, router.render),
+    (STAMP, router.stamp),
+    (SIGNATURE, router.signature),
+    (COMPOSE, router.compose),
+)
+### served only where the engine is on (OCR_ENABLED).
+OCR_ROUTES: tuple[HTTPRouteHandler, ...] = routes((OCR, router.ocr))
+### served only where a key is set (SIGN_P12).
+SIGN_ROUTES: tuple[HTTPRouteHandler, ...] = routes((SIGN, router.sign))

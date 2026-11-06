@@ -1,0 +1,18 @@
+// The example template of doc/compose: an invoice. `data` is
+//   {number, date, seller: {name, nif, address}, customer: {name, nif, address},
+//    items: [{ref, description, qty, price, total}], subtotal, vat, total}
+// with the amounts as text. A copy under <ORGANON_DATA>/doc/templates/invoice.typ replaces it.
+#let data = json(bytes(sys.inputs.data))
+#set page(paper: "a4", margin: (x: 2cm, y: 2cm), footer: context [#h(1fr) #counter(page).display() / #counter(page).final().first()])
+#set text(size: 10pt, lang: "es")
+#grid(columns: (1fr, 1fr), gutter: 1cm,
+  [*#data.seller.name* \ NIF #data.seller.nif \ #data.seller.address],
+  align(right)[*Factura #data.number* \ #data.date])
+#v(0.8cm)
+*Cliente:* #data.customer.name \ NIF #data.customer.nif \ #data.customer.address
+#v(0.8cm)
+#table(columns: (auto, 1fr, auto, auto, auto), align: (left, left, right, right, right), stroke: 0.4pt + gray,
+  table.header([*Ref.*], [*Descripción*], [*Cant.*], [*Precio*], [*Importe*]),
+  ..data.items.map(r => (r.ref, r.description, str(r.qty), r.price, r.total)).flatten())
+#v(0.6cm)
+#align(right)[Subtotal: #data.subtotal € \ IVA 21 %: #data.vat € \ *Total: #data.total €*]

@@ -26,20 +26,20 @@ tokenizes with exactly it. Reproduce: `make test TESTARGS="-m slow"` (`tests/ben
 
 | registry | tools | bytes | tokens | tokens / tool |
 |---|---|---|---|---|
-| public image (`CORE`) | 14 | 14 697 | 3 711 | 265 |
-| with the bridge (`ROUTES`) | 25 | 22 724 | 5 669 | 227 |
-| `ROUTES` + 150 synthetic | 175 | 158 528 | 39 641 | 227 |
+| public image (`CORE`) | 16 | 16 763 | 4 214 | 263 |
+| everything on: bridge, OCR, signing (`ROUTES`) | 29 | 28 616 | 7 180 | 248 |
+| `ROUTES` + 150 synthetic | 179 | 174 537 | 43 830 | 245 |
 
-(2026-11-05, after `image/cutout`, `doc/stamp`, `doc/signature`; at 22 tools, before them, the bridge registry was 4 167
+(2026-11-05, after `doc/compose`, `doc/ocr`, `doc/sign` and `organon/submit`; `CORE` is what every deployment serves, `doc_ocr` and `doc_sign` come only where `OCR_ENABLED` / `SIGN_P12` are set. After `image/cutout`, `doc/stamp`, `doc/signature` it was 5 669 tokens at 25 tools; at 22 tools, before them, the bridge registry was 4 167
 tokens and 190 a tool.) The synthetic tools are the real ones' shapes (title, description, argument and answer schemas) cycled under new names,
 so their size is as realistic as the real ones'. The largest are `doc_stamp` and `doc_signature` (their tagged `at` schema,
 about 700 and 600 tokens) and `organon_job` (its answer's schema, 425).
 
 ## Decision: no per-section profiles
 
-Per-section MCP profiles (`/mcp/<section>`) are not built. The real registry costs 5 669 tokens, 2.8 % of a 200 000-token
-window; the tool list scales at about 227 tokens a tool, so a tenth of that window (20 000 tokens) is reached at about
-88 tools — 3.5 times what organon serves. The 150-tool case (39 641 tokens, 20 %) is where a harness defers tool
+Per-section MCP profiles (`/mcp/<section>`) are not built. The real registry costs 7 180 tokens with everything on, 3.6 % of a 200 000-token
+window; the tool list scales at about 248 tokens a tool, so a tenth of that window (20 000 tokens) is reached at about
+81 tools — 2.8 times what organon serves. The 150-tool case (43 830 tokens, 21.9 %) is where a harness defers tool
 definitions or a profile earns its keep; it is not the case today. The benchmark holds the real registry under an
-8 000-token budget (it was 5 000 until the stamp tools' schema passed it); the day it fails, profiles are asked again — with `organon/find` already in place as the way to reach
+8 000-token budget (it was 5 000 until the stamp tools' schema passed it; 7 180 now, with 820 to spare); the day it fails, profiles are asked again — with `organon/find` already in place as the way to reach
 a tool a client has not listed. Not measured: how Hermes loads MCP tools.

@@ -6,11 +6,14 @@ import anyio
 import pytest
 
 from support.pdf import placements
+from support.signed import validated
 
 if TYPE_CHECKING:
     from pathlib import Path
 
     from litestar.testing import TestClient
+
+    from support.pki import Pki
 
 PATH = {"path": "/etc/hostname"}
 SSE = {"accept": "text/event-stream"}
@@ -75,3 +78,57 @@ async def test_doc_stamp_and_signature_over_rest(vault: Path, client: TestClient
         pytest.approx((60.0, 0.0, 0.0, 30.0, 100.0, 699.0), abs=3)
     ]
     assert len(placements(await anyio.Path(signed.json()["path"]).read_bytes())) == 1
+
+
+def test_doc_ocr_is_no_route_until_the_engine_is_on(vault: Path, client: TestClient, ana_key: dict[str, str]) -> None:
+    response = client.post("/doc/ocr", json={"path": str(vault / "ink.png")}, headers=ana_key)
+    assert response.status_code == 404
+
+
+def test_doc_ocr_answers_the_words_with_their_boxes(
+    vault: Path, ocr_on: Path, client: TestClient, ana_key: dict[str, str]
+) -> None:
+    response = client.post("/doc/ocr", json={"path": str(vault / "ink.png")}, headers=ana_key)
+    page = response.json()["pages"][0]
+    assert (response.status_code, page["text"], page["words"][0]["box"]) == (200, "hola", [10, 40, 110, 80])
+
+
+def test_doc_ocr_queues_as_a_job_when_asked(
+    vault: Path, ocr_on: Path, client: TestClient, ana_key: dict[str, str]
+) -> None:
+    response = client.post(
+        "/organon/submit", json={"tool": "doc/ocr", "input": {"path": str(vault / "ink.png")}}, headers=ana_key
+    )
+    job = client.get(f"/jobs/{response.json()['job']}", headers=ana_key)
+    assert (response.status_code, job.json()["kind"]) == (202, "doc/ocr")
+
+
+def test_doc_sign_is_no_route_until_a_key_is_set(vault: Path, client: TestClient, ana_key: dict[str, str]) -> None:
+    response = client.post("/doc/sign", json={"path": str(vault / "labelled.pdf")}, headers=ana_key)
+    assert response.status_code == 404
+
+
+async def test_doc_sign_answers_a_pdf_that_validates(
+    vault: Path, sign_on: Pki, client: TestClient, ana_key: dict[str, str]
+) -> None:
+    response = client.post("/doc/sign", json={"path": str(vault / "labelled.pdf")}, headers=ana_key)
+    _, status = await validated(await anyio.Path(response.json()["path"]).read_bytes(), sign_on)
+    assert (response.status_code, status.bottom_line) == (200, True)
+
+
+def test_doc_sign_a_visible_signature_without_an_appearance_is_422(
+    vault: Path, sign_on: Pki, client: TestClient, ana_key: dict[str, str]
+) -> None:
+    order = {"path": str(vault / "labelled.pdf"), "at": {"type": "box", "page": 0, "x": 1, "y": 1, "width": 5}}
+    assert client.post("/doc/sign", json=order, headers=ana_key).status_code == 400
+
+
+async def test_doc_compose_over_rest_and_queued_as_a_job(
+    vault: Path, client: TestClient, ana_key: dict[str, str], invoice_data: dict
+) -> None:
+    order = {"template": "invoice", "data": invoice_data}
+    batch = client.post("/doc/compose", json=order, headers=ana_key)
+    queued = client.post("/organon/submit", json={"tool": "doc/compose", "input": order}, headers=ana_key)
+    done = client.get(f"/jobs/{queued.json()['job']}/events", headers=ana_key)
+    pdf = await anyio.Path(batch.json()["path"]).read_bytes()
+    assert (batch.status_code, pdf[:5], queued.status_code, done.text.count("event: done")) == (200, b"%PDF-", 202, 1)

@@ -1,0 +1,42 @@
+== all (120 pages)
+  t: CER mean 0.2990 med 0.0101 | recall 0.705 exact 0.696 | ms p50 723 p95 1467
+  r5: CER mean 0.0304 med 0.0014 | recall 0.971 exact 0.961 | ms p50 2076 p95 4059
+  r6: CER mean 0.0422 med 0.0036 | recall 0.968 exact 0.930 | ms p50 1999 p95 3392
+  CER_T - CER_r5: +0.2686 CI [+0.1929, +0.3527]  r5 better on 69/120
+  CER_T - CER_r6: +0.2568 CI [+0.1800, +0.3414]  r6 better on 63/120
+  CER_r6 - CER_r5: +0.0118 CI [-0.0011, +0.0259]
+== es (60 pages)
+  t: CER mean 0.2828 med 0.0144 | recall 0.723 exact 0.709 | ms p50 827 p95 1475
+  r5: CER mean 0.0304 med 0.0019 | recall 0.972 exact 0.957 | ms p50 2088 p95 3977
+  r6: CER mean 0.0324 med 0.0030 | recall 0.976 exact 0.945 | ms p50 2252 p95 3456
+  CER_T - CER_r5: +0.2524 CI [+0.1553, +0.3683]  r5 better on 46/60
+  CER_T - CER_r6: +0.2504 CI [+0.1533, +0.3645]  r6 better on 41/60
+  CER_r6 - CER_r5: +0.0020 CI [-0.0173, +0.0174]
+== en (60 pages)
+  t: CER mean 0.3152 med 0.0000 | recall 0.687 exact 0.683 | ms p50 703 p95 1454
+  r5: CER mean 0.0304 med 0.0011 | recall 0.970 exact 0.965 | ms p50 2050 p95 4259
+  r6: CER mean 0.0520 med 0.0047 | recall 0.959 exact 0.915 | ms p50 1844 p95 3054
+  CER_T - CER_r5: +0.2848 CI [+0.1772, +0.4100]  r5 better on 23/60
+  CER_T - CER_r6: +0.2632 CI [+0.1502, +0.3914]  r6 better on 22/60
+  CER_r6 - CER_r5: +0.0216 CI [+0.0042, +0.0447]
+== clean (40 pages)
+  t: CER mean 0.0062 med 0.0014 | recall 0.997 exact 0.990 | ms p50 825 p95 1457
+  r5: CER mean 0.0452 med 0.0011 | recall 0.955 exact 0.952 | ms p50 2140 p95 4342
+  r6: CER mean 0.0497 med 0.0000 | recall 0.964 exact 0.937 | ms p50 2216 p95 3680
+  CER_T - CER_r5: -0.0389 CI [-0.0648, -0.0208]  r5 better on 14/40
+  CER_T - CER_r6: -0.0435 CI [-0.0716, -0.0236]  r6 better on 14/40
+  CER_r6 - CER_r5: +0.0045 CI [-0.0247, +0.0358]
+== noisy (40 pages)
+  t: CER mean 0.0046 med 0.0016 | recall 0.997 exact 0.990 | ms p50 839 p95 1823
+  r5: CER mean 0.0357 med 0.0011 | recall 0.965 exact 0.962 | ms p50 1910 p95 3606
+  r6: CER mean 0.0624 med 0.0075 | recall 0.951 exact 0.896 | ms p50 1957 p95 3194
+  CER_T - CER_r5: -0.0311 CI [-0.0536, -0.0153]  r5 better on 15/40
+  CER_T - CER_r6: -0.0578 CI [-0.0857, -0.0364]  r6 better on 9/40
+  CER_r6 - CER_r5: +0.0267 CI [+0.0073, +0.0542]
+== bad (40 pages)
+  t: CER mean 0.8862 med 0.9383 | recall 0.120 exact 0.108 | ms p50 276 p95 741
+  r5: CER mean 0.0103 med 0.0043 | recall 0.993 exact 0.969 | ms p50 1961 p95 3863
+  r6: CER mean 0.0145 med 0.0039 | recall 0.988 exact 0.957 | ms p50 1886 p95 2991
+  CER_T - CER_r5: +0.8759 CI [+0.8129, +0.9183]  r5 better on 40/40
+  CER_T - CER_r6: +0.8717 CI [+0.8124, +0.9117]  r6 better on 40/40
+  CER_r6 - CER_r5: +0.0041 CI [-0.0067, +0.0151]

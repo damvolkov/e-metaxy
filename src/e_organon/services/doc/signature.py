@@ -51,7 +51,7 @@ class SignatureDocService(ToolFlow[SignatureIn, FileOut]):
     async def _events_run(self, data: SignatureIn) -> AsyncIterator[Event]:
         cut: list[FileOut] = []
         async for event in self._events_relay(
-            self._cutout.events(CutoutIn(path=data.photo, color=data.color)), "cutout", 0, cut
+            self._cutout.events(CutoutIn(path=data.photo, color=data.color, lines=data.lines)), "cutout", 0, cut
         ):
             yield event
         stamped: list[FileOut] = []

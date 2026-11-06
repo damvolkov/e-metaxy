@@ -19,7 +19,7 @@ from e_organon.infra.mcp.registry import MCPRegistry
 from e_organon.infra.mcp.server import MCPServer
 from e_organon.infra.settings import settings as st
 from e_organon.mcp.instructions import INSTRUCTIONS
-from e_organon.mcp.registry import CORE, ROUTES
+from e_organon.mcp.registry import routes
 from e_organon.mcp.state import MCPState
 from e_organon.services.organon.find import FindOrganonService
 
@@ -29,7 +29,7 @@ async def lifespan(app: Litestar) -> AsyncGenerator[None]:
     """Build the server over the door's tools, run its session manager, then mount the section under `system.mcp`."""
     hosts = tuple(st.MCP_HOSTS) or (f"127.0.0.1:{st.APP_PORT}", f"localhost:{st.APP_PORT}")
     origins = tuple(st.MCP_ORIGINS) or tuple(f"http://{host}" for host in hosts)
-    registry = MCPRegistry(ROUTES if st.TEKTON_PROFILES else CORE)
+    registry = MCPRegistry(routes(bridge=bool(st.TEKTON_PROFILES), ocr=st.OCR_ENABLED, sign=st.SIGN_P12 is not None))
     ### `organon/find` ranks this very registry: it can exist only now, and is no job (`api/lifespan/jobs`).
     system = AppState.of(app).system
     system.services.organon.find = FindOrganonService(registry)

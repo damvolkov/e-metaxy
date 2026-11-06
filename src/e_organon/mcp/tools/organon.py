@@ -4,8 +4,8 @@ to answer later.
 `organon_find` is the twin of `api/router/organon`, whose very handler it is: the tools that answer a need, ranked.
 
 A tool queued over REST with `Prefer: respond-async` answers `202` with its job — a header an MCP call cannot carry, so
-the door only reads jobs, it does not make them; `organon_job` reads that job, held up to
-`wait` seconds until it settles, and `organon_cancel` stops it. The answer is the job: its `state`, and in `progress` the
+`organon_submit` is the way in: any tool that runs as a job, by its name and its input; `organon_job` reads that job,
+held up to `wait` seconds until it settles, and `organon_cancel` stops it. The answer is the job: its `state`, and in `progress` the
 `steps` entered so far and, at the end, `done` (the tool's answer) or `failed` (its `kind` and `reason`)."""
 
 from typing import Final
@@ -30,6 +30,16 @@ FIND: Final = MCPTool(
         "The tools that answer a need, best first (at most 5): `query` in words, `section` (doc, tekton…) to narrow. "
         "Each comes with its description and its arguments' JSON Schema."
     ),
+)
+SUBMIT: Final = MCPTool(
+    name="organon_submit",
+    title="Run a tool as a job",
+    description=(
+        "A tool run in the background: `tool` is its name as `organon_find` lists it with a slash (`doc/convert`), `input` "
+        "its arguments. Answers at once with the `job` to follow with organon_job; the input is checked first, a "
+        "tool that is no job (tekton, organon) refused."
+    ),
+    read_only=False,
 )
 JOB: Final = MCPTool(
     name="organon_job",
@@ -61,6 +71,7 @@ async def cancel(data: JSONBody[CancelJobIn], graph: NamedDependency[State], cal
 ##### ROUTES #####
 ROUTES: tuple[HTTPRouteHandler, ...] = (
     FIND.route(Access.USER, dependencies=router.TOOL_DEPS, exception_handlers=REFUSALS)(router.find),
+    SUBMIT.route(Access.USER, dependencies=router.SUBMIT_DEPS, exception_handlers=REFUSALS)(router.submit),
     *(
         tool.route(Access.USER, dependencies=jobs_router.DEPS, exception_handlers=REFUSALS)(handler)
         for tool, handler in ((JOB, job), (CANCEL, cancel))

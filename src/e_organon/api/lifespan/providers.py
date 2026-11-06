@@ -10,6 +10,7 @@ engines' concern (`api/lifespan/engines`)."""
 from collections.abc import AsyncGenerator, Mapping
 from contextlib import AsyncExitStack, asynccontextmanager
 from dataclasses import dataclass, fields
+from typing import TYPE_CHECKING
 
 from litestar import Litestar
 
@@ -18,21 +19,27 @@ from e_organon.infra.logger import logger
 from e_organon.infra.settings import settings as st
 from e_organon.ports.auth import AuthPort
 from e_organon.ports.coder import CoderPort
+from e_organon.ports.compose import ComposePort
 from e_organon.ports.cutout import CutoutPort
 from e_organon.ports.database import DatabaseListenPort, DatabasePort
 from e_organon.ports.documents import DocumentPort
 from e_organon.ports.http import HTTPPort
 from e_organon.ports.markdown import MarkdownPort
+from e_organon.ports.ocr import OcrPort
 from e_organon.ports.pages import PagesPort
 from e_organon.ports.pdf import PdfPort
 from e_organon.ports.provider import Provider
 from e_organon.ports.render import RenderPort
+from e_organon.ports.sign import SignPort
 from e_organon.ports.store import StorePort
+from e_organon.providers.adapters.compose.typst import TypstAdapter
 from e_organon.providers.adapters.cutout.opencv import OpencvAdapter
 from e_organon.providers.adapters.markdown.anytomd import AnytomdAdapter
+from e_organon.providers.adapters.ocr.rapidocr import RapidocrAdapter
 from e_organon.providers.adapters.pages.liteparse import LiteparseAdapter
 from e_organon.providers.adapters.pdf.pikepdf import PikepdfAdapter
 from e_organon.providers.adapters.render.pdfium import PdfiumAdapter
+from e_organon.providers.adapters.sign.pyhanko import PyhankoAdapter
 from e_organon.providers.drivers.auth.postgres import PostgresAuthDriver
 from e_organon.providers.drivers.coder.claude import ClaudeDriver
 from e_organon.providers.drivers.database.asyncpg import AsyncpgDriver
@@ -41,8 +48,11 @@ from e_organon.providers.drivers.documents.docling import DoclingDriver
 from e_organon.providers.drivers.http.wreq import WreqDriver
 from e_organon.providers.drivers.store.sqlite import SqliteDriver
 
+if TYPE_CHECKING:
+    from pathlib import Path
+
 ### the roles a deployment may leave empty: each stays out of `named` (and the health survey) until its setting is set.
-OPTIONAL: frozenset[str] = frozenset({"docling"})
+OPTIONAL: frozenset[str] = frozenset({"docling", "ocr", "sign"})
 
 
 ##### SECTION #####
@@ -67,10 +77,15 @@ class ProvidersState:
     pdf: PdfPort
     render: RenderPort
     cutout: CutoutPort
+    compose: ComposePort
     ### the coder opens only with the bridge on (TEKTON_PROFILES): the public image carries no Claude CLI.
     coder: CoderPort | None
     ### docling-serve is optional: present only when DOCLING_URL is set — the doc tools read without it.
     docling: DocumentPort | None
+    ### the OCR engine opens only with the tool on (OCR_ENABLED): its models are fetched at that start, never otherwise.
+    ocr: OcrPort | None
+    ### the signer opens only with its key configured (SIGN_P12): without it there is no `doc/sign` and no key is read.
+    sign: SignPort | None
 
     @property
     def named(self) -> Mapping[str, Provider]:
@@ -102,6 +117,20 @@ def liteparse() -> LiteparseAdapter:
     tessdata = st.DOC_TESSDATA or st.ORGANON_DATA / "doc" / "models" / "tessdata"
     return LiteparseAdapter(
         workers=st.DOC_WORKERS, ocr=st.DOC_OCR, tessdata=tessdata.expanduser(), ocr_language=st.DOC_OCR_LANGUAGE
+    )
+
+
+def rapidocr() -> RapidocrAdapter:
+    """The OCR engine, its models in doc/'s subtree of ORGANON_DATA."""
+    return RapidocrAdapter(models=st.ORGANON_DATA.expanduser() / "doc" / "models" / "rapidocr")
+
+
+def pyhanko(p12: Path) -> PyhankoAdapter:
+    """The PAdES signer on the PKCS#12 SIGN_P12, its password and its optional time-stamp authority."""
+    return PyhankoAdapter(
+        p12=p12.expanduser(),
+        password=st.SIGN_P12_PASSWORD.get_secret_value(),
+        tsa_url=None if st.SIGN_TSA_URL is None else str(st.SIGN_TSA_URL),
     )
 
 
@@ -150,8 +179,11 @@ async def lifespan(app: Litestar) -> AsyncGenerator[None]:
         pdf = await enter(PikepdfAdapter(max_pages=st.ORGANON_MAX_PAGES, max_pixels=st.ORGANON_MAX_PIXELS))
         render = await enter(PdfiumAdapter(max_pages=st.ORGANON_MAX_PAGES))
         cutout = await enter(OpencvAdapter())
+        compose = await enter(TypstAdapter(timeout=st.COMPOSE_TIMEOUT.total_seconds()))
         coder = await enter(ClaudeDriver(st.TEKTON_CLAUDE)) if st.TEKTON_PROFILES else None
         docling = await enter(docling_driver(http)) if st.DOCLING_URL else None
+        ocr = await enter(rapidocr()) if st.OCR_ENABLED else None
+        sign = await enter(pyhanko(st.SIGN_P12)) if st.SIGN_P12 is not None else None
         providers = ProvidersState(
             store=store,
             http=http,
@@ -163,8 +195,11 @@ async def lifespan(app: Litestar) -> AsyncGenerator[None]:
             pdf=pdf,
             render=render,
             cutout=cutout,
+            compose=compose,
             coder=coder,
             docling=docling,
+            ocr=ocr,
+            sign=sign,
         )
         system.providers = providers
         logger.info("providers ready", providers=sorted(providers.named), step="START")

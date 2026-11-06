@@ -46,7 +46,7 @@ async def test_find_answers_name_description_and_input_schema(weighed: FindOrgan
 
 
 async def test_find_an_empty_query_lists_the_section_by_name(find: FindOrganonService, ranked: Ranked) -> None:
-    assert await ranked(find, "", "doc") == ["doc_convert", "doc_fill", "doc_inspect", "doc_merge", "doc_render"]
+    assert await ranked(find, "", "doc") == ["doc_compose", "doc_convert", "doc_fill", "doc_inspect", "doc_merge"]
 
 
 @pytest.mark.parametrize(("query", "section"), [("zzzz", ""), ("merge", "nope"), ("merge", "tekton")])

@@ -1,0 +1,43 @@
+"""Arm A as shipped: flat-field by closing, Sauvola by boxFilter (the port), darkness gate, specks dropped."""
+import sys, time
+import cv2
+import numpy as np
+
+WINDOW, K, GATE, SPECK, CLOSE, R = 25, 0.2, 150, 30, 31, 1.0
+
+
+def sauvola(flat):
+    g = flat.astype(np.float64)
+    box = (WINDOW, WINDOW)
+    m = cv2.boxFilter(g, cv2.CV_64F, box, borderType=cv2.BORDER_REFLECT_101)
+    sq = cv2.boxFilter(g * g, cv2.CV_64F, box, borderType=cv2.BORDER_REFLECT_101)
+    return m * (1 + K * (np.sqrt(np.clip(sq - m * m, 0, None)) / R - 1))
+
+
+def ink_of(img):
+    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    background = cv2.morphologyEx(gray, cv2.MORPH_CLOSE, cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (CLOSE, CLOSE)))
+    flat = np.clip(gray.astype(np.float32) / np.maximum(background, 1) * 255, 0, 255)
+    return (flat < sauvola(flat)) & (flat < GATE)
+
+
+def specks(ink):
+    count, labels, stats, _ = cv2.connectedComponentsWithStats(ink.astype(np.uint8), connectivity=8)
+    keep = np.zeros(count, bool)
+    keep[1:] = stats[1:, cv2.CC_STAT_AREA] >= SPECK
+    return keep[labels]
+
+
+def cut(img):
+    return (specks(ink_of(img)) * 255).astype(np.uint8)
+
+
+if __name__ == "__main__":
+    for line in sys.stdin:
+        src, dst = line.split()
+        img = cv2.imread(src)
+        t = time.perf_counter()
+        ink = cut(img)
+        ms = (time.perf_counter() - t) * 1000
+        cv2.imwrite(dst, ink)
+        print(f"{ms:.3f}", flush=True)

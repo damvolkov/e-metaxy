@@ -1,0 +1,73 @@
+Aceros del Norte, S.L.
+NIF B50123456
+Calle Mayor, 25, 50001 Zaragoza
+Factura 2027-0042
+5 de noviembre de 2027
+Cliente: Cliente Ejemplo, S.A.
+NIF A12345678
+Avenida de la Constitución, 3, 28001 Madrid
+Ref. Descripción Cant. Precio Importe
+A-1000 Tornillo hexagonal M8 inoxidable 40 0.35 14.00
+A-1001 Pintura plástica blanca, bote de 15 l 6 42.90 257.40
+A-1002 Servicio de instalación y puesta en marcha 1 380.00 380.00
+A-1003 Ñandú de bronce decorativo (pieza única) 1 480.00 480.00
+A-1004 Mano de obra: jornada 1 1 120.00 120.00
+A-1005 Mano de obra: jornada 2 1 120.00 120.00
+A-1006 Mano de obra: jornada 3 1 120.00 120.00
+A-1007 Mano de obra: jornada 4 1 120.00 120.00
+A-1008 Mano de obra: jornada 5 1 120.00 120.00
+A-1009 Mano de obra: jornada 6 1 120.00 120.00
+A-1010 Mano de obra: jornada 7 1 120.00 120.00
+A-1011 Mano de obra: jornada 8 1 120.00 120.00
+A-1012 Mano de obra: jornada 9 1 120.00 120.00
+A-1013 Mano de obra: jornada 10 1 120.00 120.00
+A-1014 Mano de obra: jornada 11 1 120.00 120.00
+A-1015 Mano de obra: jornada 12 1 120.00 120.00
+A-1016 Mano de obra: jornada 13 1 120.00 120.00
+A-1017 Mano de obra: jornada 14 1 120.00 120.00
+A-1018 Mano de obra: jornada 15 1 120.00 120.00
+A-1019 Mano de obra: jornada 16 1 120.00 120.00
+A-1020 Mano de obra: jornada 17 1 120.00 120.00
+A-1021 Mano de obra: jornada 18 1 120.00 120.00
+A-1022 Mano de obra: jornada 19 1 120.00 120.00
+A-1023 Mano de obra: jornada 20 1 120.00 120.00
+A-1024 Mano de obra: jornada 21 1 120.00 120.00
+A-1025 Mano de obra: jornada 22 1 120.00 120.00
+A-1026 Mano de obra: jornada 23 1 120.00 120.00
+A-1027 Mano de obra: jornada 24 1 120.00 120.00
+A-1028 Mano de obra: jornada 25 1 120.00 120.00
+A-1029 Mano de obra: jornada 26 1 120.00 120.00
+A-1030 Mano de obra: jornada 27 1 120.00 120.00
+A-1031 Mano de obra: jornada 28 1 120.00 120.00
+A-1032 Mano de obra: jornada 29 1 120.00 120.00
+A-1033 Mano de obra: jornada 30 1 120.00 120.00
+1 / 2Ref. Descripción Cant. Precio Importe
+A-1034 Mano de obra: jornada 31 1 120.00 120.00
+A-1035 Mano de obra: jornada 32 1 120.00 120.00
+A-1036 Mano de obra: jornada 33 1 120.00 120.00
+A-1037 Mano de obra: jornada 34 1 120.00 120.00
+A-1038 Mano de obra: jornada 35 1 120.00 120.00
+A-1039 Mano de obra: jornada 36 1 120.00 120.00
+A-1040 Mano de obra: jornada 37 1 120.00 120.00
+A-1041 Mano de obra: jornada 38 1 120.00 120.00
+A-1042 Mano de obra: jornada 39 1 120.00 120.00
+A-1043 Mano de obra: jornada 40 1 120.00 120.00
+A-1044 Mano de obra: jornada 41 1 120.00 120.00
+A-1045 Mano de obra: jornada 42 1 120.00 120.00
+A-1046 Mano de obra: jornada 43 1 120.00 120.00
+A-1047 Mano de obra: jornada 44 1 120.00 120.00
+A-1048 Mano de obra: jornada 45 1 120.00 120.00
+A-1049 Mano de obra: jornada 46 1 120.00 120.00
+A-1050 Mano de obra: jornada 47 1 120.00 120.00
+A-1051 Mano de obra: jornada 48 1 120.00 120.00
+A-1052 Mano de obra: jornada 49 1 120.00 120.00
+A-1053 Mano de obra: jornada 50 1 120.00 120.00
+A-1054 Mano de obra: jornada 51 1 120.00 120.00
+A-1055 Mano de obra: jornada 52 1 120.00 120.00
+A-1056 Mano de obra: jornada 53 1 120.00 120.00
+A-1057 Mano de obra: jornada 54 1 120.00 120.00
+A-1058 Mano de obra: jornada 55 1 120.00 120.00
+Subtotal: 7731.40 €
+IVA 21 %: 1623.59 €
+Total: 9354.99 €
+2 / 2

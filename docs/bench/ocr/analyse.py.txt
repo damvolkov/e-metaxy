@@ -1,0 +1,26 @@
+import sys
+import numpy as np
+from scipy.stats import bootstrap
+rows = [r.split("\t") for r in open(f"/tmp/bench-ocr/out/{sys.argv[1]}.tsv").read().split("\n") if r]
+d = {}
+for page, arm, lang, level, ms, cer, rec, acc, iou in rows:
+    d.setdefault(arm, {})[page] = dict(lang=lang, level=level, ms=float(ms), cer=float(cer), rec=float(rec), acc=float(acc))
+pages = sorted(d["t"])
+def ci(x):
+    r = bootstrap((np.array(x),), np.mean, method="BCa", confidence_level=0.95, n_resamples=20000, random_state=1).confidence_interval
+    return r.low, r.high
+for sel, name in ((lambda p: True, "all"), (lambda p: d["t"][p]["lang"] == "es", "es"), (lambda p: d["t"][p]["lang"] == "en", "en"),
+                  *((lambda p, l=l: d["t"][p]["level"] == l, l) for l in ("clean", "noisy", "bad"))):
+    ps = [p for p in pages if sel(p)]
+    print(f"== {name} ({len(ps)} pages)")
+    for arm in d:
+        v = lambda k: np.array([d[arm][p][k] for p in ps])
+        print(f"  {arm}: CER mean {v('cer').mean():.4f} med {np.median(v('cer')):.4f} | recall {v('rec').mean():.3f} exact {v('acc').mean():.3f} | ms p50 {np.median(v('ms')):.0f} p95 {np.percentile(v('ms'),95):.0f}")
+    for arm in d:
+        if arm != "t":
+            diff = np.array([d["t"][p]["cer"] - d[arm][p]["cer"] for p in ps])
+            lo, hi = ci(diff)
+            print(f"  CER_T - CER_{arm}: {diff.mean():+.4f} CI [{lo:+.4f}, {hi:+.4f}]  {arm} better on {(diff>0).sum()}/{len(diff)}")
+    if "r5" in d:
+        diff = np.array([d["r6"][p]["cer"] - d["r5"][p]["cer"] for p in ps]); lo, hi = ci(diff)
+        print(f"  CER_r6 - CER_r5: {diff.mean():+.4f} CI [{lo:+.4f}, {hi:+.4f}]")

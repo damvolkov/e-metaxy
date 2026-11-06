@@ -25,3 +25,11 @@ class FindOut(msgspec.Struct, frozen=True, kw_only=True):
     """The tools that answer the query, best first."""
 
     tools: list[Found]
+
+
+##### SUBMIT #####
+class SubmitIn(msgspec.Struct, frozen=True, kw_only=True):
+    """`tool`: `<section>/<word>` (`doc/convert`), a tool that runs as a job. `input`: its arguments, as it takes them."""
+
+    tool: str
+    input: dict[str, Any]

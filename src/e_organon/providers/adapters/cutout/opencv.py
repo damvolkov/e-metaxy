@@ -3,7 +3,9 @@
 The method won the bench against rembg's ISNet (`docs/bench/cutout.md`): the photo's grey is divided by a morphological
 closing of itself (the sheet's tint, the uneven light and shadows flatten to white), ink is what Sauvola's local
 threshold (ported here with `cv2.boxFilter`, scikit-image's convention to the letter) and an absolute darkness gate both
-call dark, and connected specks under `SPECK` pixels are dropped. The alpha is
+call dark, printed lines — long straight runs of that mask, found with a probabilistic Hough transform, tilt allowed —
+are subtracted and the gap they leave in a stroke that crosses them is closed again (`docs/bench/cutout.md`, "Form lines"),
+and connected specks under `SPECK` pixels are dropped. The alpha is
 soft: inside the ink dilated by one pixel it is the darkness of the flattened grey, never below the mask's own 255, so
 edges are anti-aliased and strokes solid. `size` reads the header with Pillow — lazily, no pixel decoded — so a caller can
 refuse a huge image before `cut` decodes it. Everything runs off the loop, in a worker thread: OpenCV and NumPy release
@@ -27,6 +29,9 @@ WINDOW, K, GATE, SPECK, CLOSE = 25, 0.2, 150, 30, 31
 ### Sauvola's R as scikit-image set it for the float image the bench gave it: half the float dtype's nominal range, [-1, 1],
 ### whatever the pixel values — so 1.0, not the 127.5 of the paper's 8 bits. The bench's numbers are of this R.
 SAUVOLA_R: Final[float] = 1.0
+### the printed lines' parameters, fixed on the bench's dev set: the shortest line (a fraction of the photo's longer side),
+### the Hough votes it needs, the gap it may have, the thickness it is drawn with, and the closing that restores a crossing.
+LINE_LENGTH, LINE_VOTES, LINE_GAP, LINE_BAND, LINE_BRIDGE = 0.25, 200, 6, 5, 9
 ### transparent pixels kept around the ink when cropping.
 PADDING: Final[int] = 8
 ### a flattened grey's darkness becomes alpha twice as fast: half-dark is already opaque.
@@ -66,18 +71,41 @@ class OpencvAdapter:
         return mean * (1 + K * (deviation / SAUVOLA_R - 1))
 
     @staticmethod
-    def _cut_ink(image: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
-        """The flattened grey and the ink's mask (bool) of a BGR photo."""
+    def _cut_lines(ink: np.ndarray) -> np.ndarray:
+        """The ink mask without the printed lines: the long straight runs are drawn thick, taken off, and a stroke that
+        crossed one is bridged where ink lay on both sides of the gap."""
+        raw = ink.astype(np.uint8) * 255
+        found = cv2.HoughLinesP(
+            raw,
+            1,
+            np.pi / 360,
+            LINE_VOTES,
+            minLineLength=int(LINE_LENGTH * max(ink.shape)),
+            maxLineGap=LINE_GAP,
+        )
+        drawn = np.zeros_like(raw)
+        _ = [
+            cv2.line(drawn, (x1, y1), (x2, y2), 255, LINE_BAND)
+            for x1, y1, x2, y2 in np.asarray(() if found is None else found).reshape(-1, 4).tolist()
+        ]
+        line, rest = ink & (drawn > 0), ink & (drawn == 0)
+        bridge = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (LINE_BRIDGE, LINE_BRIDGE))
+        return rest | (line & (cv2.morphologyEx(rest.astype(np.uint8), cv2.MORPH_CLOSE, bridge) > 0))
+
+    @staticmethod
+    def _cut_ink(image: np.ndarray, *, lines: bool) -> tuple[np.ndarray, np.ndarray]:
+        """The flattened grey and the ink's mask (bool) of a BGR photo; `lines` takes the printed lines off it."""
         gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
         background = cv2.morphologyEx(
             gray, cv2.MORPH_CLOSE, cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (CLOSE, CLOSE))
         )
         flat = np.clip(gray.astype(np.float32) / np.maximum(background, 1) * 255, 0, 255)
-        ink = (flat < OpencvAdapter._cut_sauvola(flat)) & (flat < GATE)
+        dark = (flat < OpencvAdapter._cut_sauvola(flat)) & (flat < GATE)
+        ink = OpencvAdapter._cut_lines(dark) if lines else dark
         count, labels, stats, _ = cv2.connectedComponentsWithStats(ink.astype(np.uint8), connectivity=8)
         keep = np.zeros(count, bool)
         keep[1:] = stats[1:, cv2.CC_STAT_AREA] >= SPECK
-        return flat, keep[labels]
+        return flat, keep[labels.astype(np.intp)]
 
     @staticmethod
     def _cut_crop(rgba: np.ndarray) -> np.ndarray:
@@ -86,13 +114,13 @@ class OpencvAdapter:
         top, left = max(ys.min() - PADDING, 0), max(xs.min() - PADDING, 0)
         return rgba[top : ys.max() + PADDING + 1, left : xs.max() + PADDING + 1]
 
-    def _cut_run(self, data: bytes, *, color: bool, crop: bool) -> bytes:
+    def _cut_run(self, data: bytes, *, color: bool, crop: bool, lines: bool) -> bytes:
         image = cv2.imdecode(np.frombuffer(data, np.uint8), cv2.IMREAD_COLOR)
         match image:
             case None:
                 msg = "not a readable image: no decoder took it"
                 raise ParseError(msg)
-        flat, ink = self._cut_ink(image)
+        flat, ink = self._cut_ink(image, lines=lines)
         match bool(ink.any()):
             case False:
                 msg = "no ink found: the sheet is clear"
@@ -121,5 +149,5 @@ class OpencvAdapter:
     async def size(self, data: bytes) -> tuple[int, int]:
         return await anyio.to_thread.run_sync(self._size_read, data)
 
-    async def cut(self, data: bytes, *, color: bool, crop: bool) -> bytes:
-        return await anyio.to_thread.run_sync(lambda: self._cut_run(data, color=color, crop=crop))
+    async def cut(self, data: bytes, *, color: bool, crop: bool, lines: bool) -> bytes:
+        return await anyio.to_thread.run_sync(lambda: self._cut_run(data, color=color, crop=crop, lines=lines))

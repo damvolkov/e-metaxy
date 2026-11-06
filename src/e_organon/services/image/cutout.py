@@ -49,7 +49,7 @@ class CutoutImageService(ToolFlow[CutoutIn, FileOut]):
         yield Step(name=STEPS[1], index=1, total=len(STEPS))
         await self._events_measure(raw)
         yield Step(name=STEPS[2], index=2, total=len(STEPS))
-        png = await self._cutout.cut(raw, color=data.color, crop=data.crop)
+        png = await self._cutout.cut(raw, color=data.color, crop=data.crop, lines=data.lines)
         yield Step(name=STEPS[3], index=3, total=len(STEPS))
         kept = await self._artifacts.keep(png, f"{path.stem}-cutout", ".png")
         yield Done(result=FileOut(path=str(kept), size=len(png)))

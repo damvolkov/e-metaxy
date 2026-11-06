@@ -1,4 +1,4 @@
-"""api.router.doc: the doc/ section — one route per canonical tool, each streamed or batched by the request's Accept.
+"""api.router.doc: the doc/ section — one route per canonical tool, each streamed, batched or queued by the request.
 
 A handler only hands the request and its arguments to the tool's workflow on the sealed graph
 (`graph.services.doc.<tool>`); `api.stream` decides the reading. The MCP twins (`mcp/tools/doc`) are these handlers."""
@@ -16,7 +16,19 @@ from e_organon.api.stream import answer
 from e_organon.infra.auth.guard import OPT
 from e_organon.infra.auth.models import Access
 from e_organon.infra.state import State
-from e_organon.models.doc import ConvertIn, FillIn, InspectIn, MergeIn, RenderIn, SignatureIn, SplitIn, StampIn
+from e_organon.models.doc import (
+    ComposeIn,
+    ConvertIn,
+    FillIn,
+    InspectIn,
+    MergeIn,
+    OcrIn,
+    RenderIn,
+    SignatureIn,
+    SignIn,
+    SplitIn,
+    StampIn,
+)
 
 TOOL_DEPS: Final[dict[str, Provide]] = {DepKey.GRAPH.value: Provide(graph, sync_to_thread=False)}
 
@@ -62,16 +74,39 @@ async def signature(data: JSONBody[SignatureIn], request: Request[Any, Any, Any]
     return await answer(request, graph.services.doc.signature, data)
 
 
+async def ocr(data: JSONBody[OcrIn], request: Request[Any, Any, Any], graph: NamedDependency[State]) -> Any:
+    """doc/ocr: the words of a scan, each with its box."""
+    return await answer(request, graph.services.doc.ocr, data)
+
+
+async def sign(data: JSONBody[SignIn], request: Request[Any, Any, Any], graph: NamedDependency[State]) -> Any:
+    """doc/sign: a PDF signed in PAdES with the deployment's key."""
+    return await answer(request, graph.services.doc.sign, data)
+
+
+async def compose(data: JSONBody[ComposeIn], request: Request[Any, Any, Any], graph: NamedDependency[State]) -> Any:
+    """doc/compose: a PDF from a typst template and its data."""
+    return await answer(request, graph.services.doc.compose, data)
+
+
 ##### ROUTES #####
-ROUTES: tuple[HTTPRouteHandler, ...] = tuple(
-    post(
-        f"/doc/{handler.__name__}",
-        name=f"doc.{handler.__name__}",
-        status_code=200,
-        tags=["doc"],
-        opt=OPT[Access.USER],
-        security=SECURITY,
-        dependencies=TOOL_DEPS,
-    )(handler)
-    for handler in (convert, inspect, merge, split, fill, render, stamp, signature)
-)
+def routes(*handlers: Any) -> tuple[HTTPRouteHandler, ...]:
+    """One `POST /doc/<name>` route for each handler."""
+    return tuple(
+        post(
+            f"/doc/{handler.__name__}",
+            name=f"doc.{handler.__name__}",
+            status_code=200,
+            tags=["doc"],
+            opt=OPT[Access.USER],
+            security=SECURITY,
+            dependencies=TOOL_DEPS,
+        )(handler)
+        for handler in handlers
+    )
+
+
+### the tools every deployment serves; `OCR` only where its engine is on (OCR_ENABLED), `SIGN` where a key is set (SIGN_P12).
+ROUTES: tuple[HTTPRouteHandler, ...] = routes(convert, inspect, merge, split, fill, render, stamp, signature, compose)
+OCR: tuple[HTTPRouteHandler, ...] = routes(ocr)
+SIGN: tuple[HTTPRouteHandler, ...] = routes(sign)

@@ -1,0 +1,16 @@
+import numpy as np
+from scipy.stats import bootstrap
+rows = [r.split("\t") for r in open("/tmp/bench-compose/out/run.tsv").read().split("\n") if r]
+d = {}
+for inv, arm, ms, size, pages, ok, pdfa in rows:
+    d.setdefault(arm, {})[inv] = (float(ms), int(size), int(pages), int(ok), int(pdfa))
+inv = sorted(d["ty"])
+for arm in ("ty", "wp"):
+    ms = np.array([d[arm][i][0] for i in inv]); sz = np.array([d[arm][i][1] for i in inv])
+    print(f"{arm}: ms p50 {np.median(ms):.1f} p95 {np.percentile(ms,95):.1f} | pdf bytes median {np.median(sz):.0f} | text ok {sum(d[arm][i][3] for i in inv)}/{len(inv)} | PDF/A-2b declared {sum(d[arm][i][4] for i in inv)}/{len(inv)} | pages equal to the other arm {sum(d[arm][i][2]==d['ty'][i][2] for i in inv)}")
+lr = np.array([np.log(d["ty"][i][0] / d["wp"][i][0]) for i in inv])
+ci = bootstrap((lr,), np.mean, method="BCa", confidence_level=0.95, n_resamples=20000, random_state=1).confidence_interval
+print(f"log(ms_ty/ms_wp): mean {lr.mean():.3f} CI [{ci.low:.3f}, {ci.high:.3f}]  => typst x{np.exp(-lr.mean()):.1f} faster (CI x{np.exp(-ci.high):.1f}..x{np.exp(-ci.low):.1f}); faster on {(lr<0).sum()}/{len(lr)}")
+dd = [r.split("\t") for r in open("/tmp/bench-compose/out/determinism.tsv").read().split("\n") if r]
+for arm in ("ty", "wp"):
+    print(f"determinism {arm}: {sum(int(x[2]) for x in dd if x[1]==arm)}/{sum(1 for x in dd if x[1]==arm)} identical")

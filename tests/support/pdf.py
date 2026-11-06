@@ -89,3 +89,11 @@ def placements(data: bytes) -> list[tuple[float, ...]]:
                 case "Do":
                     found.append(last)
     return found
+
+
+def rotated(degrees: int) -> bytes:
+    """One blank A4 page the viewer turns by `degrees`."""
+    with pikepdf.new() as pdf:
+        page = pdf.add_blank_page(page_size=A4)
+        page.obj.Rotate = degrees
+        return _save(pdf)

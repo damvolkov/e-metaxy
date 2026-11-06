@@ -24,11 +24,30 @@ class AnchorNotFoundError(OrganonError, LookupError):
     """The text is on no page of the PDF — or not that many times."""
 
 
+class PageBudgetError(OrganonError):
+    """A composed PDF has more pages than ORGANON_MAX_PAGES."""
+
+
+class TemplateNotFoundError(OrganonError, LookupError):
+    """No template of that name among the ones the deployment keeps and the ones shipped."""
+
+
+class PageNotFoundError(OrganonError, LookupError):
+    """The PDF has no page of that number (from 0)."""
+
+
 class UnknownJobError(OrganonError, LookupError):
     """No job under that id: never submitted, or long settled and gone."""
 
     def __init__(self, job: str) -> None:
         super().__init__(f"unknown job {job!r}")
+
+
+class UnknownToolError(OrganonError, LookupError):
+    """No tool of that name runs as a job: it does not exist, or it answers at once (tekton, organon)."""
+
+    def __init__(self, tool: str) -> None:
+        super().__init__(f"no tool {tool!r} runs as a job")
 
 
 class FlowError(Exception):

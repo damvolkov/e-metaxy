@@ -1,0 +1,17 @@
+"""Arm T: Tesseract through liteparse (in process), tessdata spa / eng, word boxes."""
+import json, sys, time
+from liteparse import LiteParse
+
+TESS = "/tmp/bench-ocr/tessdata"
+PARSERS = {code: LiteParse(ocr_enabled=True, tessdata_path=TESS, ocr_language=code, emit_word_boxes=True, extract_blocks=False, quiet=True)
+           for code in ("spa", "eng")}
+LANG = {"es": "spa", "en": "eng"}
+for line in sys.stdin:
+    src, lang, width = line.split()
+    data = open(src, "rb").read()
+    t = time.perf_counter()
+    page = PARSERS[LANG[lang]].parse(data).pages[0]
+    ms = (time.perf_counter() - t) * 1000
+    k = float(width) / page.width
+    words = [{"text": w.text, "box": [w.x * k, w.y * k, (w.x + w.width) * k, (w.y + w.height) * k]} for it in page.text_items for w in (it.words or [])]
+    print(json.dumps({"ms": ms, "words": words}), flush=True)

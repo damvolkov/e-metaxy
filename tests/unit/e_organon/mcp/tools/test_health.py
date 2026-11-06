@@ -39,6 +39,7 @@ async def test_health_status_lists_the_tools(connect: Connect) -> None:
     assert sorted(tools) == [
         "api_health",
         "api_status",
+        "doc_compose",
         "doc_convert",
         "doc_fill",
         "doc_inspect",
@@ -51,6 +52,7 @@ async def test_health_status_lists_the_tools(connect: Connect) -> None:
         "organon_cancel",
         "organon_find",
         "organon_job",
+        "organon_submit",
         "tekton_cancel",
         "tekton_catalog",
         "tekton_eng",

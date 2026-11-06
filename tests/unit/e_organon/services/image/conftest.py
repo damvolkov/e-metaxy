@@ -20,6 +20,7 @@ if TYPE_CHECKING:
 @pytest.fixture
 def pictures(tmp_path: Path) -> Path:
     (tmp_path / "firma.jpg").write_bytes(photo()[0])
+    (tmp_path / "underlined.jpg").write_bytes(photo(underline=True)[0])
     return tmp_path
 
 

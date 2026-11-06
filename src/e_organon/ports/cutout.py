@@ -11,8 +11,8 @@ from e_organon.ports.provider import Provider
 class CutoutPort(Provider, Protocol):
     """`size` is an image's width and height read from its header, nothing decoded; `cut` the PNG (RGBA) of the ink in a
     photo — opaque where it is, soft at its edges, clear elsewhere —, in the ink's own colour or black, cropped to the ink
-    with a margin when `crop`. A photo that is no image, or a sheet with no ink, is a `ParseError`."""
+    with a margin when `crop`, the printed lines (long straight runs) taken off when `lines`. A photo that is no image, or a sheet with no ink, is a `ParseError`."""
 
     async def size(self, data: bytes) -> tuple[int, int]: ...
 
-    async def cut(self, data: bytes, *, color: bool, crop: bool) -> bytes: ...
+    async def cut(self, data: bytes, *, color: bool, crop: bool, lines: bool) -> bytes: ...

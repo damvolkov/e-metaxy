@@ -21,7 +21,7 @@ import msgspec
 
 from e_organon.infra.auth.models import Role
 from e_organon.infra.background import SETTLED, BackgroundJob, BackgroundState
-from e_organon.models.error import FlowError, UnknownJobError
+from e_organon.models.error import FlowError, UnknownJobError, UnknownToolError
 from e_organon.models.flow import Done, Event, Failed, Step
 from e_organon.models.job import AcceptedJob, Job
 
@@ -163,6 +163,16 @@ class JobsService:
         """The tool queued over `data` for the caller, at once."""
         job = await self._dispatch.submit(self._kinds[tool], owner=caller.owner, input=msgspec.to_builtins(data))
         return AcceptedJob(job=job.id, state=job.state)
+
+    async def enqueue(self, tool: str, arguments: Mapping[str, Any], caller: Caller) -> AcceptedJob:
+        """The tool named `<section>/<word>` queued over `arguments`, once it reads as the tool's own input: what a client that
+        cannot send `Prefer` asks for. A tool that is no job is `UnknownToolError`, arguments that miss its Struct
+        `msgspec.ValidationError` — both before anything is queued."""
+        match self._tools.get(tool):
+            case None:
+                raise UnknownToolError(tool)
+            case found:
+                return await self.submit(found, msgspec.convert(arguments, found.arguments()), caller)
 
     async def status(self, job: str, caller: Caller, wait: float = 0.0) -> Job:
         """The job now, or once it settles if that comes within `wait` seconds."""

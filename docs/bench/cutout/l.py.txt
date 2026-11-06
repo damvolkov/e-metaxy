@@ -1,0 +1,43 @@
+"""Arm L = A + printed lines: long straight runs of the ink mask (probabilistic Hough, tilt allowed) are lines, not ink;
+they are subtracted, and the gap they leave in a stroke that crosses them is closed again."""
+import os
+import sys, time
+import cv2
+import numpy as np
+from a2 import ink_of, specks
+
+LENGTH = float(os.environ.get("L_LENGTH", 0.25))   # of the longer side
+VOTES = int(os.environ.get("L_VOTES", 200))
+GAP = int(os.environ.get("L_GAP", 6))
+BAND = int(os.environ.get("L_BAND", 5))            # drawn thickness of a found line
+BRIDGE = int(os.environ.get("L_BRIDGE", 9))        # closing that restores a crossing stroke
+
+
+def unlined(ink):
+    u8 = ink.astype(np.uint8) * 255
+    long = int(LENGTH * max(ink.shape))
+    found = cv2.HoughLinesP(u8, 1, np.pi / 360, VOTES, minLineLength=long, maxLineGap=GAP)
+    if found is None:
+        return ink
+    drawn = np.zeros_like(u8)
+    for x1, y1, x2, y2 in np.asarray(found).reshape(-1, 4):
+        cv2.line(drawn, (int(x1), int(y1)), (int(x2), int(y2)), 255, BAND)
+    on = ink & (drawn > 0)
+    rest = ink & ~on
+    bridged = cv2.morphologyEx(rest.astype(np.uint8), cv2.MORPH_CLOSE, cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (BRIDGE, BRIDGE))) > 0
+    return rest | (bridged & on)
+
+
+def cut(img):
+    return (specks(unlined(ink_of(img))) * 255).astype(np.uint8)
+
+
+if __name__ == "__main__":
+    for line in sys.stdin:
+        src, dst = line.split()
+        img = cv2.imread(src)
+        t = time.perf_counter()
+        ink = cut(img)
+        ms = (time.perf_counter() - t) * 1000
+        cv2.imwrite(dst, ink)
+        print(f"{ms:.3f}", flush=True)

@@ -1,0 +1,14 @@
+import sys, glob, statistics as st
+import cv2, numpy as np
+sys.path.insert(0, "/tmp/bench-cutout/scripts")
+sys.path.insert(0, "/home/damien/workspaces/damien/e-organon/src")
+import l
+from e_organon.providers.adapters.cutout.opencv import OpencvAdapter as A
+
+ious = []
+for split in ("dev-lined", "test-lined", "dev-plain", "test-plain", "test-flourish"):
+    for jpg in sorted(glob.glob(f"/tmp/bench-cutout/data/{split}/*.jpg")):
+        img = cv2.imread(jpg)
+        a, b = l.specks(l.unlined(l.ink_of(img))), A._cut_ink(img)[1]
+        ious.append(float((a & b).sum()) / max(float((a | b).sum()), 1))
+print("n", len(ious), "IoU bench arm L vs adapter: min %.6f median %.6f" % (min(ious), st.median(ious)))

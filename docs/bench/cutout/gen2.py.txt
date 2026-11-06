@@ -1,0 +1,86 @@
+"""Synthetic phone photos of signatures with exact ink masks: strokes on paper, uneven light, shadow, form lines,
+slight perspective, blur, JPEG. Usage: gen2.py OUT_DIR N SEED MODE — MODE none (no line) | lined (dark printed lines,
+one crossing the strokes, sometimes a parallel one and a vertical box edge). The mask is the strokes alone."""
+
+import sys
+from pathlib import Path
+
+import cv2
+import numpy as np
+
+W, H = 1200, 700
+
+
+def strokes(rng: np.random.Generator) -> np.ndarray:
+    """A signature-like ink mask: a few smooth random curves of varying width."""
+    mask = np.zeros((H, W), np.float32)
+    x0 = rng.uniform(250, 450)
+    for _ in range(rng.integers(2, 5)):
+        n = rng.integers(6, 12)
+        xs = np.cumsum(rng.uniform(30, 90, n)) + x0
+        ys = H / 2 + rng.normal(0, 70, n)
+        t = np.linspace(0, n - 1, 400)
+        px = np.interp(t, np.arange(n), xs) + 25 * np.sin(t * rng.uniform(1.5, 4))
+        py = np.interp(t, np.arange(n), ys) + 35 * np.cos(t * rng.uniform(1.5, 4))
+        width = rng.uniform(1.5, 4.5)
+        pts = np.stack([px, py], 1).astype(np.int32)
+        for (a, b) in zip(pts[:-1], pts[1:]):
+            cv2.line(mask, tuple(int(v) for v in a), tuple(int(v) for v in b), 1.0, int(round(width)), cv2.LINE_AA)
+        x0 = float(xs[-1]) - rng.uniform(80, 200)
+    return np.clip(mask, 0, 1)
+
+
+def photo(mask: np.ndarray, rng: np.random.Generator, mode: str) -> np.ndarray:
+    """The mask inked on paper and photographed badly."""
+    paper = np.array(rng.uniform(205, 245, 3), np.float32)
+    img = np.ones((H, W, 3), np.float32) * paper + rng.normal(0, 4, (H, W, 3))
+    ### printed form lines, grey, not ink: in `lined` mode darker than the gate and crossing the signature.
+    if mode == "lined":
+        dark = tuple(float(v) for v in paper * rng.uniform(0.2, 0.4))
+        width = int(rng.integers(2, 4))
+        y = int(H / 2 + rng.uniform(-40, 90))
+        cv2.line(img, (int(rng.uniform(60, 140)), y), (W - int(rng.uniform(60, 140)), y), dark, width)
+        if rng.uniform() < 0.5:
+            y2 = int(np.clip(y + rng.choice([-1, 1]) * rng.uniform(70, 110), 20, H - 20))
+            cv2.line(img, (100, y2), (W - 100, y2), dark, width)
+        if rng.uniform() < 0.5:
+            x = int(rng.uniform(90, 200))
+            cv2.line(img, (x, 40), (x, H - 40), dark, width)
+    ink = np.array([[25, 25, 30], [130, 40, 20], [20, 30, 120]][rng.integers(0, 3)], np.float32)
+    alpha = mask[..., None] * rng.uniform(0.75, 1.0)
+    img = img * (1 - alpha) + ink * alpha
+    ### light falls off across the sheet, and a soft shadow crosses it.
+    gx, gy = np.meshgrid(np.linspace(0, 1, W), np.linspace(0, 1, H))
+    light = 1 - rng.uniform(0.15, 0.45) * (rng.uniform() * gx + rng.uniform() * gy)
+    cx = rng.uniform(0, W)
+    shadow = 1 - rng.uniform(0.15, 0.4) / (1 + np.exp(-(gx * W - cx) / 40))
+    img = img * (light * shadow)[..., None]
+    return np.clip(img, 0, 255).astype(np.uint8)
+
+
+def warp(img: np.ndarray, mask: np.ndarray, rng: np.random.Generator) -> tuple[np.ndarray, np.ndarray]:
+    src = np.float32([[0, 0], [W, 0], [W, H], [0, H]])
+    dst = src + rng.uniform(-40, 40, src.shape).astype(np.float32)
+    m = cv2.getPerspectiveTransform(src, dst)
+    img = cv2.warpPerspective(img, m, (W, H), borderMode=cv2.BORDER_REPLICATE)
+    mask = cv2.warpPerspective(mask, m, (W, H))
+    img = cv2.GaussianBlur(img, (0, 0), rng.uniform(0.4, 1.2))
+    ok, jpg = cv2.imencode(".jpg", img, [cv2.IMWRITE_JPEG_QUALITY, int(rng.integers(70, 92))])
+    return cv2.imdecode(jpg, cv2.IMREAD_COLOR), mask
+
+
+def main() -> None:
+    out, n, seed, mode = Path(sys.argv[1]), int(sys.argv[2]), int(sys.argv[3]), sys.argv[4]
+    rng = np.random.default_rng(seed)
+    for i in range(n):
+        mask = strokes(rng)
+        if mode == "flourish":
+            ### exploratory: a straight underline flourish of the signature itself, 300-600 px, in the mask.
+            x1 = int(rng.uniform(250, 500)); y = int(H / 2 + rng.uniform(60, 120))
+            cv2.line(mask, (x1, y), (x1 + int(rng.uniform(300, 600)), y + int(rng.uniform(-15, 15))), 1.0, 3, cv2.LINE_AA)
+        img, mask = warp(photo(mask, rng, mode), mask, rng)
+        cv2.imwrite(str(out / f"{i:03d}.jpg"), img)
+        cv2.imwrite(str(out / f"{i:03d}.mask.png"), ((mask > 0.5) * 255).astype(np.uint8))
+
+
+main()

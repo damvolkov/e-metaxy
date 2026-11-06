@@ -159,7 +159,7 @@
   {
     "name": "doc_signature",
     "title": "Sign a PDF with a photo",
-    "description": "A photo of a handwritten signature (`photo`) cut out and placed on a PDF (`path`) `at` as doc_stamp's. Visual only, not a cryptographic signature. Returns the copy's `path`.",
+    "description": "A photo of a handwritten signature (`photo`) cut out and placed on a PDF (`path`) `at` as doc_stamp's. Visual only, not a cryptographic signature; `lines` (default) drops printed lines — off if the signature has its own straight underline. Returns the copy's `path`.",
     "access": "user",
     "annotations": {
       "destructive_hint": false,
@@ -169,6 +169,7 @@
     "arguments": [
       "at",
       "color",
+      "lines",
       "path",
       "photo"
     ],
@@ -181,7 +182,7 @@
   {
     "name": "image_cutout",
     "title": "Cut ink out of a photo",
-    "description": "A photo of ink on paper (a signature) by `path`, as a transparent PNG of the ink alone: paper tint, uneven light and shadows gone, soft edges. `color` keeps the ink's own colour (default; off, black); `crop` cuts to the ink (default). Returns the PNG's `path`, the next tool's input (doc_stamp).",
+    "description": "A photo of ink on paper (a signature) by `path`, as a transparent PNG of the ink alone: paper tint, uneven light and shadows gone, soft edges. `color` keeps the ink's own colour (default; off, black); `crop` cuts to the ink (default); `lines` (default) drops printed lines — turn it off if the signature has its own straight underline. Returns the PNG's `path`, the next tool's input (doc_stamp).",
     "access": "user",
     "annotations": {
       "destructive_hint": false,
@@ -191,6 +192,7 @@
     "arguments": [
       "color",
       "crop",
+      "lines",
       "path"
     ],
     "required": [
@@ -441,6 +443,85 @@
     "required": [
       "peer",
       "text"
+    ]
+  },
+  {
+    "name": "organon_submit",
+    "title": "Run a tool as a job",
+    "description": "A tool run in the background: `tool` is its name as `organon_find` lists it with a slash (`doc/convert`), `input` its arguments. Answers at once with the `job` to follow with organon_job; the input is checked first, a tool that is no job (tekton, organon) refused.",
+    "access": "user",
+    "annotations": {
+      "destructive_hint": false,
+      "open_world_hint": false,
+      "read_only_hint": false
+    },
+    "arguments": [
+      "input",
+      "tool"
+    ],
+    "required": [
+      "input",
+      "tool"
+    ]
+  },
+  {
+    "name": "doc_ocr",
+    "title": "Read a scan",
+    "description": "The words of a scanned PDF or an image by `path` (`pages` from 0, all when empty; `dpi` a PDF page is drawn at, 72-300, default 150), each with its box `[left, bottom, right, top]` in points on the displayed page, origin bottom-left — where doc_stamp places things —, and each page's `text`. An image is one page, a pixel a point.",
+    "access": "user",
+    "annotations": {
+      "destructive_hint": false,
+      "open_world_hint": false,
+      "read_only_hint": true
+    },
+    "arguments": [
+      "dpi",
+      "language",
+      "pages",
+      "path"
+    ],
+    "required": [
+      "path"
+    ]
+  },
+  {
+    "name": "doc_sign",
+    "title": "Sign a PDF cryptographically",
+    "description": "A PDF by `path` signed in PAdES with the key this server holds — who sealed it and that it was not changed since; a viewer validates it. Invisible; with `at` (as doc_stamp's) and one of `image`, `text` or `photo` its appearance is drawn there first (`lines` as doc_signature's). Returns the signed copy's `path`. Any later edit breaks it.",
+    "access": "user",
+    "annotations": {
+      "destructive_hint": false,
+      "open_world_hint": false,
+      "read_only_hint": false
+    },
+    "arguments": [
+      "at",
+      "image",
+      "lines",
+      "path",
+      "photo",
+      "text"
+    ],
+    "required": [
+      "path"
+    ]
+  },
+  {
+    "name": "doc_compose",
+    "title": "Compose a PDF from a template",
+    "description": "A PDF/A made from a typst `template` — a name (`invoice`, shipped; the deployment may keep others) or a path to a .typ file under the vault or the workspaces — and its `data` (JSON the template reads). The same input gives the same bytes. Returns the PDF's `path`.",
+    "access": "user",
+    "annotations": {
+      "destructive_hint": false,
+      "open_world_hint": false,
+      "read_only_hint": false
+    },
+    "arguments": [
+      "data",
+      "template"
+    ],
+    "required": [
+      "template"
     ]
   }
 ]

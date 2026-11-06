@@ -1,0 +1,25 @@
+A {'dev-lined': 0.6851402405038518, 'dev-plain': 0.9530553265772037}
+0.15 100 6 5 7 {'dev-lined': 0.2065, 'dev-plain': -0.0367} {'dev-lined': 0.892, 'dev-plain': 0.916}
+0.15 100 6 5 9 {'dev-lined': 0.2084, 'dev-plain': -0.0367} {'dev-lined': 0.894, 'dev-plain': 0.916}
+0.15 100 6 7 7 {'dev-lined': 0.196, 'dev-plain': -0.0367} {'dev-lined': 0.881, 'dev-plain': 0.916}
+0.15 100 6 7 9 {'dev-lined': 0.196, 'dev-plain': -0.0367} {'dev-lined': 0.881, 'dev-plain': 0.916}
+0.15 200 6 5 7 {'dev-lined': 0.2208, 'dev-plain': -0.0205} {'dev-lined': 0.906, 'dev-plain': 0.933}
+0.15 200 6 5 9 {'dev-lined': 0.2208, 'dev-plain': -0.0172} {'dev-lined': 0.906, 'dev-plain': 0.936}
+0.15 200 6 7 7 {'dev-lined': 0.2129, 'dev-plain': -0.022} {'dev-lined': 0.898, 'dev-plain': 0.931}
+0.15 200 6 7 9 {'dev-lined': 0.2129, 'dev-plain': -0.022} {'dev-lined': 0.898, 'dev-plain': 0.931}
+0.25 100 6 5 7 {'dev-lined': 0.2228, 'dev-plain': 0.0} {'dev-lined': 0.908, 'dev-plain': 0.953}
+0.25 100 6 5 9 {'dev-lined': 0.2228, 'dev-plain': 0.0} {'dev-lined': 0.908, 'dev-plain': 0.953}
+0.25 100 6 7 7 {'dev-lined': 0.2188, 'dev-plain': 0.0} {'dev-lined': 0.904, 'dev-plain': 0.953}
+0.25 100 6 7 9 {'dev-lined': 0.2188, 'dev-plain': 0.0} {'dev-lined': 0.904, 'dev-plain': 0.953}
+0.25 200 6 5 7 {'dev-lined': 0.2237, 'dev-plain': 0.0} {'dev-lined': 0.909, 'dev-plain': 0.953}
+0.25 200 6 5 9 {'dev-lined': 0.2237, 'dev-plain': 0.0} {'dev-lined': 0.909, 'dev-plain': 0.953}
+0.25 200 6 7 7 {'dev-lined': 0.2193, 'dev-plain': 0.0} {'dev-lined': 0.904, 'dev-plain': 0.953}
+0.25 200 6 7 9 {'dev-lined': 0.2193, 'dev-plain': 0.0} {'dev-lined': 0.904, 'dev-plain': 0.953}
+0.35 100 6 5 7 {'dev-lined': 0.2223, 'dev-plain': 0.0} {'dev-lined': 0.907, 'dev-plain': 0.953}
+0.35 100 6 5 9 {'dev-lined': 0.2223, 'dev-plain': 0.0} {'dev-lined': 0.907, 'dev-plain': 0.953}
+0.35 100 6 7 7 {'dev-lined': 0.2152, 'dev-plain': 0.0} {'dev-lined': 0.9, 'dev-plain': 0.953}
+0.35 100 6 7 9 {'dev-lined': 0.2152, 'dev-plain': 0.0} {'dev-lined': 0.9, 'dev-plain': 0.953}
+0.35 200 6 5 7 {'dev-lined': 0.2237, 'dev-plain': 0.0} {'dev-lined': 0.909, 'dev-plain': 0.953}
+0.35 200 6 5 9 {'dev-lined': 0.2238, 'dev-plain': 0.0} {'dev-lined': 0.909, 'dev-plain': 0.953}
+0.35 200 6 7 7 {'dev-lined': 0.2197, 'dev-plain': 0.0} {'dev-lined': 0.905, 'dev-plain': 0.953}
+0.35 200 6 7 9 {'dev-lined': 0.2197, 'dev-plain': 0.0} {'dev-lined': 0.905, 'dev-plain': 0.953}

@@ -7,6 +7,8 @@ They are pure in-process objects over providers the providers concern closes, so
 
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
+from pathlib import Path
+from typing import Final
 
 from litestar import Litestar
 
@@ -19,11 +21,14 @@ from e_organon.ports.documents import DocumentPort
 from e_organon.ports.markdown import MarkdownPort
 from e_organon.ports.pages import PagesPort
 from e_organon.processors.doc import DocProcessor
+from e_organon.services.doc.compose import ComposeDocService
 from e_organon.services.doc.convert import ConvertDocService
 from e_organon.services.doc.fill import FillDocService
 from e_organon.services.doc.inspect import InspectDocService
 from e_organon.services.doc.merge import MergeDocService
+from e_organon.services.doc.ocr import OcrDocService
 from e_organon.services.doc.render import RenderDocService
+from e_organon.services.doc.sign import SignDocService
 from e_organon.services.doc.signature import SignatureDocService
 from e_organon.services.doc.split import SplitDocService
 from e_organon.services.doc.stamp import StampDocService
@@ -40,6 +45,9 @@ from e_organon.services.tekton.start import StartTektonService
 from e_organon.services.tekton.status import StatusTektonService
 from e_organon.services.tekton.tasks import TasksTektonService
 from e_organon.services.tekton.update import UpdateTektonService
+
+### the templates shipped with the package (`doc/compose` names them after the deployment's own folder).
+TEMPLATES: Final[Path] = Path(__file__).resolve().parents[2] / "templates"
 
 
 ##### FACTORIES #####
@@ -83,9 +91,29 @@ async def lifespan(app: Litestar) -> AsyncGenerator[None]:
     doc.fill = FillDocService(found.pdf, files, artifacts)
     doc.render = RenderDocService(found.render, files, artifacts)
     doc.stamp = StampDocService(found.pdf, found.render, files, artifacts)
+    doc.compose = ComposeDocService(
+        found.compose,
+        found.pdf,
+        files,
+        artifacts,
+        folders=(st.ORGANON_DATA / "doc" / "templates", TEMPLATES),
+        max_pages=st.ORGANON_MAX_PAGES,
+    )
     image = system.services.image
     image.cutout = CutoutImageService(found.cutout, files, artifacts, max_pixels=st.ORGANON_MAX_PIXELS)
     doc.signature = SignatureDocService(image.cutout, doc.stamp)
+    ### `doc/ocr` exists only with its engine open (OCR_ENABLED).
+    match found.ocr:
+        case None:
+            pass
+        case ocr:
+            doc.ocr = OcrDocService(ocr, found.pdf, found.render, files, max_pixels=st.ORGANON_MAX_PIXELS)
+    ### `doc/sign` exists only with its key configured (SIGN_P12).
+    match found.sign:
+        case None:
+            pass
+        case sign:
+            doc.sign = SignDocService(sign, doc.stamp, doc.signature, files, artifacts)
     ### the tekton tools exist only with the bridge on.
     match system.engines.bridge:
         case None:

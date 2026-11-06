@@ -1,0 +1,432 @@
+{
+ "number": "2027-0042",
+ "date": "5 de noviembre de 2027",
+ "seller": {
+  "name": "Aceros del Norte, S.L.",
+  "nif": "B50123456",
+  "address": "Calle Mayor, 25, 50001 Zaragoza"
+ },
+ "customer": {
+  "name": "Cliente Ejemplo, S.A.",
+  "nif": "A12345678",
+  "address": "Avenida de la Constitución, 3, 28001 Madrid"
+ },
+ "items": [
+  {
+   "ref": "A-1000",
+   "description": "Tornillo hexagonal M8 inoxidable",
+   "qty": 40,
+   "price": "0.35",
+   "total": "14.00"
+  },
+  {
+   "ref": "A-1001",
+   "description": "Pintura plástica blanca, bote de 15 l",
+   "qty": 6,
+   "price": "42.90",
+   "total": "257.40"
+  },
+  {
+   "ref": "A-1002",
+   "description": "Servicio de instalación y puesta en marcha",
+   "qty": 1,
+   "price": "380.00",
+   "total": "380.00"
+  },
+  {
+   "ref": "A-1003",
+   "description": "Ñandú de bronce decorativo (pieza única)",
+   "qty": 1,
+   "price": "480.00",
+   "total": "480.00"
+  },
+  {
+   "ref": "A-1004",
+   "description": "Mano de obra: jornada 1",
+   "qty": 1,
+   "price": "120.00",
+   "total": "120.00"
+  },
+  {
+   "ref": "A-1005",
+   "description": "Mano de obra: jornada 2",
+   "qty": 1,
+   "price": "120.00",
+   "total": "120.00"
+  },
+  {
+   "ref": "A-1006",
+   "description": "Mano de obra: jornada 3",
+   "qty": 1,
+   "price": "120.00",
+   "total": "120.00"
+  },
+  {
+   "ref": "A-1007",
+   "description": "Mano de obra: jornada 4",
+   "qty": 1,
+   "price": "120.00",
+   "total": "120.00"
+  },
+  {
+   "ref": "A-1008",
+   "description": "Mano de obra: jornada 5",
+   "qty": 1,
+   "price": "120.00",
+   "total": "120.00"
+  },
+  {
+   "ref": "A-1009",
+   "description": "Mano de obra: jornada 6",
+   "qty": 1,
+   "price": "120.00",
+   "total": "120.00"
+  },
+  {
+   "ref": "A-1010",
+   "description": "Mano de obra: jornada 7",
+   "qty": 1,
+   "price": "120.00",
+   "total": "120.00"
+  },
+  {
+   "ref": "A-1011",
+   "description": "Mano de obra: jornada 8",
+   "qty": 1,
+   "price": "120.00",
+   "total": "120.00"
+  },
+  {
+   "ref": "A-1012",
+   "description": "Mano de obra: jornada 9",
+   "qty": 1,
+   "price": "120.00",
+   "total": "120.00"
+  },
+  {
+   "ref": "A-1013",
+   "description": "Mano de obra: jornada 10",
+   "qty": 1,
+   "price": "120.00",
+   "total": "120.00"
+  },
+  {
+   "ref": "A-1014",
+   "description": "Mano de obra: jornada 11",
+   "qty": 1,
+   "price": "120.00",
+   "total": "120.00"
+  },
+  {
+   "ref": "A-1015",
+   "description": "Mano de obra: jornada 12",
+   "qty": 1,
+   "price": "120.00",
+   "total": "120.00"
+  },
+  {
+   "ref": "A-1016",
+   "description": "Mano de obra: jornada 13",
+   "qty": 1,
+   "price": "120.00",
+   "total": "120.00"
+  },
+  {
+   "ref": "A-1017",
+   "description": "Mano de obra: jornada 14",
+   "qty": 1,
+   "price": "120.00",
+   "total": "120.00"
+  },
+  {
+   "ref": "A-1018",
+   "description": "Mano de obra: jornada 15",
+   "qty": 1,
+   "price": "120.00",
+   "total": "120.00"
+  },
+  {
+   "ref": "A-1019",
+   "description": "Mano de obra: jornada 16",
+   "qty": 1,
+   "price": "120.00",
+   "total": "120.00"
+  },
+  {
+   "ref": "A-1020",
+   "description": "Mano de obra: jornada 17",
+   "qty": 1,
+   "price": "120.00",
+   "total": "120.00"
+  },
+  {
+   "ref": "A-1021",
+   "description": "Mano de obra: jornada 18",
+   "qty": 1,
+   "price": "120.00",
+   "total": "120.00"
+  },
+  {
+   "ref": "A-1022",
+   "description": "Mano de obra: jornada 19",
+   "qty": 1,
+   "price": "120.00",
+   "total": "120.00"
+  },
+  {
+   "ref": "A-1023",
+   "description": "Mano de obra: jornada 20",
+   "qty": 1,
+   "price": "120.00",
+   "total": "120.00"
+  },
+  {
+   "ref": "A-1024",
+   "description": "Mano de obra: jornada 21",
+   "qty": 1,
+   "price": "120.00",
+   "total": "120.00"
+  },
+  {
+   "ref": "A-1025",
+   "description": "Mano de obra: jornada 22",
+   "qty": 1,
+   "price": "120.00",
+   "total": "120.00"
+  },
+  {
+   "ref": "A-1026",
+   "description": "Mano de obra: jornada 23",
+   "qty": 1,
+   "price": "120.00",
+   "total": "120.00"
+  },
+  {
+   "ref": "A-1027",
+   "description": "Mano de obra: jornada 24",
+   "qty": 1,
+   "price": "120.00",
+   "total": "120.00"
+  },
+  {
+   "ref": "A-1028",
+   "description": "Mano de obra: jornada 25",
+   "qty": 1,
+   "price": "120.00",
+   "total": "120.00"
+  },
+  {
+   "ref": "A-1029",
+   "description": "Mano de obra: jornada 26",
+   "qty": 1,
+   "price": "120.00",
+   "total": "120.00"
+  },
+  {
+   "ref": "A-1030",
+   "description": "Mano de obra: jornada 27",
+   "qty": 1,
+   "price": "120.00",
+   "total": "120.00"
+  },
+  {
+   "ref": "A-1031",
+   "description": "Mano de obra: jornada 28",
+   "qty": 1,
+   "price": "120.00",
+   "total": "120.00"
+  },
+  {
+   "ref": "A-1032",
+   "description": "Mano de obra: jornada 29",
+   "qty": 1,
+   "price": "120.00",
+   "total": "120.00"
+  },
+  {
+   "ref": "A-1033",
+   "description": "Mano de obra: jornada 30",
+   "qty": 1,
+   "price": "120.00",
+   "total": "120.00"
+  },
+  {
+   "ref": "A-1034",
+   "description": "Mano de obra: jornada 31",
+   "qty": 1,
+   "price": "120.00",
+   "total": "120.00"
+  },
+  {
+   "ref": "A-1035",
+   "description": "Mano de obra: jornada 32",
+   "qty": 1,
+   "price": "120.00",
+   "total": "120.00"
+  },
+  {
+   "ref": "A-1036",
+   "description": "Mano de obra: jornada 33",
+   "qty": 1,
+   "price": "120.00",
+   "total": "120.00"
+  },
+  {
+   "ref": "A-1037",
+   "description": "Mano de obra: jornada 34",
+   "qty": 1,
+   "price": "120.00",
+   "total": "120.00"
+  },
+  {
+   "ref": "A-1038",
+   "description": "Mano de obra: jornada 35",
+   "qty": 1,
+   "price": "120.00",
+   "total": "120.00"
+  },
+  {
+   "ref": "A-1039",
+   "description": "Mano de obra: jornada 36",
+   "qty": 1,
+   "price": "120.00",
+   "total": "120.00"
+  },
+  {
+   "ref": "A-1040",
+   "description": "Mano de obra: jornada 37",
+   "qty": 1,
+   "price": "120.00",
+   "total": "120.00"
+  },
+  {
+   "ref": "A-1041",
+   "description": "Mano de obra: jornada 38",
+   "qty": 1,
+   "price": "120.00",
+   "total": "120.00"
+  },
+  {
+   "ref": "A-1042",
+   "description": "Mano de obra: jornada 39",
+   "qty": 1,
+   "price": "120.00",
+   "total": "120.00"
+  },
+  {
+   "ref": "A-1043",
+   "description": "Mano de obra: jornada 40",
+   "qty": 1,
+   "price": "120.00",
+   "total": "120.00"
+  },
+  {
+   "ref": "A-1044",
+   "description": "Mano de obra: jornada 41",
+   "qty": 1,
+   "price": "120.00",
+   "total": "120.00"
+  },
+  {
+   "ref": "A-1045",
+   "description": "Mano de obra: jornada 42",
+   "qty": 1,
+   "price": "120.00",
+   "total": "120.00"
+  },
+  {
+   "ref": "A-1046",
+   "description": "Mano de obra: jornada 43",
+   "qty": 1,
+   "price": "120.00",
+   "total": "120.00"
+  },
+  {
+   "ref": "A-1047",
+   "description": "Mano de obra: jornada 44",
+   "qty": 1,
+   "price": "120.00",
+   "total": "120.00"
+  },
+  {
+   "ref": "A-1048",
+   "description": "Mano de obra: jornada 45",
+   "qty": 1,
+   "price": "120.00",
+   "total": "120.00"
+  },
+  {
+   "ref": "A-1049",
+   "description": "Mano de obra: jornada 46",
+   "qty": 1,
+   "price": "120.00",
+   "total": "120.00"
+  },
+  {
+   "ref": "A-1050",
+   "description": "Mano de obra: jornada 47",
+   "qty": 1,
+   "price": "120.00",
+   "total": "120.00"
+  },
+  {
+   "ref": "A-1051",
+   "description": "Mano de obra: jornada 48",
+   "qty": 1,
+   "price": "120.00",
+   "total": "120.00"
+  },
+  {
+   "ref": "A-1052",
+   "description": "Mano de obra: jornada 49",
+   "qty": 1,
+   "price": "120.00",
+   "total": "120.00"
+  },
+  {
+   "ref": "A-1053",
+   "description": "Mano de obra: jornada 50",
+   "qty": 1,
+   "price": "120.00",
+   "total": "120.00"
+  },
+  {
+   "ref": "A-1054",
+   "description": "Mano de obra: jornada 51",
+   "qty": 1,
+   "price": "120.00",
+   "total": "120.00"
+  },
+  {
+   "ref": "A-1055",
+   "description": "Mano de obra: jornada 52",
+   "qty": 1,
+   "price": "120.00",
+   "total": "120.00"
+  },
+  {
+   "ref": "A-1056",
+   "description": "Mano de obra: jornada 53",
+   "qty": 1,
+   "price": "120.00",
+   "total": "120.00"
+  },
+  {
+   "ref": "A-1057",
+   "description": "Mano de obra: jornada 54",
+   "qty": 1,
+   "price": "120.00",
+   "total": "120.00"
+  },
+  {
+   "ref": "A-1058",
+   "description": "Mano de obra: jornada 55",
+   "qty": 1,
+   "price": "120.00",
+   "total": "120.00"
+  }
+ ],
+ "subtotal": "7731.40",
+ "vat": "1623.59",
+ "total": "9354.99"
+}

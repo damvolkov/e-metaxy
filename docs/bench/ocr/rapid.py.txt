@@ -1,0 +1,20 @@
+"""Arms R5 / R6: RapidOCR on onnxruntime, word boxes. argv[1] = r5 (PP-OCRv5 mobile det + latin rec) | r6 (the wheel's PP-OCRv6 small)."""
+import json, sys, time
+import logging
+from rapidocr import RapidOCR, LangRec, OCRVersion, LangDet, ModelType
+
+PARAMS = {
+    "r5": {"Det.ocr_version": OCRVersion.PPOCRV5, "Det.lang_type": LangDet.CH, "Det.model_type": ModelType.MOBILE,
+           "Rec.ocr_version": OCRVersion.PPOCRV5, "Rec.lang_type": LangRec.LATIN, "Rec.model_type": ModelType.MOBILE},
+    "r6": {},
+}
+engine = RapidOCR(params=PARAMS[sys.argv[1]] | {"Global.log_level": "error"})
+for line in sys.stdin:
+    src, lang, width = line.split()
+    t = time.perf_counter()
+    result = engine(src, return_word_box=True)
+    ms = (time.perf_counter() - t) * 1000
+    words = [] if result.word_results is None else [
+        {"text": text, "box": [min(p[0] for p in pts), min(p[1] for p in pts), max(p[0] for p in pts), max(p[1] for p in pts)]}
+        for each in result.word_results for (text, _, pts) in each]
+    print(json.dumps({"ms": ms, "words": words}), flush=True)

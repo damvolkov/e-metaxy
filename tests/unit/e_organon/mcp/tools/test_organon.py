@@ -8,6 +8,8 @@ import pytest
 from support.mcp import call, refused
 
 if TYPE_CHECKING:
+    from pathlib import Path
+
     from support.auth import FakeAuth
     from support.jobs import Queued
     from support.mcp import Connect
@@ -53,3 +55,35 @@ async def test_organon_another_accounts_job_is_unknown_the_admin_reads_it(
     refusal = await refused(connect, tool, {"job": job}, {"Authorization": "Bearer t-bob"})
     seen = await call(connect, tool, {"job": job}, root_key)
     assert (refusal, seen["id"]) == (f"unknown job '{job}'", job)
+
+
+async def test_organon_submit_queues_a_tool_the_job_is_followed_to_completed(
+    vault: Path, connect: Connect, ana_key: dict[str, str]
+) -> None:
+    accepted = await call(
+        connect, "organon_submit", {"tool": "doc/convert", "input": {"path": str(vault / "plan.md")}}, ana_key
+    )
+    told = await call(connect, "organon_job", {"job": accepted["job"], "wait": 5}, ana_key)
+    assert (told["kind"], told["state"], told["progress"]["done"]["name"]) == ("doc/convert", "completed", "plan.md")
+
+
+@pytest.mark.parametrize(
+    ("arguments", "reason"),
+    [
+        ({"tool": "doc/convert", "input": {"path": 3}}, "Expected `str`"),
+        ({"tool": "tekton/start", "input": {}}, "no tool 'tekton/start' runs as a job"),
+        ({"tool": "doc/nope", "input": {}}, "no tool 'doc/nope' runs as a job"),
+    ],
+    ids=["bad-input", "tekton-not-a-job", "unknown"],
+)
+async def test_organon_submit_refuses_what_cannot_be_a_job(
+    connect: Connect, ana_key: dict[str, str], arguments: dict[str, object], reason: str
+) -> None:
+    assert reason in await refused(connect, "organon_submit", arguments, ana_key)
+
+
+async def test_organon_find_ranks_doc_ocr_when_the_engine_is_on(
+    ocr_on: Path, vault: Path, connect: Connect, ana_key: dict[str, str]
+) -> None:
+    found = await call(connect, "organon_find", {"query": "read a scan words boxes", "section": "doc"}, ana_key)
+    assert found["tools"][0]["name"] == "doc_ocr"

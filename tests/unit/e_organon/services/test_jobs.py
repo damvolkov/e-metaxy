@@ -4,10 +4,11 @@ settles with its answer, or with why not — read by status (held when asked to 
 from contextlib import AbstractAsyncContextManager
 from typing import TYPE_CHECKING, Final
 
+import msgspec
 import pytest
 
 from e_organon.infra.background import BackgroundState
-from e_organon.models.error import UnknownJobError
+from e_organon.models.error import UnknownJobError, UnknownToolError
 from e_organon.models.flow import Done, Failed, Step
 from e_organon.models.job import AcceptedJob
 from e_organon.services.jobs import JobsService
@@ -154,3 +155,23 @@ async def test_jobs_the_tool_input_is_one_key_of_the_arguments(
         held = await dispatch.job(accepted.job)
     assert held is not None
     assert set(held.args) == {"owner", "input"}
+
+
+async def test_jobs_enqueue_validates_the_input_into_the_tools_struct_then_queues_it(jobs: Jobs, ana: Caller) -> None:
+    async with jobs as service:
+        accepted = await service.enqueue("doc/shout", {"text": "hola"}, ana)
+        events = [event async for event in service.events(accepted.job, ana)]
+    assert events[-1] == Done(result={"shouted": "HOLA"})
+
+
+@pytest.mark.parametrize(
+    ("tool", "arguments", "error"),
+    [("doc/shout", {"text": 3}, msgspec.ValidationError), ("doc/nope", {}, UnknownToolError)],
+    ids=["bad-input", "not-a-job"],
+)
+async def test_jobs_enqueue_refuses_before_queueing(
+    jobs: Jobs, ana: Caller, tool: str, arguments: dict[str, object], error: type[Exception]
+) -> None:
+    async with jobs as service:
+        with pytest.raises(error):
+            await service.enqueue(tool, arguments, ana)

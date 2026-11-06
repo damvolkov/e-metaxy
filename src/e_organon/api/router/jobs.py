@@ -7,12 +7,13 @@ or another account's, is 404."""
 
 from typing import Any, Final
 
+import msgspec
 from litestar import Request, Response, delete, get
 from litestar.di import NamedDependency, Provide
 from litestar.handlers import HTTPRouteHandler
 from litestar.params import FromPath
 from litestar.response.sse import ServerSentEvent
-from litestar.status_codes import HTTP_200_OK, HTTP_404_NOT_FOUND
+from litestar.status_codes import HTTP_200_OK, HTTP_404_NOT_FOUND, HTTP_422_UNPROCESSABLE_ENTITY
 
 from e_organon.api.deps import DepKey, caller, graph
 from e_organon.api.security import SECURITY
@@ -20,13 +21,20 @@ from e_organon.api.stream import follow
 from e_organon.infra.auth.guard import OPT
 from e_organon.infra.auth.models import Access, Caller
 from e_organon.infra.state import State
-from e_organon.models.error import UnknownJobError
+from e_organon.models.error import UnknownJobError, UnknownToolError
 from e_organon.models.job import Job
 
 
 def missing(_request: Request[Any, Any, Any], exc: UnknownJobError) -> Response[dict[str, str]]:
     """A job nobody holds."""
     return Response({"detail": str(exc)}, status_code=HTTP_404_NOT_FOUND)
+
+
+def refused(
+    _request: Request[Any, Any, Any], exc: UnknownToolError | msgspec.ValidationError
+) -> Response[dict[str, str]]:
+    """A submission that names no job tool, or whose input misses the tool's Struct: `kind: reason`, as a batch tool's."""
+    return Response({"detail": f"{type(exc).__name__}: {exc}"}, status_code=HTTP_422_UNPROCESSABLE_ENTITY)
 
 
 ##### HANDLERS #####

@@ -1,0 +1,68 @@
+"""Interleaved run: each page goes to every arm in a rotating order; warm-up discarded.
+Usage: run.py SET WARMUP ARM... → out/<set>.tsv rows: page arm lang level ms cer recall acc iou"""
+import json, subprocess, sys
+from pathlib import Path
+import numpy as np
+from PIL import Image
+from rapidfuzz.distance import Levenshtein
+
+B = Path("/tmp/bench-ocr")
+CMD = {"t": ("env-tess", "t.py", []), "r5": ("env-rapid", "rapid.py", ["r5"]), "r6": ("env-rapid", "rapid.py", ["r6"])}
+
+
+def iou(a, b):
+    w = min(a[2], b[2]) - max(a[0], b[0]); h = min(a[3], b[3]) - max(a[1], b[1])
+    inter = max(w, 0) * max(h, 0)
+    return inter / max((a[2] - a[0]) * (a[3] - a[1]) + (b[2] - b[0]) * (b[3] - b[1]) - inter, 1e-9)
+
+
+def inside(p, w):
+    """The predicted box's centre lies in the truth box grown by half its height vertically and a quarter horizontally:
+    engines draw boxes of different tightness, so a strict IoU would score the margin, not the reading."""
+    cx, cy = (p[0] + p[2]) / 2, (p[1] + p[3]) / 2
+    h = w[3] - w[1]
+    return w[0] - h / 4 <= cx <= w[2] + h / 4 and w[1] - h / 2 <= cy <= w[3] + h / 2
+
+
+def score(pred, truth):
+    t = " ".join(w["text"] for w in truth); p = " ".join(w["text"] for w in pred)
+    cer = Levenshtein.distance(t, p) / max(len(t), 1)
+    used, hit, exact, ious = set(), 0, 0, []
+    for w in truth:
+        near = [(iou(w["box"], q["box"]), j) for j, q in enumerate(pred) if j not in used and inside(q["box"], w["box"])]
+        if near:
+            best, bj = max(near)
+            used.add(bj); hit += 1; ious.append(best); exact += pred[bj]["text"] == w["text"]
+    n = max(len(truth), 1)
+    return cer, hit / n, exact / n, float(np.mean(ious)) if ious else 0.0
+
+
+def main():
+    name, warmup, arms = sys.argv[1], int(sys.argv[2]), sys.argv[3:]
+    pages = sorted((B / "data" / name).glob("*.jpg"))
+    procs = {a: subprocess.Popen([str(B / CMD[a][0] / "bin/python"), str(B / "scripts" / CMD[a][1]), *CMD[a][2]], stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+                                 text=True, cwd=B / "out", env={"PATH": "/usr/bin:/bin", "OMP_NUM_THREADS": "4", "HOME": "/tmp/bench-ocr/home"}) for a in arms}
+    def ask(a, page):
+        procs[a].stdin.write(f"{page} {json.loads(page.with_suffix('.json').read_text())['lang']} 1240\n"); procs[a].stdin.flush()
+        while not (line := procs[a].stdout.readline()).startswith("{"):
+            assert line, f"{a} died"
+        return json.loads(line)
+    for w in range(warmup):
+        for a in arms:
+            ask(a, pages[w])
+    rows = []
+    for i, page in enumerate(pages):
+        truth = json.loads(page.with_suffix(".json").read_text())
+        for a in arms[i % len(arms):] + arms[: i % len(arms)]:
+            got = ask(a, page)
+            cer, rec, acc, mi = score(got["words"], truth["words"])
+            rows.append(f"{page.stem}\t{a}\t{truth['lang']}\t{truth['level']}\t{got['ms']:.1f}\t{cer:.4f}\t{rec:.4f}\t{acc:.4f}\t{mi:.4f}")
+    for p in procs.values():
+        p.stdin.close(); p.wait()
+    (B / "out" / f"{name}.tsv").write_text("\n".join(rows) + "\n")
+    for a in arms:
+        r = np.array([[float(x) for x in l.split("\t")[4:]] for l in rows if l.split("\t")[1] == a])
+        print(f"{a}: CER med {np.median(r[:,1]):.4f} mean {r[:,1].mean():.4f}  recall {r[:,2].mean():.3f}  exact {r[:,3].mean():.3f}  ms p50 {np.median(r[:,0]):.0f} p95 {np.percentile(r[:,0],95):.0f}")
+
+
+main()
