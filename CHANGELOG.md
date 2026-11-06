@@ -2,6 +2,13 @@
 
 ## [Unreleased]
 
+### TODO_doc — finished (2026-11-06)
+- `organon/submit`, form-line-free `image/cutout`, `doc/ocr`, `doc/sign`, `doc/compose` (sandboxed typst) released as
+  v0.9.0 and deployed with `OCR_ENABLED` and `SIGN_P12`. Live: `doc/ocr` reads a scan in 1.2 s; `doc/compose` renders
+  the 2-page invoice; Hermes submits a job with `organon_submit` and follows it to `completed`; `doc/sign` with the
+  owner's FNMT certificate gives a signature pyHanko validates intact, valid and trusted (`bottom_line` true), and a
+  one-byte change breaks it. Known: the image reports version 0.0.0 (the build does not see the git tags).
+
 ### Security
 - **`doc/compose` is a sandbox** (TODO_doc follow-up): each compile runs in its own process with a dead proxy, no `HOME` and a 2 GiB
   address-space ceiling, stopped after `COMPOSE_TIMEOUT` (default 5 s) from outside — a thread cannot be killed — and its PDF held to
