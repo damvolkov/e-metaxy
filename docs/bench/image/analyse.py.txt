@@ -1,0 +1,37 @@
+"""Cells -> medians -> per-cell ratios arm/P -> geometric mean with BCa bootstrap over cells; SSIM against a Pillow Lanczos reference."""
+import io, json, sys
+from collections import defaultdict
+from pathlib import Path
+import numpy as np
+from PIL import Image, ImageOps
+from scipy.stats import bootstrap
+from skimage.metrics import structural_similarity as ssim
+
+ROOT = Path(sys.argv[1] if len(sys.argv) > 1 else "/tmp/bench-image")
+rows = [json.loads(l) for l in (ROOT / "samples.jsonl").read_text().splitlines()]
+rows = [r for r in rows if r["round"] > 0]
+cells = defaultdict(lambda: defaultdict(list))
+for r in rows:
+    cells[(r["task"], r["image"])][r["arm"]].append(r)
+med = lambda xs, k: float(np.median([x[k] for x in xs]))
+print("| task | image | P ms | V ms | V1 ms | V/P | V1/P | P MB | V MB | P KB | V KB | size V/P | SSIM P | SSIM V |")
+print("|---|---|---|---|---|---|---|---|---|---|---|---|---|---|")
+ratio = {"V": [], "V1": []}; rss = []; size = []; dssim = []
+def sim(path, task, image):
+    ref = Image.open(ROOT / "corpus" / image); ref = ImageOps.exif_transpose(ref).convert("L")
+    if task.endswith("-small"): ref.thumbnail((1600, 1600), Image.Resampling.LANCZOS, reducing_gap=None)
+    out = Image.open(path).convert("L")
+    if out.size != ref.size: ref = ref.resize(out.size, Image.Resampling.LANCZOS)
+    return ssim(np.asarray(ref), np.asarray(out), data_range=255)
+for (task, image), arms in sorted(cells.items()):
+    m = {a: med(v, "ms") for a, v in arms.items()}; pk = {a: med(v, "peak_kb") / 1024 for a, v in arms.items()}
+    sz = {a: med(v, "size") for a, v in arms.items()}
+    sp, sv = sim(ROOT / "out" / f"P.{task}.{image}", task, image), sim(ROOT / "out" / f"V.{task}.{image}", task, image)
+    for a in ("V", "V1"): ratio[a].append(m[a] / m["P"])
+    rss.append(pk["V"] / pk["P"]); size.append(sz["V"] / sz["P"]); dssim.append(sv - sp)
+    print(f"| {task} | {image} | {m['P']:.0f} | {m['V']:.0f} | {m['V1']:.0f} | {m['V']/m['P']:.2f} | {m['V1']/m['P']:.2f} | {pk['P']:.0f} | {pk['V']:.0f} | {sz['P']/1024:.0f} | {sz['V']/1024:.0f} | {sz['V']/sz['P']:.2f} | {sp:.4f} | {sv:.4f} |")
+gm = lambda x, axis=-1: np.exp(np.mean(np.log(x), axis=axis))
+for a in ("V", "V1"):
+    r = bootstrap((np.array(ratio[a]),), gm, n_resamples=20000, method="BCa", random_state=1, vectorized=True, axis=-1)
+    print(f"\n{a}/P time: geometric mean {gm(np.array(ratio[a])):.3f}, 95 % BCa [{r.confidence_interval.low:.3f}, {r.confidence_interval.high:.3f}], faster in {sum(x < 1 for x in ratio[a])}/{len(ratio[a])} cells")
+print(f"V/P peak RSS median cell {np.median(rss):.2f}; size ratio median {np.median(size):.2f} (min {min(size):.2f}, max {max(size):.2f}); SSIM V-P median {np.median(dssim):+.4f} (min {min(dssim):+.4f})")

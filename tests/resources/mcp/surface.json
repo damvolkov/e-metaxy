@@ -200,6 +200,32 @@
     ]
   },
   {
+    "name": "image_convert",
+    "title": "Convert an image",
+    "description": "An image (JPEG, PNG, WebP, TIFF, AVIF, GIF…) by `path`, written as `format` (the source's by default), cut to `crop` [left, top, right, bottom], fitted in `width` x `height` (`fit`: contain, cover, stretch), turned `rotate` degrees clockwise, in sRGB, EXIF orientation applied and metadata stripped (`keep` leaves EXIF and profile). `quality` 1-100 for lossy codecs. Returns the file's `path`.",
+    "access": "user",
+    "annotations": {
+      "destructive_hint": false,
+      "open_world_hint": false,
+      "read_only_hint": false
+    },
+    "arguments": [
+      "crop",
+      "fit",
+      "format",
+      "height",
+      "keep",
+      "path",
+      "quality",
+      "rotate",
+      "srgb",
+      "width"
+    ],
+    "required": [
+      "path"
+    ]
+  },
+  {
     "name": "organon_find",
     "title": "Find a tool",
     "description": "The tools that answer a need, best first (at most 5): `query` in words, `section` (doc, tekton…) to narrow. Each comes with its description and its arguments' JSON Schema.",

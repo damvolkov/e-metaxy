@@ -16,7 +16,7 @@ from e_organon.api.stream import answer
 from e_organon.infra.auth.guard import OPT
 from e_organon.infra.auth.models import Access
 from e_organon.infra.state import State
-from e_organon.models.image import CutoutIn
+from e_organon.models.image import ConvertIn, CutoutIn
 
 TOOL_DEPS: Final[dict[str, Provide]] = {DepKey.GRAPH.value: Provide(graph, sync_to_thread=False)}
 
@@ -25,6 +25,11 @@ TOOL_DEPS: Final[dict[str, Provide]] = {DepKey.GRAPH.value: Provide(graph, sync_
 async def cutout(data: JSONBody[CutoutIn], request: Request[Any, Any, Any], graph: NamedDependency[State]) -> Any:
     """image/cutout: the ink of a photo as a transparent PNG."""
     return await answer(request, graph.services.image.cutout, data)
+
+
+async def convert(data: JSONBody[ConvertIn], request: Request[Any, Any, Any], graph: NamedDependency[State]) -> Any:
+    """image/convert: an image in another format, size, orientation or colour."""
+    return await answer(request, graph.services.image.convert, data)
 
 
 ##### ROUTES #####
@@ -38,5 +43,5 @@ ROUTES: tuple[HTTPRouteHandler, ...] = tuple(
         security=SECURITY,
         dependencies=TOOL_DEPS,
     )(handler)
-    for handler in (cutout,)
+    for handler in (cutout, convert)
 )

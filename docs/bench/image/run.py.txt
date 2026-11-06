@@ -1,0 +1,29 @@
+"""Interleaved runner: every (task, image) cell goes to every arm, order rotating each round; round 0 is the warm-up and is dropped."""
+import itertools, json, os, subprocess, sys
+from pathlib import Path
+
+ROOT = Path("/tmp/bench-image")
+PY = {"P": ROOT / "pil/bin/python", "V": ROOT / "vips/bin/python", "V1": ROOT / "vips/bin/python"}
+ENV = {"V1": {"VIPS_CONCURRENCY": "1"}}
+CELLS = [
+    ("jpeg-small", "clouds.jpg"), ("jpeg-small", "monument.jpg"), ("jpeg-small", "province.jpg"),
+    ("webp-full", "clouds.jpg"), ("webp-full", "monument.jpg"),
+    ("webp-small", "fuji.png"), ("webp-small", "numbat.png"), ("webp-small", "rainbow.png"),
+    ("png-small", "fuji.png"), ("png-small", "numbat.png"), ("png-small", "rainbow.png"),
+    ("png-full", "numbat.png"),
+    ("jpeg-small", "aurora.webp"),
+    ("avif-small", "clouds.jpg"), ("avif-small", "fuji.png"),
+]
+ARMS = ["P", "V", "V1"]
+ROUNDS = int(sys.argv[1]) if len(sys.argv) > 1 else 8
+rows = []
+for rnd in range(ROUNDS):
+    for ci, (task, image) in enumerate(CELLS):
+        order = ARMS[(rnd + ci) % 3:] + ARMS[: (rnd + ci) % 3]
+        for arm in order:
+            dst = ROOT / "out" / f"{arm}.{task}.{image}"
+            res = subprocess.run([PY[arm], ROOT / "work.py", arm, task, ROOT / "corpus" / image, dst],
+                                 capture_output=True, text=True, env={**os.environ, **ENV.get(arm, {})})
+            assert res.returncode == 0, res.stderr
+            rows.append({"round": rnd, "task": task, "image": image, "arm": arm, **json.loads(res.stdout)})
+(ROOT / "samples.jsonl").write_text("\n".join(json.dumps(r) for r in rows) + "\n")

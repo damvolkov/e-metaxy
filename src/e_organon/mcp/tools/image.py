@@ -23,9 +23,20 @@ CUTOUT: Final = MCPTool(
     ),
     read_only=False,
 )
+CONVERT: Final = MCPTool(
+    name="image_convert",
+    title="Convert an image",
+    description=(
+        "An image (JPEG, PNG, WebP, TIFF, AVIF, GIF…) by `path`, written as `format` (the source's by default), cut to "
+        "`crop` [left, top, right, bottom], fitted in `width` x `height` (`fit`: contain, cover, stretch), turned `rotate` "
+        "degrees clockwise, in sRGB, EXIF orientation applied and metadata stripped (`keep` leaves EXIF and profile). "
+        "`quality` 1-100 for lossy codecs. Returns the file's `path`."
+    ),
+    read_only=False,
+)
 
 ##### ROUTES #####
 ROUTES: tuple[HTTPRouteHandler, ...] = tuple(
     tool.route(Access.USER, dependencies=router.TOOL_DEPS, exception_handlers=REFUSALS)(handler)
-    for tool, handler in ((CUTOUT, router.cutout),)
+    for tool, handler in ((CUTOUT, router.cutout), (CONVERT, router.convert))
 )

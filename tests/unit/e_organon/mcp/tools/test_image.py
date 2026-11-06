@@ -36,3 +36,14 @@ async def test_doc_stamp_and_signature_as_tools(vault: Path, connect: Connect, a
         ana_key,
     )
     assert signed["path"].endswith(".pdf")
+
+
+async def test_image_convert_answers_the_files_path(vault: Path, connect: Connect, ana_key: dict[str, str]) -> None:
+    out = await call(
+        connect, "image_convert", {"path": str(vault / "firma.jpg"), "format": "png", "rotate": 90}, ana_key
+    )
+    assert (out["path"].endswith(".png"), out["size"] > 0) == (True, True)
+
+
+async def test_image_convert_refuses_outside_the_roots(connect: Connect, ana_key: dict[str, str]) -> None:
+    assert "OutsideRootsError" in await refused(connect, "image_convert", {"path": "/etc/hostname"}, ana_key)

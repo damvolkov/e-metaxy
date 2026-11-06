@@ -164,3 +164,13 @@
 
 ### Removed
 - The OpenHuman legacy (PR #33).
+
+### TODO_image — the image/ section (2026-11-06)
+- **`image/convert` (TODO_image, 1)**: an image in another format, size, orientation or colour — JPEG, PNG, WebP, TIFF, AVIF
+  in and out; `crop`, `width` x `height` with `fit` (contain, cover, stretch), `rotate` clockwise, EXIF orientation applied,
+  colour to sRGB through the file's own profile, metadata stripped (`keep` leaves EXIF and profile), `quality` of the lossy
+  codecs; same input and spec, same bytes (tested per codec). Behind `RasterPort`; adapter `PillowAdapter`, no new
+  dependency. **Bench** (`docs/bench/image.md`, pre-registered, 15 cells, interleaved, fresh process per measurement, BCa over
+  cells): pyvips 3.2.0 / libvips 8.18 takes 0.567 of Pillow's time (95 % [0.427, 0.730]) but 1.63 times its peak RSS, its
+  PNG is 17-54 % larger and the binding has no wheel (sdist); two of four adoption conditions fail, **Pillow stays**. Pixel budget
+  checked from the header (`BudgetImage`, shared by the image tools that decode). MCP `image_convert`.

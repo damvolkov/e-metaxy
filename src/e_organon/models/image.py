@@ -3,6 +3,8 @@
 
 import msgspec
 
+from e_organon.ports.raster import RasterSpec
+
 
 ##### CUTOUT #####
 class CutoutIn(msgspec.Struct, frozen=True, kw_only=True):
@@ -14,3 +16,13 @@ class CutoutIn(msgspec.Struct, frozen=True, kw_only=True):
     color: bool = True
     crop: bool = True
     lines: bool = True
+
+
+##### CONVERT #####
+class ConvertIn(RasterSpec, frozen=True, kw_only=True):
+    """`path`: the image (`~` expands); the rest is the `RasterSpec` (`ports.raster`): `format` (jpeg, png, webp, tiff, avif;
+    the source's by default), `width`/`height` the box with `fit` (contain, cover, stretch), `crop` the (left, top, right,
+    bottom) pixels kept, `rotate` clockwise degrees, `quality` of the lossy codecs, `srgb` colour to sRGB, `keep` the
+    EXIF and colour profile (stripped by default)."""
+
+    path: str

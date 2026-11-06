@@ -1,0 +1,55 @@
+"""One measurement in a fresh process: an arm, a task, a file -> one JSON line (ms, rss, size). Import time is outside the clock."""
+import json, os, sys, time
+
+arm, task, src, dst = sys.argv[1:5]
+MAX = 1600
+data = open(src, "rb").read()
+rss0 = int([l for l in open("/proc/self/status") if l.startswith("VmRSS")][0].split()[1])
+
+if arm == "P":
+    import io
+    from PIL import Image, ImageOps
+
+    def run():
+        im = Image.open(io.BytesIO(data))
+        resize = task.endswith("-small")
+        if resize:
+            im.thumbnail((MAX, MAX), Image.Resampling.LANCZOS)   # draft + reducing_gap: Pillow's own fast path
+        im = ImageOps.exif_transpose(im)
+        out = io.BytesIO()
+        match task.split("-")[0]:
+            case "jpeg":
+                im.convert("RGB").save(out, "JPEG", quality=85)
+            case "webp":
+                im.save(out, "WEBP", quality=80)
+            case "png":
+                im.save(out, "PNG", compress_level=6)
+            case "avif":
+                im.convert("RGB").save(out, "AVIF", quality=50)
+        return out.getvalue()
+else:
+    import pyvips
+
+    def run():
+        resize = task.endswith("-small")
+        im = (
+            pyvips.Image.thumbnail_buffer(data, MAX, height=MAX, size="down")   # shrink-on-load, autorotate
+            if resize
+            else pyvips.Image.new_from_buffer(data, "", access="sequential").autorot()
+        )
+        match task.split("-")[0]:
+            case "jpeg":
+                return im.write_to_buffer(".jpg", Q=85, strip=True)
+            case "webp":
+                return im.write_to_buffer(".webp", Q=80, strip=True)
+            case "png":
+                return im.write_to_buffer(".png", compression=6, strip=True)
+            case "avif":
+                return im.write_to_buffer(".avif", Q=50, strip=True)
+
+t = time.perf_counter()
+out = run()
+ms = (time.perf_counter() - t) * 1000
+hwm = int([l for l in open("/proc/self/status") if l.startswith("VmHWM")][0].split()[1])
+open(dst, "wb").write(out)
+print(json.dumps({"ms": ms, "peak_kb": hwm, "grow_kb": hwm - rss0, "size": len(out)}))
