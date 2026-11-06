@@ -523,5 +523,26 @@
     "required": [
       "template"
     ]
+  },
+  {
+    "name": "doc_redact",
+    "title": "Redact a PDF",
+    "description": "A PDF by `path` with text and images removed for good, not covered: the `terms` (literal, case ignored; or regular expressions with `regex`) on `pages` (from 0, all when empty) and the `boxes` (`page`, `x`, `y`, `width`, `height` in points from the displayed page's bottom-left, as doc_stamp's). Metadata and earlier revisions are dropped. Returns the copy's `path` and the `count` of strikes.",
+    "access": "user",
+    "annotations": {
+      "destructive_hint": false,
+      "open_world_hint": false,
+      "read_only_hint": false
+    },
+    "arguments": [
+      "boxes",
+      "pages",
+      "path",
+      "regex",
+      "terms"
+    ],
+    "required": [
+      "path"
+    ]
   }
 ]

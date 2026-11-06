@@ -14,10 +14,12 @@ from e_organon.ports.ocr import OcrWord
 from e_organon.providers.adapters.compose.typst import TypstAdapter
 from e_organon.providers.adapters.cutout.opencv import OpencvAdapter
 from e_organon.providers.adapters.pdf.pikepdf import PikepdfAdapter
+from e_organon.providers.adapters.redact.pymupdf import PymupdfAdapter
 from e_organon.providers.adapters.render.pdfium import PdfiumAdapter
 from e_organon.providers.adapters.sign.pyhanko import PyhankoAdapter
 from e_organon.services.doc.compose import ComposeDocService
 from e_organon.services.doc.ocr import OcrDocService
+from e_organon.services.doc.redact import RedactDocService
 from e_organon.services.doc.sign import SignDocService
 from e_organon.services.doc.signature import SignatureDocService
 from e_organon.services.doc.stamp import StampDocService
@@ -27,6 +29,7 @@ from support.ink import ink_png, red_png
 from support.ocr import FakeOcr
 from support.pdf import blank, form, labelled, rotated
 from support.photo import photo
+from support.redact import secret as secret_pdf
 
 if TYPE_CHECKING:
     from collections.abc import AsyncIterator
@@ -177,3 +180,16 @@ def composer(pdf: PikepdfAdapter, files: AllowedFiles, artifacts: ArtifactEngine
     return ComposeDocService(
         TypstAdapter(timeout=10.0), pdf, files, artifacts, folders=(templates, TEMPLATES), max_pages=50
     )
+
+
+@pytest.fixture
+def secret(vault: Path) -> Path:
+    """`secret.pdf` in the vault: two pages naming `ALFA-123`, a red image under `(100, 400, 200, 500)`."""
+    (vault / "secret.pdf").write_bytes(secret_pdf())
+    return vault / "secret.pdf"
+
+
+@pytest.fixture
+def redactor(files: AllowedFiles, artifacts: ArtifactEngine) -> RedactDocService:
+    """The tool over the real MuPDF adapter."""
+    return RedactDocService(PymupdfAdapter(timeout=2.0, max_pages=50), files, artifacts)

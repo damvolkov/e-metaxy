@@ -23,6 +23,7 @@ from e_organon.models.doc import (
     InspectIn,
     MergeIn,
     OcrIn,
+    RedactIn,
     RenderIn,
     SignatureIn,
     SignIn,
@@ -89,6 +90,11 @@ async def compose(data: JSONBody[ComposeIn], request: Request[Any, Any, Any], gr
     return await answer(request, graph.services.doc.compose, data)
 
 
+async def redact(data: JSONBody[RedactIn], request: Request[Any, Any, Any], graph: NamedDependency[State]) -> Any:
+    """doc/redact: text, images and metadata removed from a PDF for good."""
+    return await answer(request, graph.services.doc.redact, data)
+
+
 ##### ROUTES #####
 def routes(*handlers: Any) -> tuple[HTTPRouteHandler, ...]:
     """One `POST /doc/<name>` route for each handler."""
@@ -107,6 +113,8 @@ def routes(*handlers: Any) -> tuple[HTTPRouteHandler, ...]:
 
 
 ### the tools every deployment serves; `OCR` only where its engine is on (OCR_ENABLED), `SIGN` where a key is set (SIGN_P12).
-ROUTES: tuple[HTTPRouteHandler, ...] = routes(convert, inspect, merge, split, fill, render, stamp, signature, compose)
+ROUTES: tuple[HTTPRouteHandler, ...] = routes(
+    convert, inspect, merge, split, fill, render, stamp, signature, compose, redact
+)
 OCR: tuple[HTTPRouteHandler, ...] = routes(ocr)
 SIGN: tuple[HTTPRouteHandler, ...] = routes(sign)

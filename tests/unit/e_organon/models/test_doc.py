@@ -3,7 +3,8 @@
 import msgspec
 import pytest
 
-from e_organon.models.doc import AtAnchor, AtBox, AtField, SignatureIn, StampIn
+from e_organon.models.doc import AtAnchor, AtBox, AtField, RedactIn, SignatureIn, StampIn
+from e_organon.ports.redact import RedactBox
 
 
 @pytest.mark.parametrize(
@@ -41,3 +42,28 @@ def test_stamp_refuses_what_is_not_a_stamp(raw: dict) -> None:
 def test_signature_takes_a_photo_and_a_place() -> None:
     order = msgspec.convert({"path": "a.pdf", "photo": "p.jpg", "at": {"type": "field", "field": "firma"}}, SignatureIn)
     assert (order.color, order.at) == (True, AtField(field="firma"))
+
+
+def test_redact_takes_terms_or_boxes() -> None:
+    box = {"page": 0, "x": 1, "y": 2, "width": 3, "height": 4}
+    order = msgspec.convert({"path": "a.pdf", "terms": ["x"], "boxes": [box]}, RedactIn)
+    assert (order.regex, order.pages, order.boxes) == (
+        False,
+        [],
+        [RedactBox(page=0, x=1.0, y=2.0, width=3.0, height=4.0)],
+    )
+
+
+@pytest.mark.parametrize(
+    "raw",
+    [
+        {"path": "a.pdf"},
+        {"path": "a.pdf", "terms": [""]},
+        {"path": "a.pdf", "boxes": [{"page": 0, "x": 1, "y": 2, "width": 0, "height": 4}]},
+        {"path": "a.pdf", "terms": ["x"], "pages": [-1]},
+    ],
+    ids=["nothing", "empty-term", "flat-box", "page"],
+)
+def test_redact_refuses_what_strikes_nothing(raw: dict) -> None:
+    with pytest.raises(msgspec.ValidationError):
+        msgspec.convert(raw, RedactIn)

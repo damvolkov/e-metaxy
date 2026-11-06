@@ -79,6 +79,8 @@ dependencies = [
     "onnxruntime>=1.31.1",
     "pyhanko>=0.38.0",
     "typst>=0.15.0",
+    "pymupdf>=2.0",
+    "regex>=2026.9",
 ]
 
 [project.urls]

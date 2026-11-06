@@ -6,6 +6,7 @@ import anyio
 import pytest
 
 from support.pdf import placements
+from support.redact import pdfium_text
 from support.signed import validated
 
 if TYPE_CHECKING:
@@ -132,3 +133,25 @@ async def test_doc_compose_over_rest_and_queued_as_a_job(
     done = client.get(f"/jobs/{queued.json()['job']}/events", headers=ana_key)
     pdf = await anyio.Path(batch.json()["path"]).read_bytes()
     assert (batch.status_code, pdf[:5], queued.status_code, done.text.count("event: done")) == (200, b"%PDF-", 202, 1)
+
+
+async def test_doc_redact_over_rest_and_queued_as_a_job(
+    vault: Path, client: TestClient, ana_key: dict[str, str]
+) -> None:
+    order = {"path": str(vault / "labelled.pdf"), "terms": ["otra"]}
+    batch = client.post("/doc/redact", json=order, headers=ana_key)
+    queued = client.post("/organon/submit", json={"tool": "doc/redact", "input": order}, headers=ana_key)
+    done = client.get(f"/jobs/{queued.json()['job']}/events", headers=ana_key)
+    after = await anyio.Path(batch.json()["path"]).read_bytes()
+    assert (batch.status_code, batch.json()["count"], "otra" in pdfium_text(after), "Firma:" in pdfium_text(after)) == (
+        200,
+        1,
+        False,
+        True,
+    )
+    assert (queued.status_code, done.text.count("event: done")) == (202, 1)
+
+
+def test_doc_redact_with_nothing_to_strike_is_refused(vault: Path, client: TestClient, ana_key: dict[str, str]) -> None:
+    response = client.post("/doc/redact", json={"path": str(vault / "labelled.pdf")}, headers=ana_key)
+    assert response.status_code == 400

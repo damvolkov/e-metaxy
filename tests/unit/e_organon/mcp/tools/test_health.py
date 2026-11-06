@@ -44,6 +44,7 @@ async def test_health_status_lists_the_tools(connect: Connect) -> None:
         "doc_fill",
         "doc_inspect",
         "doc_merge",
+        "doc_redact",
         "doc_render",
         "doc_signature",
         "doc_split",

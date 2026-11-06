@@ -215,6 +215,9 @@ class ProviderSettings(BaseSettings):
     ### TYPST — the `doc/compose` sandbox: a template is a caller's code, each compile its own process, stopped after this long.
     COMPOSE_TIMEOUT: timedelta = timedelta(seconds=5)
 
+    ### PYMUPDF — the `doc/redact` regex: a caller's pattern is code that can run for ever, so it is stopped after this long.
+    REDACT_TIMEOUT: timedelta = timedelta(seconds=2)
+
     ### RAPIDOCR — the `doc/ocr` tool: off, no tool and no models; on, its models are fetched into `<ORGANON_DATA>/doc/models`.
     OCR_ENABLED: bool = False
 

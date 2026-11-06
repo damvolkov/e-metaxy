@@ -64,6 +64,24 @@
   `doc/signature` gave three hashes). `deterministic_id=True` and the first `/Org<n>` free across every resource kind
   (pikepdf replaces a name across kinds). A test holds two stamps of one input byte-identical.
 
+### TODO_pdf — doc/redact and doc/export (feat/pdf)
+- **`doc/redact` (TODO_pdf, 1)**: text, images and metadata taken out of a PDF for good. `terms` (literal, case ignored,
+  a blank matches any run of white space, a line break too; or regular expressions with `regex`), `pages` (where terms are
+  looked for) and `boxes` (`page`, `x`, `y`, `width`, `height` as displayed, `doc/stamp`'s coordinates); answers the copy's
+  `path`, `size` and `count`. Behind `RedactPort`; adapter `PymupdfAdapter` (PyMuPDF 2.0, MuPDF in-process; AGPL-3.0, personal
+  use). `apply_redactions` cuts the glyphs out of the content stream and blanks the pixels under the strike (an image wholly
+  under it goes); metadata, XMP and thumbnails are scrubbed and the file rewritten whole with unused objects collected, so an
+  earlier revision kept by an incremental update is gone. A text is matched on the chars of the page with a newline between
+  lines, so a term wrapped over two lines is struck. A caller's regex is stopped after `REDACT_TIMEOUT` (default 2 s) by the
+  `regex` module's own timeout (the stdlib `re` cannot be stopped); the same input is the same bytes (MuPDF's fresh trailer
+  `/ID` is replaced by one derived from the order). Evidence (criterion test): after redaction the term is in no output of
+  pdfium, the content streams (pikepdf) nor MuPDF, an image under a box is blank in the render and in no image object, the
+  title and XMP that named it are gone, and the history of an incrementally updated file with it; rotated 90/180 and cropped
+  pages strike by term and by box. Not covered: text outside a text object MuPDF does not read (annotation contents,
+  attachments, form values are not scrubbed). **No bench**: there is no real Python rival — pikepdf editing content streams by
+  hand does not remove an image's pixels nor map a rotated box, and pdfium (pypdfium2) has no redaction API; the plan said so.
+  Adds pymupdf (~66 MB wheel) and regex (already transitive); docker image delta not measured here.
+
 ### TODO_jobs — finished (2026-11-05)
 - One base (ParadeDB: pgqueuer queue, no redis), jobs for every doc/ and image/ tool, `organon/find`, `image/cutout`
   (benched), `doc/stamp`, `doc/signature`, the hostile corpus and goldens; v0.8.1 released and deployed. Live on the

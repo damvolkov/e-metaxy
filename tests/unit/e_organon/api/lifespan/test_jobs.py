@@ -13,7 +13,7 @@ if TYPE_CHECKING:
 
 DOC_KINDS = {
     f"doc/{word}": "doc"
-    for word in ("convert", "inspect", "merge", "split", "fill", "render", "stamp", "signature", "compose")
+    for word in ("convert", "inspect", "merge", "split", "fill", "render", "stamp", "signature", "compose", "redact")
 }
 KINDS = DOC_KINDS | {"image/cutout": "image"}
 

@@ -94,6 +94,17 @@ COMPOSE: Final = MCPTool(
     ),
     read_only=False,
 )
+REDACT: Final = MCPTool(
+    name="doc_redact",
+    title="Redact a PDF",
+    description=(
+        "A PDF by `path` with text and images removed for good, not covered: the `terms` (literal, case ignored; or "
+        "regular expressions with `regex`) on `pages` (from 0, all when empty) and the `boxes` (`page`, `x`, `y`, `width`, "
+        "`height` in points from the displayed page's bottom-left, as doc_stamp's). Metadata and earlier revisions are dropped. "
+        "Returns the copy's `path` and the `count` of strikes."
+    ),
+    read_only=False,
+)
 OCR: Final = MCPTool(
     name="doc_ocr",
     title="Read a scan",
@@ -134,6 +145,7 @@ ROUTES: tuple[HTTPRouteHandler, ...] = routes(
     (STAMP, router.stamp),
     (SIGNATURE, router.signature),
     (COMPOSE, router.compose),
+    (REDACT, router.redact),
 )
 ### served only where the engine is on (OCR_ENABLED).
 OCR_ROUTES: tuple[HTTPRouteHandler, ...] = routes((OCR, router.ocr))

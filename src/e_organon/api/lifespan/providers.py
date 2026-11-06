@@ -29,6 +29,7 @@ from e_organon.ports.ocr import OcrPort
 from e_organon.ports.pages import PagesPort
 from e_organon.ports.pdf import PdfPort
 from e_organon.ports.provider import Provider
+from e_organon.ports.redact import RedactPort
 from e_organon.ports.render import RenderPort
 from e_organon.ports.sign import SignPort
 from e_organon.ports.store import StorePort
@@ -38,6 +39,7 @@ from e_organon.providers.adapters.markdown.anytomd import AnytomdAdapter
 from e_organon.providers.adapters.ocr.rapidocr import RapidocrAdapter
 from e_organon.providers.adapters.pages.liteparse import LiteparseAdapter
 from e_organon.providers.adapters.pdf.pikepdf import PikepdfAdapter
+from e_organon.providers.adapters.redact.pymupdf import PymupdfAdapter
 from e_organon.providers.adapters.render.pdfium import PdfiumAdapter
 from e_organon.providers.adapters.sign.pyhanko import PyhankoAdapter
 from e_organon.providers.drivers.auth.postgres import PostgresAuthDriver
@@ -78,6 +80,7 @@ class ProvidersState:
     render: RenderPort
     cutout: CutoutPort
     compose: ComposePort
+    redact: RedactPort
     ### the coder opens only with the bridge on (TEKTON_PROFILES): the public image carries no Claude CLI.
     coder: CoderPort | None
     ### docling-serve is optional: present only when DOCLING_URL is set — the doc tools read without it.
@@ -180,6 +183,7 @@ async def lifespan(app: Litestar) -> AsyncGenerator[None]:
         render = await enter(PdfiumAdapter(max_pages=st.ORGANON_MAX_PAGES))
         cutout = await enter(OpencvAdapter())
         compose = await enter(TypstAdapter(timeout=st.COMPOSE_TIMEOUT.total_seconds()))
+        redact = await enter(PymupdfAdapter(timeout=st.REDACT_TIMEOUT.total_seconds(), max_pages=st.ORGANON_MAX_PAGES))
         coder = await enter(ClaudeDriver(st.TEKTON_CLAUDE)) if st.TEKTON_PROFILES else None
         docling = await enter(docling_driver(http)) if st.DOCLING_URL else None
         ocr = await enter(rapidocr()) if st.OCR_ENABLED else None
@@ -196,6 +200,7 @@ async def lifespan(app: Litestar) -> AsyncGenerator[None]:
             render=render,
             cutout=cutout,
             compose=compose,
+            redact=redact,
             coder=coder,
             docling=docling,
             ocr=ocr,

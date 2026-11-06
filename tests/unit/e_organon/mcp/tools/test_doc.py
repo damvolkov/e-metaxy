@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING, Any
 import anyio
 
 from support.mcp import call
+from support.redact import pdfium_text
 from support.signed import validated
 
 if TYPE_CHECKING:
@@ -28,3 +29,11 @@ async def test_doc_compose_is_a_tool_that_writes_the_pdf(
 ) -> None:
     composed = await call(connect, "doc_compose", {"template": "invoice", "data": invoice_data}, ana_key)
     assert (await anyio.Path(composed["path"]).read_bytes())[:5] == b"%PDF-"
+
+
+async def test_doc_redact_is_a_tool_that_removes_the_text(
+    vault: Path, connect: Connect, ana_key: dict[str, str]
+) -> None:
+    redacted = await call(connect, "doc_redact", {"path": str(vault / "labelled.pdf"), "terms": ["otra"]}, ana_key)
+    text = pdfium_text(await anyio.Path(redacted["path"]).read_bytes())
+    assert (redacted["count"], "otra" in text, "Firma:" in text) == (1, False, True)

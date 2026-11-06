@@ -27,6 +27,7 @@ from e_organon.services.doc.fill import FillDocService
 from e_organon.services.doc.inspect import InspectDocService
 from e_organon.services.doc.merge import MergeDocService
 from e_organon.services.doc.ocr import OcrDocService
+from e_organon.services.doc.redact import RedactDocService
 from e_organon.services.doc.render import RenderDocService
 from e_organon.services.doc.sign import SignDocService
 from e_organon.services.doc.signature import SignatureDocService
@@ -99,6 +100,7 @@ async def lifespan(app: Litestar) -> AsyncGenerator[None]:
         folders=(st.ORGANON_DATA / "doc" / "templates", TEMPLATES),
         max_pages=st.ORGANON_MAX_PAGES,
     )
+    doc.redact = RedactDocService(found.redact, files, artifacts)
     image = system.services.image
     image.cutout = CutoutImageService(found.cutout, files, artifacts, max_pixels=st.ORGANON_MAX_PIXELS)
     doc.signature = SignatureDocService(image.cutout, doc.stamp)

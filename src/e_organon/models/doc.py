@@ -8,6 +8,7 @@ from typing import Annotated, Any
 import msgspec
 
 from e_organon.ports.pdf import PdfField
+from e_organon.ports.redact import RedactBox
 
 PAGE = Annotated[int, msgspec.Meta(ge=0)]
 DPI = Annotated[int, msgspec.Meta(ge=36, le=600)]
@@ -216,3 +217,34 @@ class ComposeIn(msgspec.Struct, frozen=True, kw_only=True):
 
     template: str
     data: dict[str, Any] = msgspec.field(default_factory=dict)
+
+
+##### REDACT #####
+TERM = Annotated[str, msgspec.Meta(min_length=1)]
+
+
+class RedactIn(msgspec.Struct, frozen=True, kw_only=True):
+    """`path`: the PDF. `terms`: texts to remove from its pages, literal (case ignored; a blank matches any run of white
+    space, a line break too) or, with `regex`, regular expressions. `boxes`: areas to remove, as `doc/stamp`'s box (a `page`
+    from 0, `x`, `y`, `width`, `height` in points from the displayed page's bottom-left). `pages`: where `terms` are looked
+    for, from 0 (all when empty). One of `terms` or `boxes` at least."""
+
+    path: str
+    terms: list[TERM] = msgspec.field(default_factory=list)
+    regex: bool = False
+    boxes: list[RedactBox] = msgspec.field(default_factory=list)
+    pages: list[PAGE] = msgspec.field(default_factory=list)
+
+    def __post_init__(self) -> None:
+        match (self.terms, self.boxes):
+            case ([], []):
+                msg = "give terms or boxes to redact, one of the two at least"
+                raise ValueError(msg)
+
+
+class RedactOut(msgspec.Struct, frozen=True, kw_only=True):
+    """The redacted copy: where it is, how big, and how many strikes it took (a text match each, a box each)."""
+
+    path: str
+    size: int
+    count: int
