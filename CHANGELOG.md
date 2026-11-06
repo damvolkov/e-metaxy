@@ -2,6 +2,13 @@
 
 ## [Unreleased]
 
+### Fixed
+- **The image says its real version**: the build context has no `.git`, so uv-dynamic-versioning stamped 0.0.0 and
+  the OpenAPI document said so. The release passes the tag's version as `VERSION`, the Dockerfile hands it to
+  `UV_DYNAMIC_VERSIONING_BYPASS`. And the semver image tag was never pushed (`:0.8.0` not found): under
+  `workflow_dispatch` there is no tag ref, so `docker/metadata-action` now gets the tag as its value. Local check:
+  `--build-arg VERSION=9.9.9` → `importlib.metadata.version("e-organon")` is 9.9.9.
+
 ### Security
 - **`doc/compose` is a sandbox** (TODO_doc follow-up): each compile runs in its own process with a dead proxy, no `HOME` and a 2 GiB
   address-space ceiling, stopped after `COMPOSE_TIMEOUT` (default 5 s) from outside — a thread cannot be killed — and its PDF held to
